@@ -41,6 +41,7 @@ async function main(rawArgv) {
         "auth logout",
         "whoami",
         "usage quota",
+        "credits methods",
         "credits packs list",
         "credits quote",
         "credits buy",
@@ -335,6 +336,32 @@ async function quota(argv) {
 
 async function credits(argv) {
   const [subcommand, ...rest] = argv;
+  if (subcommand === "methods") {
+    const args = parseArgs(rest);
+    const unknownFlags = [...args.flags.keys()].filter(
+      (flag) => !["json", "api-base-url"].includes(flag),
+    );
+    if (!flagBool(args, "json")) {
+      return invalid(
+        "image-skill credits methods",
+        "credits methods requires --json",
+      );
+    }
+    if (args.positionals.length > 0 || unknownFlags.length > 0) {
+      return invalid(
+        "image-skill credits methods",
+        unknownFlags.length > 0
+          ? `unsupported flags for credits methods: ${unknownFlags.map((flag) => `--${flag}`).join(", ")}`
+          : "credits methods does not accept positional arguments",
+      );
+    }
+    return apiRequest({
+      command: "image-skill credits methods",
+      method: "GET",
+      apiBaseUrl: apiBase(args),
+      path: "/v1/payment-methods",
+    });
+  }
   if (subcommand === "packs") {
     const [packsSubcommand, ...packsRest] = rest;
     if (packsSubcommand !== "list") {
@@ -483,7 +510,7 @@ async function credits(argv) {
   }
   return invalid(
     "image-skill credits",
-    "credits requires packs, quote, buy, status, or fake-purchase",
+    "credits requires methods, packs, quote, buy, status, or fake-purchase",
   );
 }
 

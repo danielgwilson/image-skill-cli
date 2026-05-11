@@ -109,6 +109,58 @@ curl -sS https://api.image-skill.com/v1/quota \
   -H "authorization: Bearer $IMAGE_SKILL_TOKEN"
 ```
 
+### `image-skill credits methods`
+
+Machine-readable payment rail discovery. Use this before quoting or buying so
+agents can tell which rails are available, whether live money can move, whether
+browser/human action is required, and which command to try next.
+
+```bash
+image-skill credits methods --json
+```
+
+Minimum success data shape:
+
+```json
+{
+  "contract_version": "image-skill.payment-methods.v1",
+  "credit_unit_cents": 1,
+  "currency": "USD",
+  "quote_endpoint": "/v1/credit-quotes",
+  "packs_endpoint": "/v1/credit-packs",
+  "status_endpoint": "/v1/credit-purchases/status",
+  "methods": [
+    {
+      "method_id": "fake",
+      "available": true,
+      "live_money": false,
+      "buyer_modes": ["agent_only", "hybrid", "human_only"],
+      "requires_browser": false,
+      "purchase_endpoint": "/v1/credit-purchases"
+    },
+    {
+      "method_id": "stripe_checkout",
+      "available": true,
+      "live_money": true,
+      "buyer_modes": ["hybrid", "human_only"],
+      "requires_browser": true,
+      "default_pack_id": "starter-500",
+      "purchase_endpoint": "/v1/credit-purchases/stripe-checkout-sessions"
+    }
+  ]
+}
+```
+
+`available` is environment-dependent. `available:false` means the rail is known
+but not currently usable in the queried environment; read `unavailable_reason`
+and `recovery`.
+
+Hosted API equivalent:
+
+```bash
+curl -sS https://api.image-skill.com/v1/payment-methods
+```
+
 ### `image-skill credits packs list`
 
 Lists the recommended Image Skill credit packs for Stripe Checkout. Packs are
@@ -819,7 +871,7 @@ example, `BUDGET_REQUIRES_CONFIRMATION` returns
 `credits status`, `credits fake-purchase`, `create`, `activity list`,
 `activity show`, and `feedback create` accept `--token-stdin` for stdin-based
 secret handoff.
-`credits packs list` does not require auth.
+`credits methods` and `credits packs list` do not require auth.
 
 Feedback should avoid raw prompts, provider keys, generated image bytes, source
 image bytes, and private user data.

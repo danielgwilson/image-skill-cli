@@ -81,6 +81,7 @@ path to meaningful usage.
 Credit quote and buy flow:
 
 ```bash
+image-skill credits methods --json
 image-skill credits packs list --json
 image-skill credits quote \
   --pack starter-500 \
@@ -102,7 +103,10 @@ image-skill credits fake-purchase \
 This is the agent-facing precursor to future MPP, Stripe, wallet, or
 delegated-card adapters. Packs are the default Stripe Checkout UX; exact
 `--credits` quotes remain available when an agent already knows the required
-budget. `credits buy --provider stripe` returns a
+budget. `credits methods --json` tells agents which rails are currently
+available, which buyer modes they support, and whether browser/human action is
+required before an agent tries to quote or buy. `credits buy --provider stripe`
+returns a
 Stripe-hosted `checkout_url` for a `stripe_checkout` quote and does not grant
 credits until verified webhook fulfillment succeeds. `credits fake-purchase`
 returns `live_money:false`, moves no live money, accepts no payment credential,
@@ -293,6 +297,8 @@ closed if durable hosted feedback storage is unavailable.
 
 - Check `usage quota --json` before costly workflows. `quota --json` remains a
   compatibility alias.
+- Use `credits methods --json` to inspect payment rail availability, buyer
+  modes, limits, and recovery commands before quoting or buying.
 - Use `credits packs list --json` to inspect recommended live-money packs.
 - Use `credits quote --pack PACK_ID --payment-method stripe_checkout --json`
   for the default Stripe Checkout path.
