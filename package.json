@@ -1,11 +1,16 @@
 {
   "name": "image-skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Thin hosted CLI for Image Skill, a creative runtime for agents.",
   "type": "module",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielgwilson/image-skill-cli.git"
+  },
+  "homepage": "https://image-skill.com",
   "bin": {
-    "image-skill": "./bin/image-skill.mjs"
+    "image-skill": "bin/image-skill.mjs"
   },
   "files": [
     "bin",

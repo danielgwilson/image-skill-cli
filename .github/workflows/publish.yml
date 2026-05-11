@@ -1,0 +1,32 @@
+name: Publish image-skill
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Verify package shape
+        run: |
+          npm pack --dry-run --json
+          node bin/image-skill.mjs version --json
+          node bin/image-skill.mjs doctor --json
+
+      - name: Publish
+        run: npm publish --access public
