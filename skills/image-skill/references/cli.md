@@ -819,15 +819,22 @@ Activity `type` values are stable public contract values. Do not infer new
 event names from provider responses or telemetry logs; use only the registry
 below.
 
-| Event type                         | Subject    | Operation   | Emitted when                                                     | Stable links                                            |
-| ---------------------------------- | ---------- | ----------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
-| `job.completed`                    | `job`      | create/edit | A hosted create or edit job reaches a terminal state.            | `job_id`, `asset_ids`, `usage_event_id`                 |
-| `asset.created`                    | `asset`    | create/edit | A hosted create or edit produces an output asset.                | `job_id`, `asset_ids`, `usage_event_id`                 |
-| `asset.uploaded`                   | `asset`    | upload      | A public edit workflow uploads or imports input media.           | `job_id`, `asset_ids`, `usage_event_id`                 |
-| `usage.credit_consumed`            | `usage`    | usage       | A creative operation records a preview-credit entry.             | `job_id`, `usage_event_id`                              |
-| `feedback.created`                 | `feedback` | feedback    | Hosted agent feedback is accepted into product memory.           | `feedback_id`                                           |
-| `payment.checkout_session.created` | `payment`  | payment     | A Stripe Checkout session is created and awaits external action. | `quote_id`, `payment_attempt_id`, `checkout_session_id` |
-| `credits.payment_backed_granted`   | `credit`   | credits     | Verified payment or fake-payment proof grants paid credits.      | `quote_id`, `receipt_id`, `credit_event_id`             |
+| Event type                         | Subject    | Operation   | Emitted when                                                      | Stable links                                            |
+| ---------------------------------- | ---------- | ----------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
+| `job.completed`                    | `job`      | create/edit | A hosted create or edit job reaches a terminal state.             | `job_id`, `asset_ids`, `usage_event_id`                 |
+| `asset.created`                    | `asset`    | create/edit | A hosted create or edit produces an output asset.                 | `job_id`, `asset_ids`, `usage_event_id`                 |
+| `asset.uploaded`                   | `asset`    | upload      | A public edit workflow uploads or imports input media.            | `job_id`, `asset_ids`, `usage_event_id`                 |
+| `usage.credit_consumed`            | `usage`    | usage       | A creative operation records a preview-credit entry.              | `job_id`, `usage_event_id`                              |
+| `feedback.created`                 | `feedback` | feedback    | Hosted agent feedback is accepted into product memory.            | `feedback_id`                                           |
+| `feedback.github_queue.processed`  | `feedback` | feedback    | Feedback is processed by the GitHub implementation queue handoff. | `feedback_id`                                           |
+| `payment.checkout_session.created` | `payment`  | payment     | A Stripe Checkout session is created and awaits external action.  | `quote_id`, `payment_attempt_id`, `checkout_session_id` |
+| `credits.payment_backed_granted`   | `credit`   | credits     | Verified payment or fake-payment proof grants paid credits.       | `quote_id`, `receipt_id`, `credit_event_id`             |
+
+`feedback.github_queue.processed` includes `details.github_queue` with
+machine-readable lifecycle fields such as `state`, `reason`, `issue_urls`,
+`issue_numbers`, `mode`, and `github_mutation`. Agents should use it to learn
+whether submitted feedback was promoted, skipped, deduped, blocked, or already
+mirrored without reading private repository artifacts.
 
 If a response includes an event type outside this registry, treat it as a
 contract bug and submit `image-skill feedback create --json` with the event ID

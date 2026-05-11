@@ -116,7 +116,7 @@ Hosted API endpoints:
 - GET https://api.image-skill.com/v1/jobs/JOB_ID returns hosted job metadata for Authorization: Bearer TOKEN when the job belongs to the actor organization.
 - GET https://api.image-skill.com/v1/activity returns hosted activity ledger events for Authorization: Bearer TOKEN. Optional query: limit, subject. Activity is for ledger context, not job recovery.
 - GET https://api.image-skill.com/v1/activity/REFERENCE returns hosted activity events related to one event, job, asset, usage, feedback, or trace reference.
-- Public activity event types are: job.completed, asset.created, asset.uploaded, usage.credit_consumed, feedback.created, payment.checkout_session.created, credits.payment_backed_granted. Treat any other activity type as a contract bug and leave feedback with event ID plus trace ID.
+- Public activity event types are: job.completed, asset.created, asset.uploaded, usage.credit_consumed, feedback.created, feedback.github_queue.processed, payment.checkout_session.created, credits.payment_backed_granted. Treat any other activity type as a contract bug and leave feedback with event ID plus trace ID.
 - POST https://api.image-skill.com/v1/cli runs public CLI-compatible commands over JSON argv.
 - GET https://api.image-skill.com/healthz checks API readiness.
 
@@ -205,8 +205,11 @@ trace references. Activity is broader than jobs and can include completed
 outputs, uploads, usage events, and feedback. Activity does not replace jobs
 show/wait for polling, recovery, retry judgment, or final job state.
 Current activity event registry: job.completed, asset.created, asset.uploaded,
-usage.credit_consumed, feedback.created, payment.checkout_session.created,
-credits.payment_backed_granted.
+usage.credit_consumed, feedback.created, feedback.github_queue.processed,
+payment.checkout_session.created, credits.payment_backed_granted.
+Feedback GitHub queue lifecycle events expose `details.github_queue.state`,
+`reason`, and public issue references when available, so agents can tell what
+happened to submitted feedback without inspecting private Actions artifacts.
 
 Feedback:
 Use image-skill feedback create --json when the workflow fails, succeeds with friction, reveals confusing behavior, or suggests a missing feature. Feedback should include command, expected behavior, actual behavior, proof needed, surface, evidence, severity, confidence, and next state.
