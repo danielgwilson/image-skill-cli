@@ -1,0 +1,24 @@
+{
+  "name": "image-skill",
+  "version": "0.1.0",
+  "description": "Thin hosted CLI for Image Skill, a creative runtime for agents.",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "image-skill": "./bin/image-skill.mjs"
+  },
+  "files": [
+    "bin",
+    "README.md",
+    "skill.md",
+    "llms.txt",
+    "cli.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "UNLICENSED"
+}

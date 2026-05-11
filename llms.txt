@@ -1,0 +1,221 @@
+# Image Skill LLM Contract
+
+Status: preview hosted-product contract
+Canonical homepage: https://image-skill.com
+Canonical skill URL: https://image-skill.com/skill.md
+Canonical LLM URL: https://image-skill.com/llms.txt
+Canonical CLI URL: https://image-skill.com/cli.md
+Canonical hosted API URL: https://api.image-skill.com
+
+Purpose:
+Image Skill is a CLI-first hosted creative runtime for agents. Agents use it to create, edit, inspect, iterate on, and reuse generated images through a thin CLI/client and hosted API.
+
+Product thesis:
+Created by agents, for agents to create.
+
+Capability-preserving pillar:
+Do not handicap agent capability by reducing rich model/provider controls into
+coarse universal categories. Image Skill standardizes common controls for
+legibility and exposes introspection for model-specific controls. Agents should
+use capabilities, model parameter schemas, explicit budget/latency/output
+constraints, and validated model_parameters rather than guessing or treating
+quality tiers as a universal model abstraction.
+
+Primary public surfaces:
+- Homepage: https://image-skill.com
+- Skill: https://image-skill.com/skill.md
+- LLM contract: https://image-skill.com/llms.txt
+- CLI contract: https://image-skill.com/cli.md
+- Thin CLI/client: image-skill
+- Hosted API: https://api.image-skill.com for generation, editing, jobs, activity, storage, telemetry, identity, quota, and feedback
+- Hosted artifacts: prefer Image Skill-owned asset URLs such as https://media.image-skill.com/... when returned in assets[].url
+
+Actor types:
+- human: sponsor, admin, billing, or claim actor
+- agent: durable agent identity
+- session: ephemeral agent run
+- system: service automation
+
+Claim states:
+- unclaimed: restricted agent identity, tiny quota, low-risk workflows only
+- payment_backed_unclaimed: future capped paid state with receipts but no org/admin authority
+- claimed: human sponsor attached, scoped grants available
+- revoked: token or agent disabled
+
+First-run flow:
+1. image-skill doctor --json
+2. image-skill signup --agent --human-email EMAIL --agent-name NAME --runtime RUNTIME --save --json. The preview hosted signup path currently requires human_email; future payment-backed and agent-contact-backed signup paths are planned. Use --show-token only when the runtime has a separate secret store and needs the raw token once.
+3. Reuse the saved CLI auth for later commands, or store the returned data.token from --show-token in the agent runtime secret store and expose it as IMAGE_SKILL_TOKEN.
+4. image-skill whoami --json
+5. image-skill usage quota --json
+5-credit-note. One Image Skill credit is $0.01. Credit quotes grant prepaid value units; create/edit operations debit model-priced credits reported as cost.credit_pricing. Starter preview currently gives bounded free-preview credits plus a two-job daily cap.
+5a. image-skill credits packs list --json to inspect recommended live-money packs.
+5b. image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key KEY --json for the default Stripe Checkout top-up path. Use --credits CREDITS instead of --pack only when the required exact budget is already known.
+5c. image-skill credits buy --provider stripe --quote-id QUOTE_ID --idempotency-key KEY --json when the agent has a stripe_checkout quote and needs a Stripe-hosted checkout_url. Credits are granted only after verified Stripe webhook fulfillment succeeds.
+5d. image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json after buy or checkout completion to read durable payment state, receipt, credit_event, limits, and retry guidance without inferring from quota text.
+5e. image-skill credits quote --credits 10 --json and image-skill credits fake-purchase --quote-id QUOTE_ID --idempotency-key KEY --json only for fake/test credit-ledger proof. This moves no live money, accepts no payment credential, and returns live_money:false.
+6. image-skill create --dry-run --prompt PROMPT --json for zero-cost planning.
+7. image-skill models list --json, then image-skill models show MODEL_ID --json to inspect available creative models, operations, media inputs/outputs, model parameters, fixed controls, cost/latency class, safety behavior, and migration hints.
+8. image-skill create --prompt PROMPT --intent explore --max-estimated-usd-per-image 0.05 --json for the first bounded free-preview operation when quota allows.
+9. image-skill jobs show JOB_ID --json to recover status, cost, safety, timestamps, and final assets.
+10. image-skill assets get ASSET_URL_OR_ID --output ./result.png --json to fetch the generated asset without repeating provider work.
+11. image-skill activity list --subject JOB_ID --json to find the ledger event, trace, usage, and asset links to cite.
+12. image-skill edit --input ASSET_URL_OR_ID --prompt PROMPT --accept-unknown-cost --json for the second bounded free-preview operation when the task needs an edit.
+13. Leave image-skill feedback create --json if the first-run flow is confusing, blocked, or missing an affordance.
+14. image-skill activity show FEEDBACK_ID --json to confirm the feedback entered the hosted ledger.
+
+Core commands:
+- image-skill doctor --json
+- image-skill signup --agent --human-email EMAIL --agent-name NAME --runtime RUNTIME --save --json
+- image-skill whoami --json
+- image-skill usage quota --json
+- image-skill quota --json (compatibility alias)
+- image-skill credits packs list --json
+- image-skill credits quote --pack PACK_ID --payment-method fake|stripe_checkout --idempotency-key KEY --json
+- image-skill credits quote --credits CREDITS --payment-method fake|stripe_checkout --idempotency-key KEY --json
+- image-skill credits buy --provider stripe --quote-id QUOTE_ID --idempotency-key KEY --json
+- image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json
+- image-skill credits fake-purchase --quote-id QUOTE_ID --idempotency-key KEY --json
+- image-skill capabilities --json
+- image-skill capabilities list --json
+- image-skill capabilities show CAPABILITY_ID --json
+- image-skill models --json
+- image-skill models list --json
+- image-skill models show MODEL_ID --json
+- image-skill create --prompt PROMPT --json
+- image-skill create --dry-run --prompt PROMPT --json
+- image-skill upload PATH_OR_URL --json
+- image-skill edit --input ASSET_ID_OR_PATH_OR_URL --prompt PROMPT --accept-unknown-cost --json
+- image-skill assets show ASSET_ID_OR_URL --json
+- image-skill assets get ASSET_ID_OR_URL --output PATH --json
+- image-skill jobs show JOB_ID --json
+- image-skill jobs wait JOB_ID --timeout-ms 30000 --poll-interval-ms 1000 --json
+- image-skill activity list --limit 20 --json
+- image-skill activity list --subject JOB_OR_ASSET_OR_FEEDBACK_OR_TRACE --json
+- image-skill activity show EVENT_OR_JOB_OR_ASSET_OR_FEEDBACK_OR_TRACE --json
+- image-skill feedback create --type TYPE --title TITLE --body BODY --command COMMAND --expected EXPECTED --actual ACTUAL --proof-needed PROOF --surface cli,docs --evidence trace:TRACE_ID --severity medium --confidence high --next-state watch --json
+
+Hosted API endpoints:
+- POST https://api.image-skill.com/v1/agent-signups creates or rotates a restricted unclaimed agent token. The response returns the token once as data.token. Store it in the agent runtime secret store; never put it in prompts, logs, issue text, or feedback.
+- GET https://api.image-skill.com/v1/whoami returns durable hosted identity for Authorization: Bearer TOKEN.
+- GET https://api.image-skill.com/v1/quota returns durable hosted quota for Authorization: Bearer TOKEN.
+- GET https://api.image-skill.com/v1/credit-packs returns the public pack catalog. Recommended live-money packs include starter-500, builder-2000, and studio-5000. Packs are the default Stripe Checkout UX; exact quotes remain supported for agents that already know the required credit budget.
+- POST https://api.image-skill.com/v1/credit-quotes returns a fake/test or stripe_checkout credit quote for Authorization: Bearer TOKEN. Request JSON: either credits or pack_id, optional payment_method, idempotency_key. Response includes quote_id, credits, price_amount_cents, currency, accepted_payment_method, pack_id, pack, and live_money. One credit equals $0.01, so price_amount_cents equals credits. This does not grant credits.
+- POST https://api.image-skill.com/v1/credit-purchases/stripe-checkout-sessions creates a Stripe Checkout Session for a stripe_checkout quote. Request JSON: quote_id, idempotency_key. Response includes state: action_required, payment_attempt_id, checkout_session_id, checkout_url, accepted_payment_method: stripe_checkout, and next.human_action: open_checkout_url. This does not grant credits; verified Stripe webhook fulfillment grants paid credits exactly once.
+- GET https://api.image-skill.com/v1/credit-purchases/status returns durable payment state for Authorization: Bearer TOKEN. Query with exactly one of quote_id, payment_attempt_id, checkout_session_id, or receipt_id. Response includes state, quote, payment_attempt, receipt, credit_event, provider_event, limits, and next.
+- POST https://api.image-skill.com/v1/credit-purchases confirms a fake/test quote for Authorization: Bearer TOKEN. Request JSON: quote_id, idempotency_key. Response includes receipt_id, credit_event_id, credits_granted, accepted_payment_method: fake, balance_after, and live_money:false. This grants bounded payment-backed credits without moving live money.
+- GET https://api.image-skill.com/v1/models returns the public model registry. GET https://api.image-skill.com/v1/models/MODEL_ID returns one model's capability-preserving schema.
+- GET https://api.image-skill.com/v1/capabilities returns the hosted capability catalog, normalized controls, model-parameter schemas, auth requirements, and deprecation notices.
+- POST https://api.image-skill.com/v1/create creates or dry-runs one bounded free-preview image when Authorization: Bearer TOKEN has quota and the relevant preview grant. Request JSON: prompt, optional model, optional intent, optional aspect_ratio, optional output constraints, optional model_parameters, optional dry_run, optional max_estimated_usd_per_image, optional max_usd, optional accept_unknown_cost. Success responses include cost.credit_pricing; agents should read credits_required instead of assuming one credit per operation.
+- POST https://api.image-skill.com/v1/upload accepts client-normalized base64 raster image bytes when Authorization: Bearer TOKEN has asset.upload. Request JSON: source_kind, filename, remote_origin, mime_type, content_length, sha256, bytes_base64. Do not send local paths, full remote URLs, prompts, tokens, or provider credentials.
+- POST https://api.image-skill.com/v1/edit edits an Image Skill-owned input asset when Authorization: Bearer TOKEN has quota and the relevant preview grant. Request JSON: input_asset_id, prompt, optional model, optional intent, optional aspect_ratio, optional output constraints, optional model_parameters, optional max_estimated_usd_per_image, optional max_usd, optional accept_unknown_cost. The public CLI uploads local paths or external URLs first; do not send source bytes or external URLs to /v1/edit.
+- GET https://api.image-skill.com/v1/assets/ASSET_ID returns hosted asset metadata for Authorization: Bearer TOKEN when the asset belongs to the actor organization.
+- GET https://api.image-skill.com/v1/jobs/JOB_ID returns hosted job metadata for Authorization: Bearer TOKEN when the job belongs to the actor organization.
+- GET https://api.image-skill.com/v1/activity returns hosted activity ledger events for Authorization: Bearer TOKEN. Optional query: limit, subject. Activity is for ledger context, not job recovery.
+- GET https://api.image-skill.com/v1/activity/REFERENCE returns hosted activity events related to one event, job, asset, usage, feedback, or trace reference.
+- Public activity event types are: job.completed, asset.created, asset.uploaded, usage.credit_consumed, feedback.created, payment.checkout_session.created, credits.payment_backed_granted. Treat any other activity type as a contract bug and leave feedback with event ID plus trace ID.
+- POST https://api.image-skill.com/v1/cli runs public CLI-compatible commands over JSON argv.
+- GET https://api.image-skill.com/healthz checks API readiness.
+
+Expected JSON envelope:
+{
+  "ok": true,
+  "command": "string",
+  "trace_id": "trace_...",
+  "actor": {
+    "actor_type": "agent",
+    "actor_id": "agt_...",
+    "organization_id": "org_...",
+    "claim_state": "unclaimed"
+  },
+  "data": {},
+  "warnings": [],
+  "error": null
+}
+
+Expected error envelope:
+{
+  "ok": false,
+  "command": "string",
+  "trace_id": "trace_...",
+  "actor": null,
+  "data": null,
+  "warnings": [],
+  "error": {
+    "code": "string",
+    "message": "redacted human-readable message",
+    "retryable": false
+  }
+}
+
+Standard exit codes:
+- 0 success
+- 1 generic failure
+- 2 invalid arguments
+- 3 auth required or invalid token
+- 4 capability denied
+- 5 quota exceeded
+- 6 content policy denied
+- 7 provider failure
+- 8 timeout
+- 9 filesystem failure
+
+Unclaimed agents may:
+- inspect docs, capabilities, models, identity, and quota
+- request human claim
+- create product feedback
+- inspect fake/test or Stripe Checkout credit quotes, create Stripe-hosted checkout sessions for stripe_checkout quotes, and, when explicitly asked to exercise the preview credit ledger, confirm fake/test quotes
+- run only bounded free-preview workflows when quota, artifact storage, budget guard, and policy allow
+
+Unclaimed agents may not:
+- run high-cost or bulk jobs
+- publish publicly
+- create arbitrary webhooks
+- import provider keys
+- change billing plans, saved payment methods, team settings, or organization settings
+- access assets outside their organization
+- disable telemetry or audit logging
+- send card data, wallet secrets, provider receipts, Stripe secrets, MPP tokens, SPTs, or any payment credential to Image Skill; Stripe payment details must be entered only on Stripe-hosted checkout pages
+
+Credits:
+One Image Skill credit is $0.01. Use image-skill credits packs list --json to inspect recommended Stripe Checkout packs. Use image-skill credits quote --pack PACK_ID --payment-method stripe_checkout --json for the default live-money top-up path. Use image-skill credits quote --credits CREDITS --json for exact bounded custom top-ups when the required budget is already known. The default payment_method is fake. Use image-skill credits buy --provider stripe --json to create a hosted Stripe Checkout Session for a stripe_checkout quote; this returns checkout_url and does not grant credits. Use image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json after buy and after checkout completion to read state, receipt, credit_event, limits, and retry guidance. Use image-skill credits fake-purchase --json only to exercise the quote, receipt, credit-ledger, and activity-audit contract before live settlement rails are enabled. Create/edit debit model-priced credits after provider success; inspect models show and operation cost.credit_pricing for credits_required and pricing_confidence. Credits buy and fake-purchase require explicit --idempotency-key. Never send payment credentials to Image Skill; Stripe collects payment details on Stripe-hosted pages. Public request fields are credits, pack_id, payment_method, quote_id, status reference IDs, and idempotency_key.
+
+Telemetry:
+- command or endpoint name
+- CLI, skill, and API version
+- actor class
+- capability id and, when explicitly authorized, model/provider provenance
+- status
+- duration
+- cost estimate
+- output count
+- error class
+- retry state
+- job ID or trace ID
+
+Telemetry must not include raw prompts, source images, generated images, provider keys, tokens, or sensitive payloads by default.
+
+Activity:
+Use image-skill activity list/show when an agent needs recent ledger context,
+auditable event IDs, feedback confirmation, usage links, job/asset links, or
+trace references. Activity is broader than jobs and can include completed
+outputs, uploads, usage events, and feedback. Activity does not replace jobs
+show/wait for polling, recovery, retry judgment, or final job state.
+Current activity event registry: job.completed, asset.created, asset.uploaded,
+usage.credit_consumed, feedback.created, payment.checkout_session.created,
+credits.payment_backed_granted.
+
+Feedback:
+Use image-skill feedback create --json when the workflow fails, succeeds with friction, reveals confusing behavior, or suggests a missing feature. Feedback should include command, expected behavior, actual behavior, proof needed, surface, evidence, severity, confidence, and next state.
+
+Artifact retry rule:
+If create returns ARTIFACT_STORAGE_WRITE_FAILED, do not retry the whole create blindly. The provider may have already generated an image. Leave feedback or wait for storage/job repair.
+
+Asset fetch rule:
+Use image-skill assets get on Image Skill-owned URLs or asset ids. Do not use Image Skill as a generic external URL downloader.
+
+Reference:
+- https://image-skill.com
+- https://image-skill.com/skill.md
+- https://image-skill.com/cli.md
+- https://image-skill.com/llms.txt
