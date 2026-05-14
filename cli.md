@@ -235,6 +235,11 @@ image-skill credits quote \
   --json
 ```
 
+Idempotency keys are scoped to the current hosted agent identity and exact
+quote request. Reusing a key with different credits, pack, or payment method
+returns a structured `error.recovery.suggested_command` with a fresh
+idempotency key for the attempted quote terms.
+
 For Stripe Checkout terms, prefer a named pack:
 
 ```bash
