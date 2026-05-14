@@ -24,6 +24,8 @@ image-skill credits buy --provider stripe --quote-id quote_... --idempotency-key
 image-skill create --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --accept-unknown-cost --json
 ```
 
+The public CLI supports Node.js 20 and newer.
+
 Agent-facing contracts:
 
 - [skills/image-skill/SKILL.md](./skills/image-skill/SKILL.md)
