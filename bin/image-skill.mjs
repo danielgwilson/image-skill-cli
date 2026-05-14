@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.3";
+const VERSION = "0.1.4";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_CONFIG_PATH = join(
   process.env.XDG_CONFIG_HOME ?? join(os.homedir(), ".config"),
@@ -782,6 +782,7 @@ async function assets(argv) {
     if (!downloaded.ok) {
       return downloaded.result;
     }
+    shown.envelope.command = "image-skill assets get";
     shown.envelope.data = {
       request: {
         reference,
