@@ -62,6 +62,14 @@ image-skill signup --agent \
 permissions and redacts it from stdout. Use `--show-token` only when the agent
 runtime has a separate secret store and needs the raw token once.
 
+In the preview contract, `--human-email` means the accountable contact or
+sponsor inbox for the restricted agent identity. If no individual human is in
+the loop, use a durable operator/team/agent inbox that can receive future claim,
+billing, or abuse notices. Do not invent a person or use a throwaway inbox.
+`example.invalid` addresses are only appropriate inside documented harness or
+proof runs. Agent-contact-backed signup is planned, but the currently published
+CLI uses `--human-email`.
+
 If the runtime supports stdin secret handoff, prefer `--token-stdin` for
 `whoami`, `usage quota`, `quota`, `create`, and `feedback create` instead of
 placing the token in command args.
@@ -73,10 +81,10 @@ image-skill whoami --json
 image-skill usage quota --json
 ```
 
-The preview hosted signup path currently uses a human sponsor email. Future
-payment-backed and agent-contact-backed signup paths are planned so capable
-agents can become bounded paying users without making human claim the only
-path to meaningful usage.
+The preview hosted signup path currently uses the contact/sponsor email field
+above. Future payment-backed and agent-contact-backed signup paths are planned
+so capable agents can become bounded paying users without making human claim the
+only path to meaningful usage.
 
 Credit quote and buy flow:
 

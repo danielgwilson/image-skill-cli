@@ -7,13 +7,17 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_CONFIG_PATH = join(
   process.env.XDG_CONFIG_HOME ?? join(os.homedir(), ".config"),
   "image-skill",
   "config.json",
 );
+const SIGNUP_SUGGESTED_COMMAND =
+  "image-skill signup --agent --human-email CONTACT_OR_SPONSOR_EMAIL --agent-name NAME --runtime RUNTIME --save --json";
+const SIGNUP_CONTACT_GUIDANCE =
+  "Use --human-email for the accountable contact or sponsor inbox for this restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox.";
 
 const argv = process.argv.slice(2);
 const result = await main(argv);
@@ -173,9 +177,17 @@ async function signup(argv) {
   const agentName = flagString(args, "agent-name");
   const runtime = flagString(args, "runtime");
   if (humanEmail === null || agentName === null || runtime === null) {
-    return invalid(
+    return failure(
       "image-skill signup",
-      "signup requires --human-email, --agent-name, and --runtime",
+      2,
+      "INVALID_ARGUMENTS",
+      `signup requires --human-email, --agent-name, and --runtime. ${SIGNUP_CONTACT_GUIDANCE}`,
+      false,
+      {
+        required_flags: ["--human-email", "--agent-name", "--runtime"],
+        suggested_command: SIGNUP_SUGGESTED_COMMAND,
+        docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
+      },
     );
   }
   const save = flagBool(args, "save");
@@ -204,8 +216,7 @@ async function signup(argv) {
         "signup --save requires a returned hosted token",
         true,
         {
-          suggested_command:
-            "image-skill signup --agent --human-email EMAIL --agent-name NAME --runtime RUNTIME --save --json",
+          suggested_command: SIGNUP_SUGGESTED_COMMAND,
           docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
         },
       );
@@ -1198,8 +1209,7 @@ async function resolveToken(args, options = {}) {
       "hosted command requires auth; run signup --save, set IMAGE_SKILL_TOKEN, or pass --token-stdin",
       false,
       {
-        suggested_command:
-          "image-skill signup --agent --human-email EMAIL --agent-name NAME --runtime RUNTIME --save --json",
+        suggested_command: SIGNUP_SUGGESTED_COMMAND,
         docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
       },
     ),
