@@ -44,7 +44,7 @@ Claim states:
 
 First-run flow:
 1. image-skill doctor --json
-2. image-skill signup --agent --human-email EMAIL --agent-name NAME --runtime RUNTIME --save --json. The preview hosted signup path currently requires human_email as the accountable contact or sponsor inbox for the restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox. example.invalid addresses are only appropriate inside documented harness or proof runs. Future payment-backed and agent-contact-backed signup paths are planned. Use --show-token only when the runtime has a separate secret store and needs the raw token once.
+2. image-skill signup --agent --agent-contact EMAIL --agent-name NAME --runtime RUNTIME --save --json. The preview hosted signup path uses --agent-contact as the accountable contact, sponsor, operator, or agent inbox for the restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox. example.invalid addresses are only appropriate inside documented harness or proof runs. --human-email remains accepted as a compatibility alias. Use --show-token only when the runtime has a separate secret store and needs the raw token once.
 3. Reuse the saved CLI auth for later commands, or store the returned data.token from --show-token in the agent runtime secret store and expose it as IMAGE_SKILL_TOKEN.
 4. image-skill whoami --json
 5. image-skill usage quota --json
@@ -67,7 +67,7 @@ First-run flow:
 
 Core commands:
 - image-skill doctor --json
-- image-skill signup --agent --human-email EMAIL --agent-name NAME --runtime RUNTIME --save --json
+- image-skill signup --agent --agent-contact EMAIL --agent-name NAME --runtime RUNTIME --save --json
 - image-skill whoami --json
 - image-skill usage quota --json
 - image-skill quota --json (compatibility alias)
@@ -98,7 +98,7 @@ Core commands:
 - image-skill feedback create --type TYPE --title TITLE --body BODY --command COMMAND --expected EXPECTED --actual ACTUAL --proof-needed PROOF --surface cli,docs --evidence trace:TRACE_ID --severity medium --confidence high --next-state watch --json
 
 Hosted API endpoints:
-- POST https://api.image-skill.com/v1/agent-signups creates or rotates a restricted unclaimed agent token. Request human_email is the preview contact/sponsor inbox, not a requirement that an autonomous agent stop until a specific human is present. The response returns the token once as data.token. Store it in the agent runtime secret store; never put it in prompts, logs, issue text, or feedback.
+- POST https://api.image-skill.com/v1/agent-signups creates or rotates a restricted unclaimed agent token. Raw API request human_email is the compatibility contact field; CLI agents should prefer --agent-contact. The contact is not a requirement that an autonomous agent stop until a specific human is present. The response returns the token once as data.token. Store it in the agent runtime secret store; never put it in prompts, logs, issue text, or feedback.
 - GET https://api.image-skill.com/v1/whoami returns durable hosted identity for Authorization: Bearer TOKEN.
 - GET https://api.image-skill.com/v1/quota returns durable hosted quota for Authorization: Bearer TOKEN.
 - GET https://api.image-skill.com/v1/payment-methods returns the no-auth payment rail catalog. It tells agents which rails are available, whether live money can move, buyer modes (agent_only, hybrid, human_only), browser requirements, limits, endpoint paths, and recovery commands.

@@ -54,7 +54,7 @@ Bootstraps restricted agent access.
 
 ```bash
 image-skill signup --agent \
-  --human-email human@example.com \
+  --agent-contact agent-ops@example.com \
   --agent-name creative-agent \
   --runtime codex \
   --save \
@@ -66,13 +66,14 @@ permissions and redacts it from stdout. Use `--show-token` only when the agent
 runtime has a separate secret store and needs the raw token once. Do not paste
 tokens into prompts, logs, issue text, or feedback.
 
-In this preview contract, `--human-email` is the accountable contact or sponsor
-inbox for the restricted agent identity. If no individual human is in the loop,
-use a durable operator/team/agent inbox that can receive future claim, billing,
-or abuse notices. Do not invent a person or use a throwaway inbox.
+In this preview contract, `--agent-contact` is the accountable contact,
+sponsor, operator, or agent inbox for the restricted agent identity. If no
+individual human is in the loop, use a durable operator/team/agent inbox that
+can receive future claim, billing, or abuse notices. Do not invent a person or
+use a throwaway inbox.
 `example.invalid` addresses are only appropriate inside documented harness or
-proof runs. Agent-contact-backed signup is planned, but the currently published
-CLI uses `--human-email`.
+proof runs. `--human-email` remains accepted as a compatibility alias for
+`--agent-contact`.
 
 For shell-based agent runtimes, store the token outside prompts and then expose
 it as:

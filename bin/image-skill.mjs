@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.5";
+const VERSION = "0.1.6";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_CONFIG_PATH = join(
   process.env.XDG_CONFIG_HOME ?? join(os.homedir(), ".config"),
@@ -15,9 +15,9 @@ const DEFAULT_CONFIG_PATH = join(
   "config.json",
 );
 const SIGNUP_SUGGESTED_COMMAND =
-  "image-skill signup --agent --human-email CONTACT_OR_SPONSOR_EMAIL --agent-name NAME --runtime RUNTIME --save --json";
+  "image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --save --json";
 const SIGNUP_CONTACT_GUIDANCE =
-  "Use --human-email for the accountable contact or sponsor inbox for this restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox.";
+  "Use --agent-contact for the accountable contact, sponsor, operator, or agent inbox for this restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox. --human-email remains a compatibility alias.";
 
 const argv = process.argv.slice(2);
 const result = await main(argv);
@@ -39,7 +39,7 @@ async function main(rawArgv) {
       docs_url: "https://image-skill.com/cli.md",
       commands: [
         "doctor",
-        "signup --agent --save",
+        "signup --agent --agent-contact --save",
         "auth status",
         "auth save",
         "auth logout",
@@ -173,18 +173,35 @@ async function signup(argv) {
   if (!flagBool(args, "agent")) {
     return invalid("image-skill signup", "signup currently requires --agent");
   }
-  const humanEmail = flagString(args, "human-email");
+  const contact = signupContact(args);
   const agentName = flagString(args, "agent-name");
   const runtime = flagString(args, "runtime");
-  if (humanEmail === null || agentName === null || runtime === null) {
+  if (!contact.ok) {
     return failure(
       "image-skill signup",
       2,
       "INVALID_ARGUMENTS",
-      `signup requires --human-email, --agent-name, and --runtime. ${SIGNUP_CONTACT_GUIDANCE}`,
+      contact.message,
       false,
       {
-        required_flags: ["--human-email", "--agent-name", "--runtime"],
+        required_flags: ["--agent-contact", "--agent-name", "--runtime"],
+        suggested_command: SIGNUP_SUGGESTED_COMMAND,
+        docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
+      },
+    );
+  }
+  if (contact.value === null || agentName === null || runtime === null) {
+    return failure(
+      "image-skill signup",
+      2,
+      "INVALID_ARGUMENTS",
+      `signup requires --agent-contact, --agent-name, and --runtime. ${SIGNUP_CONTACT_GUIDANCE}`,
+      false,
+      {
+        required_flags: ["--agent-contact", "--agent-name", "--runtime"],
+        accepted_aliases: {
+          "--human-email": "--agent-contact",
+        },
         suggested_command: SIGNUP_SUGGESTED_COMMAND,
         docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
       },
@@ -198,7 +215,7 @@ async function signup(argv) {
     apiBaseUrl: apiBase(args),
     path: "/v1/agent-signups",
     body: {
-      human_email: humanEmail,
+      human_email: contact.value,
       agent_name: agentName,
       runtime,
       return_token: save || showToken,
@@ -1278,6 +1295,49 @@ function flagString(args, name) {
 
 function flagBool(args, name) {
   return args.flags.has(name) && args.flags.get(name)?.at(-1) !== "false";
+}
+
+function signupContact(args) {
+  if (
+    args.flags.has("agent-contact") &&
+    flagString(args, "agent-contact") === null
+  ) {
+    return {
+      ok: false,
+      value: null,
+      message: "agent-contact requires a value",
+    };
+  }
+  if (
+    args.flags.has("human-email") &&
+    flagString(args, "human-email") === null
+  ) {
+    return {
+      ok: false,
+      value: null,
+      message: "human-email requires a value",
+    };
+  }
+  const agentContact = flagString(args, "agent-contact");
+  const humanEmail = flagString(args, "human-email");
+  if (agentContact !== null && humanEmail !== null) {
+    const normalizedAgentContact = agentContact.trim().toLowerCase();
+    const normalizedHumanEmail = humanEmail.trim().toLowerCase();
+    if (normalizedAgentContact !== normalizedHumanEmail) {
+      return {
+        ok: false,
+        value: null,
+        message:
+          "signup received both --agent-contact and --human-email with different values; use one durable contact inbox",
+      };
+    }
+    return { ok: true, value: normalizedAgentContact };
+  }
+  const value = agentContact ?? humanEmail;
+  return {
+    ok: true,
+    value: value === null ? null : value.trim().toLowerCase(),
+  };
 }
 
 function flagNumber(args, name) {

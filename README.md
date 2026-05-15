@@ -16,7 +16,7 @@ Install the executable CLI from npm:
 ```bash
 npm install -g image-skill
 image-skill doctor --json
-image-skill signup --agent --human-email CONTACT_OR_SPONSOR_EMAIL --agent-name creative-agent --runtime openclaw --save --json
+image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --save --json
 image-skill credits methods --json
 image-skill credits packs list --json
 image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key first-topup-001 --json
