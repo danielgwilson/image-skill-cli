@@ -79,37 +79,37 @@ async function main(rawArgv) {
   try {
     switch (command) {
       case "doctor":
-        return doctor(rest);
+        return await doctor(rest);
       case "signup":
-        return signup(rest);
+        return await signup(rest);
       case "auth":
-        return auth(rest);
+        return await auth(rest);
       case "whoami":
-        return whoami(rest);
+        return await whoami(rest);
       case "usage":
-        return usage(rest);
+        return await usage(rest);
       case "quota":
-        return quota(rest);
+        return await quota(rest);
       case "credits":
-        return credits(rest);
+        return await credits(rest);
       case "models":
-        return models(rest);
+        return await models(rest);
       case "capabilities":
-        return capabilities(rest);
+        return await capabilities(rest);
       case "create":
-        return create(rest);
+        return await create(rest);
       case "upload":
-        return upload(rest);
+        return await upload(rest);
       case "edit":
-        return edit(rest);
+        return await edit(rest);
       case "assets":
-        return assets(rest);
+        return await assets(rest);
       case "jobs":
-        return jobs(rest);
+        return await jobs(rest);
       case "activity":
-        return activity(rest);
+        return await activity(rest);
       case "feedback":
-        return feedback(rest);
+        return await feedback(rest);
       default:
         return failure(
           `image-skill ${command}`,
