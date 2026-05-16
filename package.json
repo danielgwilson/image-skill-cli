@@ -1,6 +1,6 @@
 {
   "name": "image-skill",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Thin hosted CLI for Image Skill, a creative runtime for agents.",
   "type": "module",
   "private": false,

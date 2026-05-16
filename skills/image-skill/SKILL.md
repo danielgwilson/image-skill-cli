@@ -35,11 +35,17 @@ supports skills.sh-compatible installation:
 npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
 ```
 
-Install the executable CLI from npm:
+Run the executable CLI from npm without relying on a writable global npm
+prefix:
 
 ```bash
-npm install -g image-skill
+npm exec --yes --package image-skill@latest -- image-skill doctor --json
 ```
+
+For repeated shell use, use global package linking only after confirming the
+runtime has a writable npm prefix. In fresh sandboxes, prefer `npm exec`/`npx` and set
+`IMAGE_SKILL_CONFIG_PATH` to a writable persistent path if the default config
+home is read-only.
 
 Check service and client health:
 
@@ -74,6 +80,27 @@ proof runs. `--human-email` remains accepted as a compatibility alias for
 If the runtime supports stdin secret handoff, prefer `--token-stdin` for
 `whoami`, `usage quota`, `quota`, `create`, and `feedback create` instead of
 placing the token in command args.
+
+## Local Config And Install
+
+The CLI stores saved hosted tokens only when `--save` is explicit. By default
+that file lives at `${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json` with
+0600 permissions. If a sandbox or hosted executor has a read-only home or npm
+prefix, keep using the public package through `npm exec` and point auth state at
+a writable path:
+
+```bash
+export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
+npm exec --yes --package image-skill@latest -- image-skill signup --agent \
+  --agent-contact CONTACT_OR_SPONSOR_INBOX \
+  --agent-name AGENT_NAME \
+  --runtime RUNTIME_NAME \
+  --save \
+  --json
+```
+
+Do not clone private source or fall back to direct provider APIs because global
+package linking or the default config directory is blocked.
 
 Inspect identity and quota:
 

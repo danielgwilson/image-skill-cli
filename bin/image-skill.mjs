@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.6";
+const VERSION = "0.1.7";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_CONFIG_PATH = join(
   process.env.XDG_CONFIG_HOME ?? join(os.homedir(), ".config"),
@@ -209,6 +209,12 @@ async function signup(argv) {
   }
   const save = flagBool(args, "save");
   const showToken = flagBool(args, "show-token");
+  if (save) {
+    const configReady = await assertConfigWritable("image-skill signup");
+    if (!configReady.ok) {
+      return configReady.result;
+    }
+  }
   const result = await apiRequest({
     command: "image-skill signup",
     method: "POST",
@@ -238,12 +244,16 @@ async function signup(argv) {
         },
       );
     }
-    await saveConfig({
-      api_base_url: apiBase(args),
-      token,
-      saved_at: new Date().toISOString(),
-      actor: result.envelope.actor ?? result.envelope.data?.actor ?? null,
-    });
+    try {
+      await saveConfig({
+        api_base_url: apiBase(args),
+        token,
+        saved_at: new Date().toISOString(),
+        actor: result.envelope.actor ?? result.envelope.data?.actor ?? null,
+      });
+    } catch (error) {
+      return configWriteFailure("image-skill signup", error);
+    }
     warnings.push(`saved hosted token to ${configPath()}`);
   }
 
@@ -302,12 +312,20 @@ async function auth(argv) {
     if (!token.ok) {
       return token.result;
     }
-    await saveConfig({
-      api_base_url: apiBase(args),
-      token: token.token,
-      saved_at: new Date().toISOString(),
-      actor: null,
-    });
+    const configReady = await assertConfigWritable("image-skill auth save");
+    if (!configReady.ok) {
+      return configReady.result;
+    }
+    try {
+      await saveConfig({
+        api_base_url: apiBase(args),
+        token: token.token,
+        saved_at: new Date().toISOString(),
+        actor: null,
+      });
+    } catch (error) {
+      return configWriteFailure("image-skill auth save", error);
+    }
     return success("image-skill auth save", {
       saved: true,
       config_path: configPath(),
@@ -1254,6 +1272,43 @@ async function saveConfig(value) {
     mode: 0o600,
   });
   await chmod(path, 0o600);
+}
+
+async function assertConfigWritable(command) {
+  const path = configPath();
+  const probePath = `${path}.write-test-${process.pid}-${randomBytes(4).toString("hex")}`;
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(probePath, "", { mode: 0o600 });
+    await chmod(probePath, 0o600);
+    await rm(probePath, { force: true });
+    return { ok: true };
+  } catch (error) {
+    await rm(probePath, { force: true }).catch(() => {});
+    return {
+      ok: false,
+      result: configWriteFailure(command, error),
+    };
+  }
+}
+
+function configWriteFailure(command, error) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : "public CLI could not write its local auth config";
+  return failure(
+    command,
+    9,
+    "PUBLIC_CLI_CONFIG_WRITE_FAILED",
+    `public CLI could not write auth config at ${configPath()}: ${message}`,
+    true,
+    {
+      suggested_command:
+        'IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json" image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --save --json',
+      docs_url: "https://image-skill.com/cli.md#local-config-and-install",
+    },
+  );
 }
 
 function parseArgs(argv) {

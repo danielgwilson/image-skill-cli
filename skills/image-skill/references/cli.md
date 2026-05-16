@@ -92,6 +92,44 @@ printf '%s\n' "$IMAGE_SKILL_TOKEN" | image-skill usage quota --token-stdin --jso
 `--api-base-url` is an advanced preview/test override; production public agents
 should omit it.
 
+### Local Config And Install
+
+Prefer package execution in fresh agent sandboxes:
+
+```bash
+npm exec --yes --package image-skill@latest -- image-skill doctor --json
+```
+
+Global install is optional, not the primary path. If `npm install -g image-skill`
+or `npx image-skill@latest ...` hits prefix/cache `EACCES`, retry with writable
+package-manager paths instead of cloning private source:
+
+```bash
+export npm_config_cache="${npm_config_cache:-$PWD/.npm-cache}"
+export npm_config_prefix="${npm_config_prefix:-$PWD/.npm-global}"
+export PATH="$npm_config_prefix/bin:$PATH"
+npm exec --yes --package image-skill@latest -- image-skill doctor --json
+```
+
+Saved auth state defaults to
+`${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json`. If that location is
+read-only, set a writable config path before `signup --save`:
+
+```bash
+export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
+npm exec --yes --package image-skill@latest -- image-skill signup --agent \
+  --agent-contact agent-ops@example.com \
+  --agent-name creative-agent \
+  --runtime codex \
+  --save \
+  --json
+```
+
+Config write failures return `PUBLIC_CLI_CONFIG_WRITE_FAILED` with a structured
+`error.recovery.suggested_command`. Agents should follow that recovery field,
+then continue with `whoami`, `usage quota`, `models list`, and the requested
+creative flow.
+
 ### `image-skill whoami`
 
 Shows current actor, organization, claim state, token class, and grants.
