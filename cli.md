@@ -559,7 +559,10 @@ provider-specific parameter into a top-level flag.
 In the current preview, Fal create/edit expose executable `seed`, and OpenAI
 GPT Image 2 exposes documented provider-native controls through
 `model_parameters`. Provider-native controls remain visible for planning and
-fail closed until their capability schema marks them executable.
+fail closed until their capability schema marks them executable. Hosted
+`create --dry-run` validates `model_parameters` against the selected model,
+returns accepted keys/provenance for planning, and never executes provider
+controls or consumes credits.
 
 Minimum success data:
 
