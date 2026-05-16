@@ -1,7 +1,7 @@
 {
   "name": "image-skill",
   "version": "0.1.7",
-  "description": "Thin hosted CLI for Image Skill, a creative runtime for agents.",
+  "description": "Agent-first hosted image generation CLI with model discovery, spend guards, recoverable jobs, owned media URLs, and JSON recovery.",
   "type": "module",
   "private": false,
   "repository": {
@@ -25,5 +25,17 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "keywords": [
+    "agent",
+    "agent-skill",
+    "creative-runtime",
+    "image-generation",
+    "image-editing",
+    "llms-txt",
+    "cli",
+    "media-assets",
+    "jobs",
+    "credits"
+  ]
 }

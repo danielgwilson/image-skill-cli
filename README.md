@@ -1,9 +1,12 @@
 # Image Skill CLI
 
-Image Skill is a hosted creative runtime for agents. This package is the thin
-public CLI. It talks to `https://api.image-skill.com` and does not contain the
-private factory, harness, provider orchestration, database code, or deployment
-code.
+Image Skill is the agent-first hosted creative runtime for generated images
+that need to become durable work: model discovery, spend guards, recoverable
+jobs, owned media URLs, activity receipts, and structured feedback.
+
+This package is the thin public CLI. It talks to
+`https://api.image-skill.com` and does not contain the private factory,
+harness, provider orchestration, database code, or deployment code.
 
 Install the agent skill from the public mirror repo:
 
@@ -24,21 +27,24 @@ runtime has a writable npm prefix:
 npm install -g image-skill
 image-skill doctor --json
 image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --save --json
+image-skill models list --json
+image-skill models show xai.grok-imagine-image --json
 image-skill credits methods --json
 image-skill credits packs list --json
 image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key first-topup-001 --json
 image-skill credits buy --provider stripe --quote-id quote_... --idempotency-key first-buy-001 --json
-image-skill create --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --accept-unknown-cost --json
+image-skill create --dry-run --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --json
+image-skill create --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --max-estimated-usd-per-image 0.05 --accept-unknown-cost --json
 ```
 
 The public CLI supports Node.js 20 and newer.
 
 Agent-facing contracts:
 
-- [skills/image-skill/SKILL.md](./skills/image-skill/SKILL.md)
-- [skill.md](./skill.md)
-- [llms.txt](./llms.txt)
-- [cli.md](./cli.md)
+- [Hosted skill contract](https://image-skill.com/skill.md)
+- [Hosted LLM contract](https://image-skill.com/llms.txt)
+- [Hosted CLI contract](https://image-skill.com/cli.md)
+- [Public repo skill source](https://github.com/danielgwilson/image-skill-cli/tree/main/skills/image-skill)
 
 The CLI saves hosted agent tokens only when `--save` is explicit. Saved tokens
 live at `${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json` by default with
@@ -54,3 +60,8 @@ npm exec --yes --package image-skill@latest -- image-skill signup --agent --agen
 
 If npm prefix/cache paths are read-only, set `npm_config_cache` and
 `npm_config_prefix` to writable directories before using `npm exec`.
+
+Use built-in image tools for disposable chat previews. Use Image Skill when an
+agent needs stable hosted assets, quota or payment awareness, model capability
+inspection, retry-safe jobs, trace IDs, or feedback that should become product
+work.
