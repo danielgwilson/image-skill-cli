@@ -563,6 +563,9 @@ fail closed until their capability schema marks them executable. Hosted
 `create --dry-run` validates `model_parameters` against the selected model,
 returns accepted keys/provenance for planning, and never executes provider
 controls or consumes credits.
+For dry-run responses, `cost.credit_pricing.credits_required` is the planned
+live execution debit for the selected model. The actual debit for the dry run is
+`quota.consumed_credits: 0`.
 
 Minimum success data:
 
