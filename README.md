@@ -1,8 +1,8 @@
 # Image Skill CLI
 
-Image Skill is the agent-first hosted creative runtime for generated images
-that need to become durable work: model discovery, spend guards, recoverable
-jobs, owned media URLs, activity receipts, and structured feedback.
+Image Skill is the agent-native creative cloud for generated images: one hosted
+CLI/API rail for model discovery, spend guards, recoverable jobs, owned media
+URLs, activity receipts, and structured feedback.
 
 This package is the thin public CLI. It talks to
 `https://api.image-skill.com` and does not contain the private factory,

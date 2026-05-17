@@ -1,7 +1,7 @@
 {
   "name": "image-skill",
   "version": "0.1.7",
-  "description": "Agent-first hosted image generation CLI with model discovery, spend guards, recoverable jobs, owned media URLs, and JSON recovery.",
+  "description": "Agent-native creative media CLI for durable image generation: models, credits, jobs, owned URLs, JSON recovery, and feedback.",
   "type": "module",
   "private": false,
   "repository": {
@@ -30,8 +30,11 @@
   "license": "UNLICENSED",
   "keywords": [
     "agent",
+    "agent-native",
     "agent-skill",
+    "creative-cloud",
     "creative-runtime",
+    "generative-media",
     "image-generation",
     "image-editing",
     "llms-txt",
