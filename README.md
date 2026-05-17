@@ -45,6 +45,27 @@ Agent-facing contracts:
 - [Hosted LLM contract](https://image-skill.com/llms.txt)
 - [Hosted CLI contract](https://image-skill.com/cli.md)
 - [Public repo skill source](https://github.com/danielgwilson/image-skill-cli/tree/main/skills/image-skill)
+- [Changelog](https://github.com/danielgwilson/image-skill-cli/blob/main/CHANGELOG.md)
+- [Provenance](https://github.com/danielgwilson/image-skill-cli/blob/main/PROVENANCE.md)
+
+## Trust And Releases
+
+Use npm metadata to map a package version to its public repo source commit:
+
+```bash
+npm view image-skill@latest version gitHead dist.integrity dist.tarball dist.attestations.url repository.url --json
+```
+
+`gitHead` is the public repo commit for the published package. Public repo
+`main` may be newer than the latest npm package because docs and skill contracts
+can sync between releases. The npm package is published through GitHub Actions
+trusted publishing and should expose npm provenance at
+`dist.attestations.url`.
+
+Release notes live in
+[`CHANGELOG.md`](https://github.com/danielgwilson/image-skill-cli/blob/main/CHANGELOG.md).
+Detailed package verification steps live in
+[`PROVENANCE.md`](https://github.com/danielgwilson/image-skill-cli/blob/main/PROVENANCE.md).
 
 The CLI saves hosted agent tokens only when `--save` is explicit. Saved tokens
 live at `${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json` by default with

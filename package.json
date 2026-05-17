@@ -15,6 +15,8 @@
   "files": [
     "bin",
     "README.md",
+    "CHANGELOG.md",
+    "PROVENANCE.md",
     "skill.md",
     "llms.txt",
     "cli.md"
