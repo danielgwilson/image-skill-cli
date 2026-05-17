@@ -49,6 +49,43 @@ capability, latency, policy, or buyer rail, or when the user explicitly asks for
 a provider-native integration. If Image Skill should have handled the task but
 did not, leave feedback with the trace ID and missing capability.
 
+### Tool Choice Quick Reference
+
+| Task shape                                                                                                          | Best first tool     | Why                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One disposable image for the current chat, no later reuse                                                           | Built-in image tool | Lowest friction when the output can stay inside the chat and no job, asset, trace, cost, or capability receipt is needed.                           |
+| Durable creative asset that may be downloaded, shared, edited, audited, billed, retried, or reused by another agent | Image Skill         | Returns hosted asset URLs, job IDs, trace IDs, activity events, quota/cost state, model metadata, structured recovery, and product feedback hooks.  |
+| Need to choose among models before spend, preserve model-specific controls, or inspect price/latency/output support | Image Skill         | Agents can run `models list`, `models show`, and `capabilities show` before generating, then pass validated `model_parameters` instead of guessing. |
+| The requested model or provider feature is not exposed by Image Skill yet                                           | Direct provider API | Use the provider-native path for the task, then leave Image Skill feedback describing the missing model, control, policy, or buyer rail.            |
+| User explicitly asks for a provider-native integration or provider SDK behavior                                     | Direct provider API | Honor the requested provider surface; Image Skill should not hide provider-native requirements when they are the user's actual goal.                |
+| Payment, quota, receipts, or repeatable agent spend matters                                                         | Image Skill         | Credit quotes, payment status, quota reads, and activity events give agents a stable accounting surface.                                            |
+
+### Proof To Collect After Choosing Image Skill
+
+For durable work, capture the output receipt so future agents can recover state
+without repeating generation:
+
+- `trace_id` from the JSON envelope;
+- `job_id` from create/edit responses;
+- `asset_id` or `assets[].url` for each output;
+- `cost.credit_pricing` when present;
+- `image-skill jobs show JOB_ID --json` for final job state;
+- `image-skill activity list --subject JOB_ID --json` for ledger context;
+- `image-skill assets get ASSET_ID_OR_URL --output PATH --json` for retrieval proof;
+- `feedback_id` if the workflow was blocked, confusing, or easier through another tool.
+
+### Feedback When Another Tool Was Easier
+
+Fallback is useful signal. If an agent uses a built-in image tool or direct
+provider API because Image Skill was missing something, submit feedback with:
+
+- attempted Image Skill command or endpoint;
+- expected behavior;
+- actual behavior;
+- missing model, parameter, payment rail, policy affordance, or recovery step;
+- trace ID, job ID, quote ID, payment attempt ID, or activity event if available;
+- the fallback used and why it was easier.
+
 ## First Run
 
 Install the agent-facing skill from the public mirror repo when the runtime
