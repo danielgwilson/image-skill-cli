@@ -544,16 +544,26 @@ image-skill create \
   --json
 ```
 
+Hosted defaults are quality-first. If an agent does not choose a model, Image
+Skill selects the strongest available create capability for the requested
+intent and budget, then records the decision in `request.selection`. Explicit
+`--provider`, `--model`, namespaced model ids, and validated
+`model_parameters` always take precedence. For final/product/hero-style
+intents, Image Skill may default an eligible quality-capability request to a
+higher output tier only when `--max-estimated-usd-per-image` is high enough for
+that tier; otherwise it stays on a lower-cost quality tier or chooses a cheaper
+capability within the budget and tells agents what happened in the selection
+receipt.
+
 Preview-compatible richer shape:
 
 ```bash
 image-skill create \
-  --prompt-file ./prompt.md \
+  --prompt "Campaign-ready product image of a compact field camera" \
   --intent finalize \
   --model MODEL_ID \
   --aspect-ratio 1:1 \
-  --format png \
-  --max-usd 0.25 \
+  --max-estimated-usd-per-image 0.07 \
   --model-parameters-json '{"seed":1234}' \
   --json
 ```
@@ -562,7 +572,13 @@ High-resolution examples:
 
 ```bash
 image-skill create \
-  --prompt-file ./prompt.md \
+  --prompt "Campaign-ready product image of a compact field camera" \
+  --intent final \
+  --max-estimated-usd-per-image 0.07 \
+  --json
+
+image-skill create \
+  --prompt "Campaign-ready product image of a compact field camera" \
   --model xai.grok-imagine-image-quality \
   --model-parameters-json '{"resolution":"2k"}' \
   --max-estimated-usd-per-image 0.07 \
@@ -606,17 +622,41 @@ Minimum success data:
       "asset_id": "image_...",
       "path": "https://media.image-skill.com/a/image_abc123.png",
       "mime_type": "image/png",
-      "url": "https://media.image-skill.com/a/image_abc123.png"
+      "url": "https://media.image-skill.com/a/image_abc123.png",
+      "content_length": 333444,
+      "width": 1024,
+      "height": 1024
     }
   ],
   "cost": {
-    "estimated_usd": 0.025,
+    "estimated_usd": 0.05,
     "credit_pricing": {
       "credit_unit_usd": 0.01,
-      "credits_required": 5,
-      "estimated_provider_cost_usd": 0.025,
-      "estimated_revenue_usd": 0.05,
+      "credits_required": 9,
+      "estimated_provider_cost_usd": 0.05,
+      "estimated_revenue_usd": 0.09,
       "pricing_confidence": "known"
+    }
+  },
+  "request": {
+    "selection": {
+      "policy": "hosted_default_create_v1",
+      "reason": "hosted default selected the strongest currently available quality-first create model",
+      "intent": "explore",
+      "capability": {
+        "id": "is.image.generate.xai-grok-imagine-image-quality.v1"
+      },
+      "model_parameters": {
+        "keys": ["resolution"],
+        "defaults_applied": ["resolution=1k"],
+        "source": "default_policy"
+      },
+      "output": {
+        "resolution_class": "1k",
+        "expected_width": null,
+        "expected_height": null,
+        "expected_min_short_edge": 1024
+      }
     }
   },
   "safety": {
