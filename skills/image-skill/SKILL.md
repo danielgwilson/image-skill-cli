@@ -276,8 +276,10 @@ image-skill create \
 In the current preview, Fal create/edit expose executable `seed`, while OpenAI
 GPT Image 2 exposes documented provider-native controls such as size, output
 format, compression, background, moderation, and its provider-native quality
-parameter through validated `model_parameters`. These are model-specific
-controls, not universal Image Skill tiers.
+parameter through validated `model_parameters`. Fal FLUX.1 dev also exposes
+`image_size`, Fal Nano Banana 2 Edit exposes `resolution` up to `4K`, and xAI
+Grok Imagine Image Quality exposes `resolution` up to `2k`. These are
+model-specific controls, not universal Image Skill tiers.
 
 Hosted free-preview API:
 

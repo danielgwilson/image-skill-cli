@@ -506,12 +506,19 @@ must not flatten rich model capabilities into coarse universal categories.
 Use `model_parameters` for rare or model-specific parameters advertised by the
 capability schema.
 
-GPT Image 2 is exposed as `openai.gpt-image-2` for create and
-`openai.gpt-image-2-edit` for edit when OpenAI is configured. Inspect these
-models before use; OpenAI provider-native controls such as size, output
-format, compression, background, moderation, and the upstream
-provider-native quality parameter are available only through validated
-`model_parameters`.
+Current executable provider-native controls include:
+
+- Fal FLUX.1 dev: `model_parameters.image_size` for presets such as
+  `square_hd`, plus `seed`.
+- Fal Nano Banana 2 Edit: `model_parameters.resolution` for `0.5K`, `1K`,
+  `2K`, and `4K`, plus `seed`.
+- xAI Grok Imagine Image Quality: `model_parameters.resolution` for `1k` and
+  `2k`; 2k is priced from the higher provider tier.
+- GPT Image 2 create/edit: size, output format, compression, background,
+  moderation, and the upstream provider-native quality parameter.
+
+Inspect each model before use; provider-native controls are available only
+through validated `model_parameters`.
 
 ### `image-skill capabilities`
 
@@ -551,18 +558,37 @@ image-skill create \
   --json
 ```
 
+High-resolution examples:
+
+```bash
+image-skill create \
+  --prompt-file ./prompt.md \
+  --model xai.grok-imagine-image-quality \
+  --model-parameters-json '{"resolution":"2k"}' \
+  --max-estimated-usd-per-image 0.07 \
+  --json
+
+image-skill edit \
+  --input-asset-id image_... \
+  --prompt "preserve the subject and make this campaign-ready" \
+  --model fal.nano-banana-2-edit \
+  --model-parameters-json '{"resolution":"4K"}' \
+  --accept-unknown-cost \
+  --json
+```
+
 `model_parameters` must be validated against the selected model/capability
 schema before any provider call or paid reservation. Unknown fields fail closed
 unless the capability explicitly allows additional properties. This is how
 Image Skill preserves rare model controls without turning every
 provider-specific parameter into a top-level flag.
-In the current preview, Fal create/edit expose executable `seed`, and OpenAI
-GPT Image 2 exposes documented provider-native controls through
-`model_parameters`. Provider-native controls remain visible for planning and
-fail closed until their capability schema marks them executable. Hosted
+In the current preview, Fal create/edit, xAI quality generation, and OpenAI GPT
+Image 2 expose the executable provider-native controls listed in the selected
+model schema. Provider-native controls remain visible for planning and fail
+closed until their capability schema marks them executable. Hosted
 `create --dry-run` validates `model_parameters` against the selected model,
-returns accepted keys/provenance for planning, and never executes provider
-controls or consumes credits.
+returns accepted keys/provenance and request-aware credit pricing for planning,
+and never executes provider controls or consumes credits.
 For dry-run responses, `cost.credit_pricing.credits_required` is the planned
 live execution debit for the selected model. The actual debit for the dry run is
 `quota.consumed_credits: 0`.
