@@ -512,7 +512,7 @@ Current executable provider-native controls include:
   `square_hd`, plus `seed`.
 - Fal Nano Banana 2 Edit: `model_parameters.resolution` for `0.5K`, `1K`,
   `2K`, and `4K`, plus `seed`.
-- Fal Gemini 3 Pro Image Preview Edit:
+- Fal Gemini 3 Pro Image Preview Create/Edit:
   `model_parameters.resolution` for `1K`, `2K`, and `4K`, plus `seed`; 4K is
   quoted as the higher-priced provider tier.
 - xAI Grok Imagine Image Quality: `model_parameters.resolution` for `1k` and
@@ -578,6 +578,13 @@ image-skill create \
   --prompt "Campaign-ready product image of a compact field camera" \
   --intent final \
   --max-estimated-usd-per-image 0.07 \
+  --json
+
+image-skill create \
+  --prompt "Campaign-ready product image of a compact field camera" \
+  --model fal.gemini-3-pro-image-preview \
+  --model-parameters-json '{"resolution":"4K"}' \
+  --max-estimated-usd-per-image 0.30 \
   --json
 
 image-skill create \
@@ -766,17 +773,19 @@ through the same upload resolver as `image-skill upload`, then sends only the
 resulting `asset_id` to `POST /v1/edit`. If `--input` is an Image Skill asset id
 or owned asset URL, edit uses that owned asset directly.
 
-Preview hosted edit supports model-specific provider-backed edit paths such as
+Preview hosted create/edit supports model-specific provider-backed paths such
+as Fal Gemini 3 Pro Image Preview Create (`fal.gemini-3-pro-image-preview`),
 Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Gemini 3 Pro Image
 Preview Edit (`fal.gemini-3-pro-image-preview-edit`), and GPT Image 2 Edit
 (`openai.gpt-image-2-edit`) when their provider credentials are configured.
-Fal Gemini 3 Pro Image Preview Edit has known per-image pricing: 1K/2K edits
-quote `$0.15` provider cost and 4K quotes the doubled provider tier. Other edit
-paths without machine-readable pricing require `--accept-unknown-cost` until a
-stable price source is captured. Responses include a new generated asset URL,
-job id, safety state, quota consumption, and input asset metadata. Responses do
-not include raw prompts, source bytes, base64 payloads, local paths, full
-external URLs, bucket names, or object keys.
+Fal Gemini 3 Pro Image Preview create/edit has known per-image pricing: 1K/2K
+requests quote `$0.15` provider cost and 4K quotes the doubled provider tier.
+Other edit paths without machine-readable pricing require
+`--accept-unknown-cost` until a stable price source is captured. Responses
+include a new generated asset URL, job id, safety state, quota consumption, and
+input asset metadata where applicable. Responses do not include raw prompts,
+source bytes, base64 payloads, local paths, full external URLs, bucket names, or
+object keys.
 
 Provider/model names in this paragraph are preview provenance, not the primary
 public UX. The public selection surface should be Image Skill capabilities and
