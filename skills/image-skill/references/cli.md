@@ -512,6 +512,9 @@ Current executable provider-native controls include:
   `square_hd`, plus `seed`.
 - Fal Nano Banana 2 Edit: `model_parameters.resolution` for `0.5K`, `1K`,
   `2K`, and `4K`, plus `seed`.
+- Fal Gemini 3 Pro Image Preview Edit:
+  `model_parameters.resolution` for `1K`, `2K`, and `4K`, plus `seed`; 4K is
+  quoted as the higher-priced provider tier.
 - xAI Grok Imagine Image Quality: `model_parameters.resolution` for `1k` and
   `2k`; 2k is priced from the higher provider tier.
 - GPT Image 2 create/edit: size, output format, compression, background,
@@ -764,14 +767,16 @@ resulting `asset_id` to `POST /v1/edit`. If `--input` is an Image Skill asset id
 or owned asset URL, edit uses that owned asset directly.
 
 Preview hosted edit supports model-specific provider-backed edit paths such as
-Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`) and GPT Image 2 Edit
+Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Gemini 3 Pro Image
+Preview Edit (`fal.gemini-3-pro-image-preview-edit`), and GPT Image 2 Edit
 (`openai.gpt-image-2-edit`) when their provider credentials are configured.
-Current machine-readable prices are treated as unknown for these edit paths, so
-live edit requires `--accept-unknown-cost` until a stable price source is
-captured. Responses include a new generated asset URL, job id, safety state,
-quota consumption, and input asset metadata. Responses do not include raw
-prompts, source bytes, base64 payloads, local paths, full external URLs, bucket
-names, or object keys.
+Fal Gemini 3 Pro Image Preview Edit has known per-image pricing: 1K/2K edits
+quote `$0.15` provider cost and 4K quotes the doubled provider tier. Other edit
+paths without machine-readable pricing require `--accept-unknown-cost` until a
+stable price source is captured. Responses include a new generated asset URL,
+job id, safety state, quota consumption, and input asset metadata. Responses do
+not include raw prompts, source bytes, base64 payloads, local paths, full
+external URLs, bucket names, or object keys.
 
 Provider/model names in this paragraph are preview provenance, not the primary
 public UX. The public selection surface should be Image Skill capabilities and

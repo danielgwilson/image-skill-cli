@@ -277,9 +277,11 @@ In the current preview, Fal create/edit expose executable `seed`, while OpenAI
 GPT Image 2 exposes documented provider-native controls such as size, output
 format, compression, background, moderation, and its provider-native quality
 parameter through validated `model_parameters`. Fal FLUX.1 dev also exposes
-`image_size`, Fal Nano Banana 2 Edit exposes `resolution` up to `4K`, and xAI
-Grok Imagine Image Quality exposes `resolution` up to `2k`. These are
-model-specific controls, not universal Image Skill tiers.
+`image_size`, Fal Nano Banana 2 Edit exposes `resolution` up to `4K`, Fal
+Gemini 3 Pro Image Preview Edit exposes `resolution` from `1K` to `4K` with 4K
+quoted as the higher-priced provider tier, and xAI Grok Imagine Image Quality
+exposes `resolution` up to `2k`. These are model-specific controls, not
+universal Image Skill tiers.
 
 Hosted free-preview API:
 
@@ -322,8 +324,10 @@ image-skill edit \
 
 For local paths and external URLs, the public CLI uploads the input first and
 then edits the resulting Image Skill-owned asset id. Preview hosted edit uses
-Fal Nano Banana 2 Edit and consumes model-priced restricted free-preview
-credits after provider success.
+Fal Nano Banana 2 Edit or Fal Gemini 3 Pro Image Preview Edit and consumes
+model-priced restricted free-preview credits after provider success. Gemini 3
+Pro Image Preview Edit has known per-image pricing; 4K is quoted at the
+doubled provider tier.
 
 Inspect an Image Skill-owned asset:
 
