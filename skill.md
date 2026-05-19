@@ -304,8 +304,8 @@ provider cost when OpenAI returns token usage. Fal FLUX.1 dev also exposes
 pricing at `$0.005/MP`, Fal Nano Banana 2 Edit exposes `resolution` up to
 `4K`, Fal Gemini 3 Pro Image Preview Create/Edit exposes `resolution` from
 `1K` to `4K` with 4K quoted as the higher-priced provider tier, Fal FLUX Pro
-Kontext Edit exposes `seed`, Fal Seedream 4.5 Create/Edit exposes `image_size`
-and `seed`, Fal Seedream 5.0 Lite Create/Edit exposes `image_size`, Fal Nano
+Kontext Pro/Max Edit exposes `seed`, Fal Seedream 4.5 Create/Edit exposes
+`image_size` and `seed`, Fal Seedream 5.0 Lite Create/Edit exposes `image_size`, Fal Nano
 Banana Pro Create/Edit exposes `resolution` from `1K` to `4K`, and xAI Grok
 Imagine Image Quality exposes `resolution` up to `2k`. OpenAI GPT Image create
 routes and xAI create routes also support top-level `--output-count` within the
@@ -354,14 +354,16 @@ image-skill edit \
 For local paths and external URLs, the public CLI uploads the input first and
 then edits the resulting Image Skill-owned asset id. Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
-Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro Kontext Edit, or Fal
-Seedream 4.5 Create/Edit, Fal Seedream 5.0 Lite Create/Edit, Fal Z-Image Turbo
-Create/Edit, Fal Nano Banana Pro Create/Edit, or Fal FLUX Pro 1.1 Ultra Create
+Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro Kontext Pro/Max Edit,
+or Fal Seedream 4.5 Create/Edit, Fal Seedream 5.0 Lite Create/Edit, Fal
+Z-Image Turbo Create/Edit, Fal Nano Banana Pro Create/Edit, or Fal FLUX Pro
+1.1 Ultra Create
 and consumes model-priced restricted free-preview credits after provider
 success. Gemini 3 Pro Image Preview and Nano Banana Pro create/edit have known
 per-image pricing; 4K is quoted at the doubled provider tier. FLUX Pro 1.1
-Ultra Create quotes `$0.06` provider cost per image. FLUX Pro Kontext Edit and
-Seedream 4.5 create/edit quote `$0.04` provider cost per image. Seedream 5.0
+Ultra Create quotes `$0.06` provider cost per image. FLUX Pro Kontext Pro Edit
+quotes `$0.04` provider cost per image, FLUX Pro Kontext Max Edit quotes
+`$0.08` per image, and Seedream 4.5 create/edit quotes `$0.04` per image. Seedream 5.0
 Lite create/edit quotes `$0.035` provider cost per image. Fal Z-Image Turbo
 create/edit quotes `$0.005/MP` when output size is explicit; edit `auto`
 remains unknown-cost. GPT Image 2 create quotes output-token estimates for

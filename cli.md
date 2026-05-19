@@ -523,9 +523,9 @@ Current executable provider-native controls include:
   quoted as the higher-priced provider tier.
 - Fal Nano Banana Pro Create/Edit: `model_parameters.resolution` for `1K`,
   `2K`, and `4K`, plus `seed`; 4K is quoted as the higher-priced provider tier.
-- Fal FLUX Pro Kontext Edit: `model_parameters.seed`; guidance scale and
-  aspect-ratio controls remain cataloged for inspection but are not executable
-  until their UX and receipt behavior are represented.
+- Fal FLUX Pro Kontext Pro/Max Edit: `model_parameters.seed`; guidance scale
+  and aspect-ratio controls remain cataloged for inspection but are not
+  executable until their UX and receipt behavior are represented.
 - Fal Bytedance Seedream 4.5 Create/Edit: `model_parameters.image_size` for
   `square_hd`, `square`, portrait/landscape presets, `auto_2K`, and
   `auto_4K`, plus `seed`; multi-output and multi-reference controls remain
@@ -829,7 +829,8 @@ as Fal Gemini 3 Pro Image Preview Create (`fal.gemini-3-pro-image-preview`),
 Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Gemini 3 Pro Image
 Preview Edit (`fal.gemini-3-pro-image-preview-edit`), Fal FLUX Pro 1.1 Ultra
 Create (`fal.flux-pro-v1-1-ultra`), Fal FLUX Pro Kontext Edit
-(`fal.flux-pro-kontext`), Fal Seedream 5.0 Lite Create
+(`fal.flux-pro-kontext`), Fal FLUX Pro Kontext Max Edit
+(`fal.flux-pro-kontext-max`), Fal Seedream 5.0 Lite Create
 (`fal.bytedance-seedream-v5-lite-text-to-image`), Fal Seedream 5.0 Lite Edit
 (`fal.bytedance-seedream-v5-lite-edit`), Fal Seedream 4.5 Create
 (`fal.bytedance-seedream-v4-5-text-to-image`), Fal Seedream 4.5 Edit
@@ -843,7 +844,8 @@ Fal Gemini 3 Pro Image Preview create/edit has known per-image pricing: 1K/2K
 requests quote `$0.15` provider cost and 4K quotes the doubled provider tier.
 Fal Nano Banana Pro create/edit uses the same `$0.15` standard and doubled 4K
 provider tier. Fal FLUX Pro 1.1 Ultra Create quotes `$0.06` provider cost per
-image. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per image. Fal
+image. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per image, and
+Fal FLUX Pro Kontext Max Edit quotes `$0.08` provider cost per image. Fal
 Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
 Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image. Fal
 Z-Image Turbo create/edit quotes `$0.005/MP` when `image_size` is explicit or
