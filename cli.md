@@ -531,7 +531,10 @@ Current executable provider-native controls include:
 - xAI Grok Imagine Image Quality: `model_parameters.resolution` for `1k` and
   `2k`; 2k is priced from the higher provider tier.
 - GPT Image 2 create/edit: size, output format, compression, background,
-  moderation, and the upstream provider-native quality parameter.
+  moderation, and the upstream provider-native quality parameter. GPT Image 2
+  create quotes request-aware output-token estimates when quality and concrete
+  size are known; GPT Image 2 edit remains unknown-cost until input token
+  accounting is represented.
 
 Inspect each model before use; provider-native controls are available only
 through validated `model_parameters`.
@@ -623,8 +626,10 @@ Image Skill preserves rare model controls without turning every
 provider-specific parameter into a top-level flag.
 In the current preview, Fal create/edit, xAI quality generation, and OpenAI GPT
 Image 2 expose the executable provider-native controls listed in the selected
-model schema. Provider-native controls remain visible for planning and fail
-closed until their capability schema marks them executable. Hosted
+model schema. GPT Image 2 create has request-aware output-token credit quotes
+for concrete quality/size requests; GPT Image 2 edit still requires
+unknown-cost acceptance. Provider-native controls remain visible for planning
+and fail closed until their capability schema marks them executable. Hosted
 `create --dry-run` validates `model_parameters` against the selected model,
 returns accepted keys/provenance and request-aware credit pricing for planning,
 and never executes provider controls or consumes credits.
@@ -804,6 +809,9 @@ Fal Nano Banana Pro create/edit uses the same `$0.15` standard and doubled 4K
 provider tier. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per
 image. Fal Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
 Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image.
+GPT Image 2 create quotes output-token estimates for concrete quality/size
+requests. GPT Image 2 edit remains unknown-cost because edit input image/text
+token accounting is not yet represented.
 Other edit paths without machine-readable pricing require
 `--accept-unknown-cost` until a stable price source is captured. Responses
 include a new generated asset URL, job id, safety state, quota consumption, and

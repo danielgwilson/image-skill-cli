@@ -34,7 +34,7 @@ image-skill credits packs list --json
 image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key first-topup-001 --json
 image-skill credits buy --provider stripe --quote-id quote_... --idempotency-key first-buy-001 --json
 image-skill create --dry-run --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --json
-image-skill create --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --max-estimated-usd-per-image 0.05 --accept-unknown-cost --json
+image-skill create --prompt "A tiny studio robot painting a postcard" --model xai.grok-imagine-image --max-estimated-usd-per-image 0.05 --json
 ```
 
 The public CLI supports Node.js 20 and newer.
