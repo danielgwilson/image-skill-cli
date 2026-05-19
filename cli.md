@@ -535,18 +535,25 @@ Current executable provider-native controls include:
   presets, `auto_2K`, and `auto_3K`; multi-output and multi-reference controls
   remain cataloged but fixed for hosted accounting.
 - xAI Grok Imagine Image Quality: `model_parameters.resolution` for `1k` and
-  `2k`; 2k is priced from the higher provider tier.
+  `2k`; 2k is priced from the higher provider tier. Create supports top-level
+  `--output-count` up to the model's advertised `max_outputs_per_request`,
+  currently mapped to xAI's documented `n` batch parameter.
 - GPT Image 1.5 create/edit: documented fixed sizes `1024x1024`,
   `1024x1536`, and `1536x1024`, output format, compression, transparent or
   opaque background, moderation, and the upstream provider-native quality
   parameter. GPT Image 1.5 create quotes output-token estimates when quality
-  and concrete size are known; GPT Image 1.5 edit accepts low/high
-  `input_fidelity` and remains preflight unknown-cost until usage is returned.
+  and concrete size are known; GPT Image 1.5 create supports top-level
+  `--output-count` up to the model's advertised `max_outputs_per_request`,
+  currently mapped to OpenAI's `n` parameter. GPT Image 1.5 edit accepts
+  low/high `input_fidelity` and remains preflight unknown-cost until usage is
+  returned.
 - GPT Image 2 create/edit: size, output format, compression, background,
   moderation, and the upstream provider-native quality parameter. GPT Image 2
   create quotes request-aware output-token estimates when quality and concrete
-  size are known; GPT Image 2 edit remains preflight unknown-cost, then records
-  usage-priced provider cost when OpenAI returns token usage.
+  size are known; GPT Image 2 create supports top-level `--output-count` up to
+  the model's advertised `max_outputs_per_request`, currently mapped to
+  OpenAI's `n` parameter. GPT Image 2 edit remains preflight unknown-cost, then
+  records usage-priced provider cost when OpenAI returns token usage.
 
 Inspect each model before use; provider-native controls are available only
 through validated `model_parameters`.
@@ -594,10 +601,19 @@ image-skill create \
   --intent finalize \
   --model MODEL_ID \
   --aspect-ratio 1:1 \
+  --output-count 2 \
   --max-estimated-usd-per-image 0.07 \
   --model-parameters-json '{"seed":1234}' \
   --json
 ```
+
+Use `--output-count N` only when `models show MODEL_ID --json` advertises
+`media.output.max_outputs_per_request` greater than `1`. `--output-count` is a
+top-level Image Skill create control; do not pass provider-native `n` through
+`model_parameters` unless the selected model schema explicitly advertises that
+field. Credit pricing and `cost.credit_pricing.credits_required` are total
+operation debits across all requested outputs. `--max-estimated-usd-per-image`
+and raw API `max_estimated_usd_per_image` remain per-image budget guards.
 
 High-resolution examples:
 
@@ -681,6 +697,7 @@ Minimum success data:
     }
   },
   "request": {
+    "output_count": 1,
     "selection": {
       "policy": "hosted_default_create_v1",
       "reason": "hosted default selected the strongest currently available quality-first create model",
@@ -730,6 +747,7 @@ curl -sS https://api.image-skill.com/v1/create \
     "prompt": "A compact field camera on a stainless workbench",
     "intent": "explore",
     "aspect_ratio": "1:1",
+    "output_count": 1,
     "max_estimated_usd_per_image": 0.05,
     "model_parameters": {
       "seed": 1234
@@ -738,7 +756,8 @@ curl -sS https://api.image-skill.com/v1/create \
 ```
 
 Hosted free-preview create currently requires owned artifact storage and returns
-`assets[].url` under `https://media.image-skill.com/...` on success.
+one `assets[]` entry per output with `assets[].url` under
+`https://media.image-skill.com/...` on success.
 
 ### `image-skill upload`
 

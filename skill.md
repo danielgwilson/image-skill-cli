@@ -280,10 +280,17 @@ image-skill create \
   --prompt-file ./prompt.md \
   --intent finalize \
   --model MODEL_ID \
+  --output-count 2 \
   --model-parameters-json '{"seed":1234}' \
   --max-usd 0.25 \
   --json
 ```
+
+Use `--output-count N` only after `models show MODEL_ID --json` confirms the
+selected create model advertises `max_outputs_per_request` greater than `1`.
+Image Skill treats output count as a top-level create control and scales
+`cost.credit_pricing.credits_required` across all requested outputs; the
+`max_estimated_usd_per_image` guard remains per image.
 
 In the current preview, Fal create/edit expose executable `seed`, while OpenAI
 GPT Image 2 exposes documented provider-native controls such as size, output
@@ -300,8 +307,10 @@ pricing at `$0.005/MP`, Fal Nano Banana 2 Edit exposes `resolution` up to
 Kontext Edit exposes `seed`, Fal Seedream 4.5 Create/Edit exposes `image_size`
 and `seed`, Fal Seedream 5.0 Lite Create/Edit exposes `image_size`, Fal Nano
 Banana Pro Create/Edit exposes `resolution` from `1K` to `4K`, and xAI Grok
-Imagine Image Quality exposes `resolution` up to `2k`. These are
-model-specific controls, not universal Image Skill tiers.
+Imagine Image Quality exposes `resolution` up to `2k`. OpenAI GPT Image create
+routes and xAI create routes also support top-level `--output-count` within the
+selected model's advertised limit. These are model-specific controls, not
+universal Image Skill tiers.
 
 Hosted free-preview API:
 
@@ -309,13 +318,13 @@ Hosted free-preview API:
 curl -sS https://api.image-skill.com/v1/create \
   -H "authorization: Bearer $IMAGE_SKILL_TOKEN" \
   -H "content-type: application/json" \
-  -d '{"prompt":"A product mockup of a compact field camera on a stainless workbench","intent":"explore","aspect_ratio":"1:1","max_estimated_usd_per_image":0.05,"model_parameters":{"seed":1234}}'
+  -d '{"prompt":"A product mockup of a compact field camera on a stainless workbench","intent":"explore","aspect_ratio":"1:1","output_count":1,"max_estimated_usd_per_image":0.05,"model_parameters":{"seed":1234}}'
 ```
 
 Expected behavior:
 
 - returns `job_id`, `trace_id`, `asset_ids`, artifact references, cost estimate, and safety status;
-- returns Image Skill-owned artifact references under `assets[].url`;
+- returns one Image Skill-owned artifact reference under `assets[].url` for each output;
 - emits service telemetry;
 - refuses when quota, claim state, scopes, content policy, budget guard, provider availability, or safety rules do not allow the job.
 

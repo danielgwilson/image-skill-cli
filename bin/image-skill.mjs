@@ -651,6 +651,12 @@ async function create(argv) {
   if (!modelParameters.ok) {
     return modelParameters.result;
   }
+  const outputCount = positiveIntegerFlag(args, "output-count", {
+    command: "image-skill create",
+  });
+  if (!outputCount.ok) {
+    return outputCount.result;
+  }
   return apiRequest({
     command: "image-skill create",
     method: "POST",
@@ -669,6 +675,9 @@ async function create(argv) {
         ? {}
         : { intent: flagString(args, "intent") }),
       aspect_ratio: flagString(args, "aspect-ratio") ?? "1:1",
+      ...(outputCount.value === null
+        ? {}
+        : { output_count: outputCount.value }),
       ...(flagNumber(args, "max-estimated-usd-per-image") === null
         ? {}
         : {
@@ -1402,6 +1411,21 @@ function flagNumber(args, name) {
   }
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function positiveIntegerFlag(args, name, input) {
+  const value = flagString(args, name);
+  if (value === null) {
+    return { ok: true, value: null };
+  }
+  const number = Number(value);
+  if (!Number.isInteger(number) || number <= 0) {
+    return {
+      ok: false,
+      result: invalid(input.command, `${name} must be a positive integer`),
+    };
+  }
+  return { ok: true, value: number };
 }
 
 function jsonObjectFlag(args, name) {
