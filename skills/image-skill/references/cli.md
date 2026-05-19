@@ -510,6 +510,9 @@ Current executable provider-native controls include:
 
 - Fal FLUX.1 dev: `model_parameters.image_size` for presets such as
   `square_hd`, plus `seed`.
+- Fal Z-Image Turbo Create/Edit: `model_parameters.image_size` for
+  `square_hd`, `square`, portrait/landscape presets, and `auto` on edit; costs
+  are quoted from requested megapixels when the output size is explicit.
 - Fal Nano Banana 2 Edit: `model_parameters.resolution` for `0.5K`, `1K`,
   `2K`, and `4K`, plus `seed`.
 - Fal Gemini 3 Pro Image Preview Create/Edit:
@@ -810,12 +813,13 @@ requests quote `$0.15` provider cost and 4K quotes the doubled provider tier.
 Fal Nano Banana Pro create/edit uses the same `$0.15` standard and doubled 4K
 provider tier. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per
 image. Fal Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
-Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image.
-GPT Image 2 create quotes output-token estimates for concrete quality/size
-requests. GPT Image 2 edit remains preflight unknown-cost because edit
-input image/text tokens are provider-metered, then records usage-priced
-provider cost when OpenAI returns token usage.
-Other edit paths without machine-readable pricing require
+Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image. Fal
+Z-Image Turbo create/edit quotes `$0.005/MP` when `image_size` is explicit or
+derived from aspect ratio; edit `auto` remains unknown-cost. GPT Image 2 create
+quotes output-token estimates for concrete quality/size requests. GPT Image 2
+edit remains preflight unknown-cost because edit input image/text tokens are
+provider-metered, then records usage-priced provider cost when OpenAI returns
+token usage. Other edit paths without machine-readable pricing require
 `--accept-unknown-cost` until a stable price source is captured. Responses
 include a new generated asset URL, job id, safety state, quota consumption, and
 input asset metadata where
