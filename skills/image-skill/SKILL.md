@@ -136,6 +136,7 @@ Inspect models before committing to a provider or model-specific parameter:
 ```bash
 image-skill models list --json
 image-skill models show openai.gpt-image-2 --json
+image-skill models show openai.gpt-image-1.5 --json
 ```
 
 Bootstrap restricted agent access:
@@ -247,12 +248,18 @@ future providers:
 image-skill models --json
 image-skill models list --json
 image-skill models show openai.gpt-image-2 --json
+image-skill models show openai.gpt-image-1.5 --json
 ```
 
 `models show` is the first detailed discovery surface for agents. It exposes
 operations, media inputs/outputs, model-parameter schemas, fixed and wired
 controls, cost/latency class, safety behavior, and migration hints. Use
 `capabilities` when you need the schema language directly.
+
+Direct OpenAI GPT Image routes include GPT Image 2 create/edit and GPT Image
+1.5 create/edit. GPT Image 1.5 exposes documented fixed sizes
+`1024x1024`, `1024x1536`, and `1536x1024`, supports transparent backgrounds,
+and wires low/high `input_fidelity` for edits.
 
 Create with hosted artifact URLs and JSON:
 

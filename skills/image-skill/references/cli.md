@@ -536,6 +536,12 @@ Current executable provider-native controls include:
   remain cataloged but fixed for hosted accounting.
 - xAI Grok Imagine Image Quality: `model_parameters.resolution` for `1k` and
   `2k`; 2k is priced from the higher provider tier.
+- GPT Image 1.5 create/edit: documented fixed sizes `1024x1024`,
+  `1024x1536`, and `1536x1024`, output format, compression, transparent or
+  opaque background, moderation, and the upstream provider-native quality
+  parameter. GPT Image 1.5 create quotes output-token estimates when quality
+  and concrete size are known; GPT Image 1.5 edit accepts low/high
+  `input_fidelity` and remains preflight unknown-cost until usage is returned.
 - GPT Image 2 create/edit: size, output format, compression, background,
   moderation, and the upstream provider-native quality parameter. GPT Image 2
   create quotes request-aware output-token estimates when quality and concrete
@@ -810,7 +816,9 @@ Create (`fal.flux-pro-v1-1-ultra`), Fal FLUX Pro Kontext Edit
 (`fal.bytedance-seedream-v4-5-text-to-image`), Fal Seedream 4.5 Edit
 (`fal.bytedance-seedream-v4-5-edit`), Fal Nano Banana Pro Create
 (`fal.nano-banana-pro`), Fal Nano Banana Pro Edit
-(`fal.nano-banana-pro-edit`), and GPT Image 2 Edit
+(`fal.nano-banana-pro-edit`), GPT Image 1.5 Create
+(`openai.gpt-image-1.5`), GPT Image 1.5 Edit
+(`openai.gpt-image-1.5-edit`), and GPT Image 2 Edit
 (`openai.gpt-image-2-edit`) when their provider credentials are configured.
 Fal Gemini 3 Pro Image Preview create/edit has known per-image pricing: 1K/2K
 requests quote `$0.15` provider cost and 4K quotes the doubled provider tier.
@@ -820,11 +828,15 @@ image. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per image. Fal
 Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
 Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image. Fal
 Z-Image Turbo create/edit quotes `$0.005/MP` when `image_size` is explicit or
-derived from aspect ratio; edit `auto` remains unknown-cost. GPT Image 2 create
-quotes output-token estimates for concrete quality/size requests. GPT Image 2
-edit remains preflight unknown-cost because edit input image/text tokens are
-provider-metered, then records usage-priced provider cost when OpenAI returns
-token usage. Other edit paths without machine-readable pricing require
+derived from aspect ratio; edit `auto` remains unknown-cost. GPT Image 1.5
+create quotes output-token estimates for concrete quality/size requests using
+OpenAI's fixed-size token table; GPT Image 1.5 edit remains preflight
+unknown-cost because edit input image/text tokens are provider-metered, then
+records usage-priced provider cost when OpenAI returns token usage. GPT Image 2
+create quotes output-token estimates for concrete quality/size requests. GPT
+Image 2 edit remains preflight unknown-cost because edit input image/text tokens
+are provider-metered, then records usage-priced provider cost when OpenAI
+returns token usage. Other edit paths without machine-readable pricing require
 `--accept-unknown-cost` until a stable price source is captured. Responses
 include a new generated asset URL, job id, safety state, quota consumption, and
 input asset metadata where
