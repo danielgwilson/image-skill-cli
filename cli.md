@@ -510,6 +510,9 @@ Current executable provider-native controls include:
 
 - Fal FLUX.1 dev: `model_parameters.image_size` for presets such as
   `square_hd`, plus `seed`.
+- Fal FLUX Pro 1.1 Ultra Create: `model_parameters.seed` and
+  `model_parameters.raw`; optional reference-image controls remain cataloged
+  for inspection but are not executable on the create-only path.
 - Fal Z-Image Turbo Create/Edit: `model_parameters.image_size` for
   `square_hd`, `square`, portrait/landscape presets, and `auto` on edit; costs
   are quoted from requested megapixels when the output size is explicit.
@@ -799,8 +802,9 @@ or owned asset URL, edit uses that owned asset directly.
 Preview hosted create/edit supports model-specific provider-backed paths such
 as Fal Gemini 3 Pro Image Preview Create (`fal.gemini-3-pro-image-preview`),
 Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Gemini 3 Pro Image
-Preview Edit (`fal.gemini-3-pro-image-preview-edit`), Fal FLUX Pro Kontext
-Edit (`fal.flux-pro-kontext`), Fal Seedream 5.0 Lite Create
+Preview Edit (`fal.gemini-3-pro-image-preview-edit`), Fal FLUX Pro 1.1 Ultra
+Create (`fal.flux-pro-v1-1-ultra`), Fal FLUX Pro Kontext Edit
+(`fal.flux-pro-kontext`), Fal Seedream 5.0 Lite Create
 (`fal.bytedance-seedream-v5-lite-text-to-image`), Fal Seedream 5.0 Lite Edit
 (`fal.bytedance-seedream-v5-lite-edit`), Fal Seedream 4.5 Create
 (`fal.bytedance-seedream-v4-5-text-to-image`), Fal Seedream 4.5 Edit
@@ -811,8 +815,9 @@ Edit (`fal.flux-pro-kontext`), Fal Seedream 5.0 Lite Create
 Fal Gemini 3 Pro Image Preview create/edit has known per-image pricing: 1K/2K
 requests quote `$0.15` provider cost and 4K quotes the doubled provider tier.
 Fal Nano Banana Pro create/edit uses the same `$0.15` standard and doubled 4K
-provider tier. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per
-image. Fal Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
+provider tier. Fal FLUX Pro 1.1 Ultra Create quotes `$0.06` provider cost per
+image. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per image. Fal
+Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
 Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image. Fal
 Z-Image Turbo create/edit quotes `$0.005/MP` when `image_size` is explicit or
 derived from aspect ratio; edit `auto` remains unknown-cost. GPT Image 2 create
