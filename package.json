@@ -19,7 +19,8 @@
     "PROVENANCE.md",
     "skill.md",
     "llms.txt",
-    "cli.md"
+    "cli.md",
+    "skills"
   ],
   "engines": {
     "node": ">=20.0.0"
