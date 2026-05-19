@@ -520,6 +520,10 @@ Current executable provider-native controls include:
 - Fal FLUX Pro Kontext Edit: `model_parameters.seed`; guidance scale and
   aspect-ratio controls remain cataloged for inspection but are not executable
   until their UX and receipt behavior are represented.
+- Fal Bytedance Seedream 4.5 Create/Edit: `model_parameters.image_size` for
+  `square_hd`, `square`, portrait/landscape presets, `auto_2K`, and
+  `auto_4K`, plus `seed`; multi-output and multi-reference controls remain
+  cataloged but fixed for hosted accounting.
 - Fal Bytedance Seedream 5.0 Lite Create/Edit:
   `model_parameters.image_size` for `square_hd`, `square`, portrait/landscape
   presets, `auto_2K`, and `auto_3K`; multi-output and multi-reference controls
@@ -788,7 +792,9 @@ Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Gemini 3 Pro Image
 Preview Edit (`fal.gemini-3-pro-image-preview-edit`), Fal FLUX Pro Kontext
 Edit (`fal.flux-pro-kontext`), Fal Seedream 5.0 Lite Create
 (`fal.bytedance-seedream-v5-lite-text-to-image`), Fal Seedream 5.0 Lite Edit
-(`fal.bytedance-seedream-v5-lite-edit`), Fal Nano Banana Pro Create
+(`fal.bytedance-seedream-v5-lite-edit`), Fal Seedream 4.5 Create
+(`fal.bytedance-seedream-v4-5-text-to-image`), Fal Seedream 4.5 Edit
+(`fal.bytedance-seedream-v4-5-edit`), Fal Nano Banana Pro Create
 (`fal.nano-banana-pro`), Fal Nano Banana Pro Edit
 (`fal.nano-banana-pro-edit`), and GPT Image 2 Edit
 (`openai.gpt-image-2-edit`) when their provider credentials are configured.
@@ -796,8 +802,9 @@ Fal Gemini 3 Pro Image Preview create/edit has known per-image pricing: 1K/2K
 requests quote `$0.15` provider cost and 4K quotes the doubled provider tier.
 Fal Nano Banana Pro create/edit uses the same `$0.15` standard and doubled 4K
 provider tier. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per
-image. Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per
-image. Other edit paths without machine-readable pricing require
+image. Fal Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
+Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image.
+Other edit paths without machine-readable pricing require
 `--accept-unknown-cost` until a stable price source is captured. Responses
 include a new generated asset URL, job id, safety state, quota consumption, and
 input asset metadata where

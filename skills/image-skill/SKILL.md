@@ -280,10 +280,11 @@ parameter through validated `model_parameters`. Fal FLUX.1 dev also exposes
 `image_size`, Fal Nano Banana 2 Edit exposes `resolution` up to `4K`, Fal
 Gemini 3 Pro Image Preview Create/Edit exposes `resolution` from `1K` to `4K`
 with 4K quoted as the higher-priced provider tier, Fal FLUX Pro Kontext Edit
-exposes `seed`, Fal Seedream 5.0 Lite Create/Edit exposes `image_size`, Fal
-Nano Banana Pro Create/Edit exposes `resolution` from `1K` to `4K`, and xAI
-Grok Imagine Image Quality exposes `resolution` up to `2k`. These are
-model-specific controls, not universal Image Skill tiers.
+exposes `seed`, Fal Seedream 4.5 Create/Edit exposes `image_size` and `seed`,
+Fal Seedream 5.0 Lite Create/Edit exposes `image_size`, Fal Nano Banana Pro
+Create/Edit exposes `resolution` from `1K` to `4K`, and xAI Grok Imagine Image
+Quality exposes `resolution` up to `2k`. These are model-specific controls,
+not universal Image Skill tiers.
 
 Hosted free-preview API:
 
@@ -328,11 +329,12 @@ For local paths and external URLs, the public CLI uploads the input first and
 then edits the resulting Image Skill-owned asset id. Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
 Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro Kontext Edit, or Fal
-Seedream 5.0 Lite Create/Edit, or Fal Nano Banana Pro Create/Edit and consumes
-model-priced restricted free-preview credits after provider success. Gemini 3
-Pro Image Preview and Nano Banana Pro create/edit have known per-image pricing;
-4K is quoted at the doubled provider tier. FLUX Pro Kontext Edit quotes
-`$0.04` provider cost per image. Seedream 5.0 Lite create/edit quotes `$0.035`
+Seedream 4.5 Create/Edit, Fal Seedream 5.0 Lite Create/Edit, or Fal Nano
+Banana Pro Create/Edit and consumes model-priced restricted free-preview
+credits after provider success. Gemini 3 Pro Image Preview and Nano Banana Pro
+create/edit have known per-image pricing; 4K is quoted at the doubled provider
+tier. FLUX Pro Kontext Edit and Seedream 4.5 create/edit quote `$0.04`
+provider cost per image. Seedream 5.0 Lite create/edit quotes `$0.035`
 provider cost per image.
 
 Inspect an Image Skill-owned asset:
