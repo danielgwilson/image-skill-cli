@@ -278,8 +278,8 @@ GPT Image 2 exposes documented provider-native controls such as size, output
 format, compression, background, moderation, and its provider-native quality
 parameter through validated `model_parameters`. GPT Image 2 create quotes
 request-aware output-token estimates when quality and concrete size are known;
-GPT Image 2 edit remains unknown-cost until input token accounting is
-represented. Fal FLUX.1 dev also exposes
+GPT Image 2 edit remains preflight unknown-cost, then records usage-priced
+provider cost when OpenAI returns token usage. Fal FLUX.1 dev also exposes
 `image_size`, Fal Nano Banana 2 Edit exposes `resolution` up to `4K`, Fal
 Gemini 3 Pro Image Preview Create/Edit exposes `resolution` from `1K` to `4K`
 with 4K quoted as the higher-priced provider tier, Fal FLUX Pro Kontext Edit
@@ -340,7 +340,8 @@ tier. FLUX Pro Kontext Edit and Seedream 4.5 create/edit quote `$0.04`
 provider cost per image. Seedream 5.0 Lite create/edit quotes `$0.035`
 provider cost per image. GPT Image 2 create quotes output-token estimates for
 concrete quality/size requests; GPT Image 2 edit requires unknown-cost
-acceptance until input image/text token accounting is represented.
+acceptance before execution because input image/text tokens are provider-metered,
+then records usage-priced provider cost when OpenAI returns token usage.
 
 Inspect an Image Skill-owned asset:
 

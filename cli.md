@@ -533,8 +533,8 @@ Current executable provider-native controls include:
 - GPT Image 2 create/edit: size, output format, compression, background,
   moderation, and the upstream provider-native quality parameter. GPT Image 2
   create quotes request-aware output-token estimates when quality and concrete
-  size are known; GPT Image 2 edit remains unknown-cost until input token
-  accounting is represented.
+  size are known; GPT Image 2 edit remains preflight unknown-cost, then records
+  usage-priced provider cost when OpenAI returns token usage.
 
 Inspect each model before use; provider-native controls are available only
 through validated `model_parameters`.
@@ -628,8 +628,10 @@ In the current preview, Fal create/edit, xAI quality generation, and OpenAI GPT
 Image 2 expose the executable provider-native controls listed in the selected
 model schema. GPT Image 2 create has request-aware output-token credit quotes
 for concrete quality/size requests; GPT Image 2 edit still requires
-unknown-cost acceptance. Provider-native controls remain visible for planning
-and fail closed until their capability schema marks them executable. Hosted
+unknown-cost acceptance before execution, but records usage-priced provider cost
+after execution when OpenAI returns token usage. Provider-native controls remain
+visible for planning and fail closed until their capability schema marks them
+executable. Hosted
 `create --dry-run` validates `model_parameters` against the selected model,
 returns accepted keys/provenance and request-aware credit pricing for planning,
 and never executes provider controls or consumes credits.
@@ -810,8 +812,9 @@ provider tier. Fal FLUX Pro Kontext Edit quotes `$0.04` provider cost per
 image. Fal Seedream 4.5 create/edit quotes `$0.04` provider cost per image.
 Fal Seedream 5.0 Lite create/edit quotes `$0.035` provider cost per image.
 GPT Image 2 create quotes output-token estimates for concrete quality/size
-requests. GPT Image 2 edit remains unknown-cost because edit input image/text
-token accounting is not yet represented.
+requests. GPT Image 2 edit remains preflight unknown-cost because edit
+input image/text tokens are provider-metered, then records usage-priced
+provider cost when OpenAI returns token usage.
 Other edit paths without machine-readable pricing require
 `--accept-unknown-cost` until a stable price source is captured. Responses
 include a new generated asset URL, job id, safety state, quota consumption, and
