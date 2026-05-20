@@ -518,6 +518,9 @@ Current executable provider-native controls include:
   are quoted from requested megapixels when the output size is explicit.
 - Fal Nano Banana 2 Edit: `model_parameters.resolution` for `0.5K`, `1K`,
   `2K`, and `4K`, plus `seed`.
+- Fal Ideogram V2 Edit: `model_parameters.expand_prompt`, `seed`, and
+  `style`; pass masks as top-level `--mask` / `mask_asset_id`, not as
+  provider `mask_url`.
 - Fal Gemini 3 Pro Image Preview Create/Edit:
   `model_parameters.resolution` for `1K`, `2K`, and `4K`, plus `seed`; 4K is
   quoted as the higher-priced provider tier.
@@ -814,6 +817,7 @@ with one hosted provider-backed edit model.
 ```bash
 image-skill edit \
   --input ASSET_ID_OR_PATH_OR_URL \
+  --mask MASK_ASSET_ID_OR_PATH_OR_URL \
   --prompt "Remove the background and keep natural object shadows" \
   --accept-unknown-cost \
   --json
@@ -823,10 +827,14 @@ If `--input` is a local path or external URL, the public CLI first normalizes it
 through the same upload resolver as `image-skill upload`, then sends only the
 resulting `asset_id` to `POST /v1/edit`. If `--input` is an Image Skill asset id
 or owned asset URL, edit uses that owned asset directly.
+For models with wired mask support, `--mask` follows the same upload/asset-id
+resolver and sends only `mask_asset_id`; never pass provider-native `mask_url`
+through `model_parameters`.
 
 Preview hosted create/edit supports model-specific provider-backed paths such
 as Fal Gemini 3 Pro Image Preview Create (`fal.gemini-3-pro-image-preview`),
-Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Gemini 3 Pro Image
+Fal Nano Banana 2 Edit (`fal.nano-banana-2-edit`), Fal Ideogram V2 Edit
+(`fal.ideogram-v2-edit`), Fal Gemini 3 Pro Image
 Preview Edit (`fal.gemini-3-pro-image-preview-edit`), Fal FLUX Pro 1.1 Ultra
 Create (`fal.flux-pro-v1-1-ultra`), Fal FLUX Pro Kontext Edit
 (`fal.flux-pro-kontext`), Fal FLUX Pro Kontext Max Edit

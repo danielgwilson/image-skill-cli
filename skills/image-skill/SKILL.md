@@ -346,18 +346,21 @@ Edit an owned input asset, local path, or remote URL:
 ```bash
 image-skill edit \
   --input ASSET_ID_OR_PATH_OR_URL \
+  --mask MASK_ASSET_ID_OR_PATH_OR_URL \
   --prompt "Remove the background and keep natural object shadows" \
   --accept-unknown-cost \
   --json
 ```
 
 For local paths and external URLs, the public CLI uploads the input first and
-then edits the resulting Image Skill-owned asset id. Preview hosted create/edit
+then edits the resulting Image Skill-owned asset id. On mask-capable models,
+`--mask` uses the same resolver and sends only `mask_asset_id`; provider-native
+`mask_url` remains private to Image Skill. Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
-Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro Kontext Pro/Max Edit,
-or Fal Seedream 4.5 Create/Edit, Fal Seedream 5.0 Lite Create/Edit, Fal
-Z-Image Turbo Create/Edit, Fal Nano Banana Pro Create/Edit, or Fal FLUX Pro
-1.1 Ultra Create
+Edit, Fal Ideogram V2 Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro
+Kontext Pro/Max Edit, or Fal Seedream 4.5 Create/Edit, Fal Seedream 5.0 Lite
+Create/Edit, Fal Z-Image Turbo Create/Edit, Fal Nano Banana Pro Create/Edit,
+or Fal FLUX Pro 1.1 Ultra Create
 and consumes model-priced restricted free-preview credits after provider
 success. Gemini 3 Pro Image Preview and Nano Banana Pro create/edit have known
 per-image pricing; 4K is quoted at the doubled provider tier. FLUX Pro 1.1

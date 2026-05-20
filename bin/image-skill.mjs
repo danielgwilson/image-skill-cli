@@ -740,6 +740,12 @@ async function edit(argv) {
   if (!assetId.ok) {
     return assetId.result;
   }
+  const mask = flagString(args, "mask");
+  const maskAssetId =
+    mask === null ? null : await resolveInputAssetId(mask, args, token.token);
+  if (maskAssetId !== null && !maskAssetId.ok) {
+    return maskAssetId.result;
+  }
   const modelParameters = jsonObjectFlag(args, "model-parameters-json");
   if (!modelParameters.ok) {
     return modelParameters.result;
@@ -752,6 +758,7 @@ async function edit(argv) {
     token: token.token,
     body: {
       input_asset_id: assetId.assetId,
+      ...(maskAssetId === null ? {} : { mask_asset_id: maskAssetId.assetId }),
       prompt: prompt.value,
       ...(flagString(args, "provider") === null
         ? {}
