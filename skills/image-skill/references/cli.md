@@ -618,6 +618,26 @@ field. Credit pricing and `cost.credit_pricing.credits_required` are total
 operation debits across all requested outputs. `--max-estimated-usd-per-image`
 and raw API `max_estimated_usd_per_image` remain per-image budget guards.
 
+For create models with wired Kling element references, pass owned reference
+assets with `--element-frontal IMAGE[@ELEMENT_INDEX]` and
+`--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]`. The public CLI
+uploads local paths and external URLs first, then sends top-level
+`references[]` entries with Image Skill `asset_id` values to `/v1/create`.
+Do not pass provider-native `elements`, `frontal_image_url`, or
+`reference_image_urls` through `model_parameters`; provider-private URLs are
+resolved server-side after ownership and media-policy validation.
+
+```bash
+image-skill create \
+  --model fal.kling-image-o3-text-to-image \
+  --prompt "Place the same character in a clean studio campaign" \
+  --element-frontal ./character-front.png@0 \
+  --element-reference ./character-side.webp@0:0 \
+  --output-count 2 \
+  --max-estimated-usd-per-image 0.06 \
+  --json
+```
+
 High-resolution examples:
 
 ```bash
@@ -834,20 +854,21 @@ For models with wired reference support, pass owned reference assets with
 `--element-frontal IMAGE[@ELEMENT_INDEX]` and
 `--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]`. The public CLI
 uploads local paths and external URLs first, then sends top-level
-`references[]` entries with Image Skill `asset_id` values. For Kling Image O3,
-`--element-frontal ./front.png@0` becomes role `element_frontal` for element
-index `0`, and `--element-reference ./side.webp@0:0` becomes role
+`references[]` entries with Image Skill `asset_id` values. For Kling element
+routes, `--element-frontal ./front.png@0` becomes role `element_frontal` for
+element index `0`, and `--element-reference ./side.webp@0:0` becomes role
 `element_reference` for the same element with reference slot `0`. Do not pass
-provider-native `elements`, `image_urls`, `frontal_image_url`, or
+provider-native `elements`, `image_url`, `image_urls`, `frontal_image_url`, or
 `reference_image_urls` through `model_parameters`; provider-private URLs are
 resolved server-side after ownership and media-policy validation.
-Current public `references[]` support is Kling Image O3 only. The request may
-contain at most 40 reference entries across at most 10 contiguous element
-indexes starting at `0`. Each referenced element requires one frontal image and
-may include up to three additional reference images. Reference assets must be
-Image Skill-owned PNG, JPEG, or WebP images with known non-empty byte length up
-to 10MB, known width and height of at least 300px, and aspect ratio from 0.40
-to 2.50.
+Current public `references[]` support covers Kling Image O1, Kling Image O3
+image-to-image/text-to-image, and Kling Image v3 image-to-image/text-to-image.
+The request may contain at most 40 reference entries across at most 10
+contiguous element indexes starting at `0`. Each referenced element requires
+one frontal image and may include up to three additional reference images.
+Reference assets must be Image Skill-owned PNG, JPEG, or WebP images with
+known non-empty byte length up to 10MB, known width and height of at least
+300px, and aspect ratio from 0.40 to 2.50.
 
 ```bash
 image-skill edit \

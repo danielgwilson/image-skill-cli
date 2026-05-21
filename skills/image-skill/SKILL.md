@@ -292,6 +292,20 @@ Image Skill treats output count as a top-level create control and scales
 `cost.credit_pricing.credits_required` across all requested outputs; the
 `max_estimated_usd_per_image` guard remains per image.
 
+For Kling element-capable create routes, use the same owned reference flags as
+edit:
+
+```bash
+image-skill create \
+  --model fal.kling-image-o3-text-to-image \
+  --prompt "Place the same character in a clean studio campaign" \
+  --element-frontal ./character-front.png@0 \
+  --element-reference ./character-side.webp@0:0 \
+  --output-count 2 \
+  --max-estimated-usd-per-image 0.06 \
+  --json
+```
+
 In the current preview, Fal create/edit expose executable `seed`, while OpenAI
 GPT Image 2 exposes documented provider-native controls such as size, output
 format, compression, background, moderation, and its provider-native quality
@@ -352,8 +366,7 @@ image-skill edit \
   --json
 ```
 
-Use owned reference assets for models that advertise reference inputs, such as
-Kling Image O3 element guidance:
+Use owned reference assets for models that advertise Kling element guidance:
 
 ```bash
 image-skill edit \
@@ -374,13 +387,14 @@ same owned-asset resolver: `--element-frontal IMAGE[@ELEMENT_INDEX]` and
 `--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]` upload local or
 remote images first, then send top-level `references[]` entries with
 `asset_id`, `role`, `index`, and optional `reference_index`. Do not pass raw
-provider `elements`, `image_urls`, `frontal_image_url`, or
+provider `elements`, `image_url`, `image_urls`, `frontal_image_url`, or
 `reference_image_urls`; Image Skill resolves provider-private URLs server-side.
-Current public `references[]` support is Kling Image O3 only: at most 40
-entries, at most 10 contiguous element indexes from `0`, one frontal image per
-referenced element, up to three additional reference images per element, owned
-PNG/JPEG/WebP only, 10MB max, minimum 300px width/height, and aspect ratio
-0.40-2.50.
+Current public `references[]` support covers Kling Image O1, Kling Image O3
+image-to-image/text-to-image, and Kling Image v3 image-to-image/text-to-image:
+at most 40 entries, at most 10 contiguous element indexes from `0`, one
+frontal image per referenced element, up to three additional reference images
+per element, owned PNG/JPEG/WebP only, 10MB max, minimum 300px width/height,
+and aspect ratio 0.40-2.50.
 Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
 Edit, Fal Ideogram V2 Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro

@@ -652,6 +652,10 @@ async function create(argv) {
   if (!token.ok) {
     return token.result;
   }
+  const referencePlan = parseReferencePlan(args, "image-skill create");
+  if (!referencePlan.ok) {
+    return referencePlan.result;
+  }
   const modelParameters = jsonObjectFlag(args, "model-parameters-json");
   if (!modelParameters.ok) {
     return modelParameters.result;
@@ -661,6 +665,14 @@ async function create(argv) {
   });
   if (!outputCount.ok) {
     return outputCount.result;
+  }
+  const references = await resolveReferences(
+    referencePlan.referencePlans,
+    args,
+    token.token,
+  );
+  if (!references.ok) {
+    return references.result;
   }
   return apiRequest({
     command: "image-skill create",
@@ -680,6 +692,9 @@ async function create(argv) {
         ? {}
         : { intent: flagString(args, "intent") }),
       aspect_ratio: flagString(args, "aspect-ratio") ?? "1:1",
+      ...(references.references.length === 0
+        ? {}
+        : { references: references.references }),
       ...(outputCount.value === null
         ? {}
         : { output_count: outputCount.value }),
@@ -742,7 +757,7 @@ async function edit(argv) {
   if (!token.ok) {
     return token.result;
   }
-  const referencePlan = parseEditReferencePlan(args);
+  const referencePlan = parseReferencePlan(args, "image-skill edit");
   if (!referencePlan.ok) {
     return referencePlan.result;
   }
@@ -756,7 +771,7 @@ async function edit(argv) {
   if (maskAssetId !== null && !maskAssetId.ok) {
     return maskAssetId.result;
   }
-  const references = await resolveEditReferences(
+  const references = await resolveReferences(
     referencePlan.referencePlans,
     args,
     token.token,
@@ -1075,7 +1090,7 @@ async function resolveInputAssetId(input, args, token) {
   return { ok: true, assetId };
 }
 
-function parseEditReferencePlan(args) {
+function parseReferencePlan(args, command) {
   for (const flag of ["element-frontal", "element-reference"]) {
     if (
       args.flags.has(flag) &&
@@ -1083,7 +1098,7 @@ function parseEditReferencePlan(args) {
     ) {
       return {
         ok: false,
-        result: invalid("image-skill edit", `--${flag} requires an image`),
+        result: invalid(command, `--${flag} requires an image`),
       };
     }
   }
@@ -1092,6 +1107,7 @@ function parseEditReferencePlan(args) {
     const parsed = parseElementReferenceFlag(value, {
       flag: "--element-frontal",
       allowReferenceIndex: false,
+      command,
     });
     if (!parsed.ok) {
       return parsed;
@@ -1107,6 +1123,7 @@ function parseEditReferencePlan(args) {
     const parsed = parseElementReferenceFlag(value, {
       flag: "--element-reference",
       allowReferenceIndex: true,
+      command,
     });
     if (!parsed.ok) {
       return parsed;
@@ -1118,14 +1135,14 @@ function parseEditReferencePlan(args) {
       referenceIndex: parsed.referenceIndex,
     });
   }
-  const planValidation = validateElementReferencePlan(referencePlans);
+  const planValidation = validateElementReferencePlan(referencePlans, command);
   if (!planValidation.ok) {
     return planValidation;
   }
   return { ok: true, referencePlans };
 }
 
-async function resolveEditReferences(referencePlans, args, token) {
+async function resolveReferences(referencePlans, args, token) {
   const references = [];
   for (const plan of referencePlans) {
     const assetId = await resolveInputAssetId(plan.input, args, token);
@@ -1152,7 +1169,7 @@ async function resolveEditReferences(referencePlans, args, token) {
   return { ok: true, references };
 }
 
-function validateElementReferencePlan(referencePlans) {
+function validateElementReferencePlan(referencePlans, command) {
   if (referencePlans.length === 0) {
     return { ok: true };
   }
@@ -1166,7 +1183,7 @@ function validateElementReferencePlan(referencePlans) {
         return {
           ok: false,
           result: invalid(
-            "image-skill edit",
+            command,
             `only one --element-frontal is allowed for element ${plan.index}`,
           ),
         };
@@ -1184,7 +1201,7 @@ function validateElementReferencePlan(referencePlans) {
       return {
         ok: false,
         result: invalid(
-          "image-skill edit",
+          command,
           "element indexes must be contiguous starting at 0",
         ),
       };
@@ -1195,7 +1212,7 @@ function validateElementReferencePlan(referencePlans) {
       return {
         ok: false,
         result: invalid(
-          "image-skill edit",
+          command,
           `--element-reference for element ${index} requires --element-frontal for the same element`,
         ),
       };
@@ -1204,7 +1221,7 @@ function validateElementReferencePlan(referencePlans) {
       return {
         ok: false,
         result: invalid(
-          "image-skill edit",
+          command,
           `element ${index} accepts at most 3 --element-reference images`,
         ),
       };
@@ -1218,14 +1235,14 @@ function parseElementReferenceFlag(value, options) {
   if (parsed.input.length === 0) {
     return {
       ok: false,
-      result: invalid("image-skill edit", `${options.flag} requires an image`),
+      result: invalid(options.command, `${options.flag} requires an image`),
     };
   }
   if (!options.allowReferenceIndex && parsed.referenceIndex !== null) {
     return {
       ok: false,
       result: invalid(
-        "image-skill edit",
+        options.command,
         `${options.flag} accepts IMAGE[@ELEMENT_INDEX], not a reference index`,
       ),
     };
@@ -1234,7 +1251,7 @@ function parseElementReferenceFlag(value, options) {
     return {
       ok: false,
       result: invalid(
-        "image-skill edit",
+        options.command,
         `${options.flag} element index must be between 0 and 9`,
       ),
     };
@@ -1243,7 +1260,7 @@ function parseElementReferenceFlag(value, options) {
     return {
       ok: false,
       result: invalid(
-        "image-skill edit",
+        options.command,
         `${options.flag} reference index must be between 0 and 2`,
       ),
     };
