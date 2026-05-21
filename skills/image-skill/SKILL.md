@@ -352,10 +352,36 @@ image-skill edit \
   --json
 ```
 
+Use owned reference assets for models that advertise reference inputs, such as
+Kling Image O3 element guidance:
+
+```bash
+image-skill edit \
+  --model fal.kling-image-o3-image-to-image \
+  --input ./starting-frame.png \
+  --element-frontal ./character-front.png@0 \
+  --element-reference ./character-side.webp@0:0 \
+  --prompt "Place the same character in a clean studio product portrait" \
+  --accept-unknown-cost \
+  --json
+```
+
 For local paths and external URLs, the public CLI uploads the input first and
 then edits the resulting Image Skill-owned asset id. On mask-capable models,
 `--mask` uses the same resolver and sends only `mask_asset_id`; provider-native
-`mask_url` remains private to Image Skill. Preview hosted create/edit
+`mask_url` remains private to Image Skill. Reference-capable models use the
+same owned-asset resolver: `--element-frontal IMAGE[@ELEMENT_INDEX]` and
+`--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]` upload local or
+remote images first, then send top-level `references[]` entries with
+`asset_id`, `role`, `index`, and optional `reference_index`. Do not pass raw
+provider `elements`, `image_urls`, `frontal_image_url`, or
+`reference_image_urls`; Image Skill resolves provider-private URLs server-side.
+Current public `references[]` support is Kling Image O3 only: at most 40
+entries, at most 10 contiguous element indexes from `0`, one frontal image per
+referenced element, up to three additional reference images per element, owned
+PNG/JPEG/WebP only, 10MB max, minimum 300px width/height, and aspect ratio
+0.40-2.50.
+Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
 Edit, Fal Ideogram V2 Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro
 Kontext Pro/Max Edit, or Fal Seedream 4.5 Create/Edit, Fal Seedream 5.0 Lite

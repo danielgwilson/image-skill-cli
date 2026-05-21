@@ -736,6 +736,10 @@ async function edit(argv) {
   if (!token.ok) {
     return token.result;
   }
+  const referencePlan = parseEditReferencePlan(args);
+  if (!referencePlan.ok) {
+    return referencePlan.result;
+  }
   const assetId = await resolveInputAssetId(input, args, token.token);
   if (!assetId.ok) {
     return assetId.result;
@@ -745,6 +749,14 @@ async function edit(argv) {
     mask === null ? null : await resolveInputAssetId(mask, args, token.token);
   if (maskAssetId !== null && !maskAssetId.ok) {
     return maskAssetId.result;
+  }
+  const references = await resolveEditReferences(
+    referencePlan.referencePlans,
+    args,
+    token.token,
+  );
+  if (!references.ok) {
+    return references.result;
   }
   const modelParameters = jsonObjectFlag(args, "model-parameters-json");
   if (!modelParameters.ok) {
@@ -759,6 +771,9 @@ async function edit(argv) {
     body: {
       input_asset_id: assetId.assetId,
       ...(maskAssetId === null ? {} : { mask_asset_id: maskAssetId.assetId }),
+      ...(references.references.length === 0
+        ? {}
+        : { references: references.references }),
       prompt: prompt.value,
       ...(flagString(args, "provider") === null
         ? {}
@@ -1054,6 +1069,199 @@ async function resolveInputAssetId(input, args, token) {
     };
   }
   return { ok: true, assetId };
+}
+
+function parseEditReferencePlan(args) {
+  for (const flag of ["element-frontal", "element-reference"]) {
+    if (
+      args.flags.has(flag) &&
+      args.flags.get(flag)?.some((value) => typeof value !== "string")
+    ) {
+      return {
+        ok: false,
+        result: invalid("image-skill edit", `--${flag} requires an image`),
+      };
+    }
+  }
+  const referencePlans = [];
+  for (const value of flagStrings(args, "element-frontal")) {
+    const parsed = parseElementReferenceFlag(value, {
+      flag: "--element-frontal",
+      allowReferenceIndex: false,
+    });
+    if (!parsed.ok) {
+      return parsed;
+    }
+    referencePlans.push({
+      input: parsed.input,
+      role: "element_frontal",
+      index: parsed.index,
+      referenceIndex: null,
+    });
+  }
+  for (const value of flagStrings(args, "element-reference")) {
+    const parsed = parseElementReferenceFlag(value, {
+      flag: "--element-reference",
+      allowReferenceIndex: true,
+    });
+    if (!parsed.ok) {
+      return parsed;
+    }
+    referencePlans.push({
+      input: parsed.input,
+      role: "element_reference",
+      index: parsed.index,
+      referenceIndex: parsed.referenceIndex,
+    });
+  }
+  const planValidation = validateElementReferencePlan(referencePlans);
+  if (!planValidation.ok) {
+    return planValidation;
+  }
+  return { ok: true, referencePlans };
+}
+
+async function resolveEditReferences(referencePlans, args, token) {
+  const references = [];
+  for (const plan of referencePlans) {
+    const assetId = await resolveInputAssetId(plan.input, args, token);
+    if (!assetId.ok) {
+      return assetId;
+    }
+    if (plan.role === "element_frontal") {
+      references.push({
+        asset_id: assetId.assetId,
+        role: "element_frontal",
+        index: plan.index,
+      });
+      continue;
+    }
+    references.push({
+      asset_id: assetId.assetId,
+      role: "element_reference",
+      index: plan.index,
+      ...(plan.referenceIndex === null
+        ? {}
+        : { reference_index: plan.referenceIndex }),
+    });
+  }
+  return { ok: true, references };
+}
+
+function validateElementReferencePlan(referencePlans) {
+  if (referencePlans.length === 0) {
+    return { ok: true };
+  }
+  const frontals = new Set();
+  const referencesByElement = new Map();
+  const elementIndexes = new Set();
+  for (const plan of referencePlans) {
+    elementIndexes.add(plan.index);
+    if (plan.role === "element_frontal") {
+      if (frontals.has(plan.index)) {
+        return {
+          ok: false,
+          result: invalid(
+            "image-skill edit",
+            `only one --element-frontal is allowed for element ${plan.index}`,
+          ),
+        };
+      }
+      frontals.add(plan.index);
+    } else {
+      const count = referencesByElement.get(plan.index) ?? 0;
+      referencesByElement.set(plan.index, count + 1);
+    }
+  }
+
+  const sortedIndexes = [...elementIndexes].sort((left, right) => left - right);
+  for (let expected = 0; expected < sortedIndexes.length; expected += 1) {
+    if (sortedIndexes[expected] !== expected) {
+      return {
+        ok: false,
+        result: invalid(
+          "image-skill edit",
+          "element indexes must be contiguous starting at 0",
+        ),
+      };
+    }
+  }
+  for (const [index, count] of referencesByElement.entries()) {
+    if (!frontals.has(index)) {
+      return {
+        ok: false,
+        result: invalid(
+          "image-skill edit",
+          `--element-reference for element ${index} requires --element-frontal for the same element`,
+        ),
+      };
+    }
+    if (count > 3) {
+      return {
+        ok: false,
+        result: invalid(
+          "image-skill edit",
+          `element ${index} accepts at most 3 --element-reference images`,
+        ),
+      };
+    }
+  }
+  return { ok: true };
+}
+
+function parseElementReferenceFlag(value, options) {
+  const parsed = parseElementReferenceSuffix(value);
+  if (parsed.input.length === 0) {
+    return {
+      ok: false,
+      result: invalid("image-skill edit", `${options.flag} requires an image`),
+    };
+  }
+  if (!options.allowReferenceIndex && parsed.referenceIndex !== null) {
+    return {
+      ok: false,
+      result: invalid(
+        "image-skill edit",
+        `${options.flag} accepts IMAGE[@ELEMENT_INDEX], not a reference index`,
+      ),
+    };
+  }
+  if (parsed.index > 9) {
+    return {
+      ok: false,
+      result: invalid(
+        "image-skill edit",
+        `${options.flag} element index must be between 0 and 9`,
+      ),
+    };
+  }
+  if (parsed.referenceIndex !== null && parsed.referenceIndex > 2) {
+    return {
+      ok: false,
+      result: invalid(
+        "image-skill edit",
+        `${options.flag} reference index must be between 0 and 2`,
+      ),
+    };
+  }
+  return { ok: true, ...parsed };
+}
+
+function parseElementReferenceSuffix(value) {
+  const atIndex = value.lastIndexOf("@");
+  if (atIndex === -1) {
+    return { input: value, index: 0, referenceIndex: null };
+  }
+  const suffix = value.slice(atIndex + 1);
+  if (!/^\d+(?::\d+)?$/.test(suffix)) {
+    return { input: value, index: 0, referenceIndex: null };
+  }
+  const [index, referenceIndex] = suffix.split(":").map((part) => Number(part));
+  return {
+    input: value.slice(0, atIndex),
+    index,
+    referenceIndex: referenceIndex ?? null,
+  };
 }
 
 async function uploadPayload(input) {
@@ -1362,6 +1570,12 @@ function pushFlag(flags, name, value) {
 function flagString(args, name) {
   const value = args.flags.get(name)?.at(-1);
   return typeof value === "string" ? value : null;
+}
+
+function flagStrings(args, name) {
+  return (args.flags.get(name) ?? []).filter(
+    (value) => typeof value === "string",
+  );
 }
 
 function flagBool(args, name) {

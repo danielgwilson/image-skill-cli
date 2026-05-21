@@ -830,6 +830,58 @@ or owned asset URL, edit uses that owned asset directly.
 For models with wired mask support, `--mask` follows the same upload/asset-id
 resolver and sends only `mask_asset_id`; never pass provider-native `mask_url`
 through `model_parameters`.
+For models with wired reference support, pass owned reference assets with
+`--element-frontal IMAGE[@ELEMENT_INDEX]` and
+`--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]`. The public CLI
+uploads local paths and external URLs first, then sends top-level
+`references[]` entries with Image Skill `asset_id` values. For Kling Image O3,
+`--element-frontal ./front.png@0` becomes role `element_frontal` for element
+index `0`, and `--element-reference ./side.webp@0:0` becomes role
+`element_reference` for the same element with reference slot `0`. Do not pass
+provider-native `elements`, `image_urls`, `frontal_image_url`, or
+`reference_image_urls` through `model_parameters`; provider-private URLs are
+resolved server-side after ownership and media-policy validation.
+Current public `references[]` support is Kling Image O3 only. The request may
+contain at most 40 reference entries across at most 10 contiguous element
+indexes starting at `0`. Each referenced element requires one frontal image and
+may include up to three additional reference images. Reference assets must be
+Image Skill-owned PNG, JPEG, or WebP images with known non-empty byte length up
+to 10MB, known width and height of at least 300px, and aspect ratio from 0.40
+to 2.50.
+
+```bash
+image-skill edit \
+  --model fal.kling-image-o3-image-to-image \
+  --input ./starting-frame.png \
+  --element-frontal ./character-front.png@0 \
+  --element-reference ./character-side.webp@0:0 \
+  --prompt "Place the same character in a clean studio product portrait" \
+  --accept-unknown-cost \
+  --json
+```
+
+Direct `/v1/edit` callers use the same owned-asset contract:
+
+```json
+{
+  "input_asset_id": "image_starting_frame",
+  "model": "fal.kling-image-o3-image-to-image",
+  "prompt": "Place the same character in a clean studio product portrait",
+  "references": [
+    {
+      "asset_id": "image_character_front",
+      "role": "element_frontal",
+      "index": 0
+    },
+    {
+      "asset_id": "image_character_side",
+      "role": "element_reference",
+      "index": 0,
+      "reference_index": 0
+    }
+  ]
+}
+```
 
 Preview hosted create/edit supports model-specific provider-backed paths such
 as Fal Gemini 3 Pro Image Preview Create (`fal.gemini-3-pro-image-preview`),
