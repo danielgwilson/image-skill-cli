@@ -9,6 +9,11 @@ import os from "node:os";
 
 const VERSION = "0.1.7";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
+const PROMPTLESS_EDIT_MODEL_IDS = new Set([
+  "fal.flux-dev-redux",
+  "fal.flux-krea-redux",
+  "fal.flux-schnell-redux",
+]);
 const DEFAULT_CONFIG_PATH = join(
   process.env.XDG_CONFIG_HOME ?? join(os.homedir(), ".config"),
   "image-skill",
@@ -722,13 +727,14 @@ async function upload(argv) {
 async function edit(argv) {
   const args = parseArgs(argv);
   const input = flagString(args, "input") ?? args.positionals[0];
+  const modelId = flagString(args, "model");
   if (input === undefined) {
     return invalid(
       "image-skill edit",
       "edit requires --input ASSET_ID_OR_PATH_OR_URL",
     );
   }
-  const prompt = await promptValue(args);
+  const prompt = await editPromptValue(args, modelId);
   if (!prompt.ok) {
     return prompt.result;
   }
@@ -774,13 +780,11 @@ async function edit(argv) {
       ...(references.references.length === 0
         ? {}
         : { references: references.references }),
-      prompt: prompt.value,
+      ...(prompt.value.length === 0 ? {} : { prompt: prompt.value }),
       ...(flagString(args, "provider") === null
         ? {}
         : { provider: flagString(args, "provider") }),
-      ...(flagString(args, "model") === null
-        ? {}
-        : { model: flagString(args, "model") }),
+      ...(modelId === null ? {} : { model: modelId }),
       ...(flagString(args, "intent") === null
         ? {}
         : { intent: flagString(args, "intent") }),
@@ -1414,6 +1418,69 @@ async function promptValue(args) {
     ok: false,
     result: invalid("image-skill create", "create/edit requires --prompt"),
   };
+}
+
+async function editPromptValue(args, modelId) {
+  if (args.flags.has("prompt") && flagString(args, "prompt") === null) {
+    return {
+      ok: false,
+      result: invalid("image-skill edit", "--prompt requires a value"),
+    };
+  }
+  if (
+    args.flags.has("prompt-file") &&
+    flagString(args, "prompt-file") === null
+  ) {
+    return {
+      ok: false,
+      result: invalid("image-skill edit", "--prompt-file requires a value"),
+    };
+  }
+  const prompt = flagString(args, "prompt");
+  const promptFile = flagString(args, "prompt-file");
+  if (prompt !== null && promptFile !== null) {
+    return {
+      ok: false,
+      result: invalid(
+        "image-skill edit",
+        "provide either --prompt or --prompt-file, not both",
+      ),
+    };
+  }
+  const isPromptlessModel =
+    modelId !== null && PROMPTLESS_EDIT_MODEL_IDS.has(modelId);
+  let value = null;
+  if (prompt !== null) {
+    value = prompt;
+  } else if (promptFile !== null) {
+    value = await readFile(promptFile, "utf8");
+  }
+  const trimmed = value?.trim() ?? "";
+  if (isPromptlessModel) {
+    if (trimmed.length > 0) {
+      return {
+        ok: false,
+        result: invalid(
+          "image-skill edit",
+          `model ${modelId} does not accept --prompt`,
+        ),
+      };
+    }
+    return { ok: true, value: "" };
+  }
+  if (value === null) {
+    return {
+      ok: false,
+      result: invalid("image-skill edit", "edit requires --prompt"),
+    };
+  }
+  if (trimmed.length === 0) {
+    return {
+      ok: false,
+      result: invalid("image-skill edit", "edit prompt cannot be empty"),
+    };
+  }
+  return { ok: true, value: trimmed };
 }
 
 async function resolveToken(args, options = {}) {
