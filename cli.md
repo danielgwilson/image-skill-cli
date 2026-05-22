@@ -622,12 +622,12 @@ For create models with wired reference support, pass owned reference assets
 with the model's advertised reference role. Kling element routes use
 `--element-frontal IMAGE[@ELEMENT_INDEX]` and
 `--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]`; flat
-reference-image routes such as Fal DreamO use
-`--reference-image IMAGE[@INDEX[:TASK]]`, where `TASK` is `ip`, `id`, or
-`style`. The public CLI uploads local paths and external URLs first, then
+reference-image routes use `--reference-image IMAGE[@INDEX]`; Fal DreamO also
+accepts `:TASK` where `TASK` is `ip`, `id`, or `style`. The public CLI uploads
+local paths and external URLs first, then
 sends top-level `references[]` entries with Image Skill `asset_id` values to
 `/v1/create`. Do not pass provider-native `elements`, `frontal_image_url`,
-`reference_image_urls`, `first_image_url`, `second_image_url`, or
+`reference_image_urls`, `first_image_url`, `second_image_url`, `images`, or
 `*_reference_task` through `model_parameters`; provider-private URLs are
 resolved server-side after ownership and media-policy validation.
 
@@ -876,19 +876,22 @@ routes, `--element-frontal ./front.png@0` becomes role `element_frontal` for
 element index `0`, and `--element-reference ./side.webp@0:0` becomes role
 `element_reference` for the same element with reference slot `0`. For DreamO
 create, `--reference-image ./identity.png@0:id` becomes role
-`reference_image`, index `0`, and `reference_task` `id`. Do not pass
+`reference_image`, index `0`, and `reference_task` `id`. For xAI edit,
+`--reference-image ./reference.png@0` becomes the second ordered source image;
+the primary `--input` asset remains the first source image. Do not pass
 provider-native `elements`, `image_url`, `image_urls`, `frontal_image_url`,
-`reference_image_urls`, `first_image_url`, `second_image_url`, or
+`reference_image_urls`, `first_image_url`, `second_image_url`, `images`, or
 `*_reference_task` through `model_parameters`; provider-private URLs are
 resolved server-side after ownership and media-policy validation.
 Current public `references[]` support covers Kling Image O1, Kling Image O3
 image-to-image/text-to-image, Kling Image v3 image-to-image/text-to-image, and
-Fal DreamO create. Kling requests may contain at most 40 reference entries
-across at most 10 contiguous element indexes starting at `0`; each referenced
-element requires one frontal image and may include up to three additional
-reference images. DreamO accepts up to two contiguous `reference_image`
-indexes starting at `0`, each with optional `reference_task` `ip`, `id`, or
-`style`.
+Fal DreamO create plus xAI Grok Imagine image edit/quality edit. Kling requests
+may contain at most 40 reference entries across at most 10 contiguous element
+indexes starting at `0`; each referenced element requires one frontal image and
+may include up to three additional reference images. DreamO accepts up to two
+contiguous `reference_image` indexes starting at `0`, each with optional
+`reference_task` `ip`, `id`, or `style`. xAI edit accepts up to two contiguous
+`reference_image` indexes starting at `0` and does not accept `reference_task`.
 Reference assets must be Image Skill-owned PNG, JPEG, or WebP images with
 known non-empty byte length up to 10MB, known width and height of at least
 300px, and aspect ratio from 0.40 to 2.50.

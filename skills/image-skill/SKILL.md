@@ -397,22 +397,24 @@ then edits the resulting Image Skill-owned asset id. On mask-capable models,
 same owned-asset resolver: Kling element routes use
 `--element-frontal IMAGE[@ELEMENT_INDEX]` and
 `--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]`; flat
-reference-image routes such as DreamO use
-`--reference-image IMAGE[@INDEX[:TASK]]` with `TASK` `ip`, `id`, or `style`.
+reference-image routes use `--reference-image IMAGE[@INDEX]`; Fal DreamO also
+accepts `:TASK` with `TASK` `ip`, `id`, or `style`.
 The CLI sends top-level `references[]` entries with `asset_id`, `role`,
 `index`, and role-specific fields such as `reference_index` or
 `reference_task`. Do not pass raw provider `elements`, `image_url`,
 `image_urls`, `frontal_image_url`, `reference_image_urls`, `first_image_url`,
-`second_image_url`, or `*_reference_task`; Image Skill resolves
+`second_image_url`, `images`, or `*_reference_task`; Image Skill resolves
 provider-private URLs server-side. Current public `references[]` support
 covers Kling Image O1, Kling Image O3 image-to-image/text-to-image, Kling
-Image v3 image-to-image/text-to-image, and Fal DreamO create. Kling accepts at
-most 40 entries across at most 10 contiguous element indexes from `0`, one
-frontal image per referenced element, and up to three additional reference
-images per element. DreamO accepts up to two contiguous `reference_image`
-indexes from `0`, each with optional `reference_task`. Reference assets must be
-owned PNG/JPEG/WebP only, 10MB max, minimum 300px width/height, and aspect
-ratio 0.40-2.50.
+Image v3 image-to-image/text-to-image, Fal DreamO create, and xAI Grok Imagine
+image edit/quality edit. Kling accepts at most 40 entries across at most 10
+contiguous element indexes from `0`, one frontal image per referenced element,
+and up to three additional reference images per element. DreamO accepts up to
+two contiguous `reference_image` indexes from `0`, each with optional
+`reference_task`. xAI edit accepts up to two contiguous `reference_image`
+indexes from `0`, without `reference_task`; the primary input asset is the
+first source image. Reference assets must be owned PNG/JPEG/WebP only, 10MB
+max, minimum 300px width/height, and aspect ratio 0.40-2.50.
 Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
 Edit, Fal Ideogram V2 Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro
