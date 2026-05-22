@@ -228,12 +228,11 @@ delegated-card adapters. Packs are the default Stripe Checkout UX; exact
 budget. `credits methods --json` tells agents which rails are currently
 available, which buyer modes they support, and whether browser/human action is
 required before an agent tries to quote or buy. `credits buy --provider stripe`
-returns `checkout_handoff_url` for humans, `checkout_compact_url` for stale
-handoff fallback, and a fragment-stripped Stripe `checkout_url` fallback for a
+returns `checkout_handoff_url` for humans and full Stripe `checkout_url`/`checkout_compact_url` fallback fields for a
 `stripe_checkout` quote and does not grant credits until verified webhook
 fulfillment succeeds. Present or open `checkout_handoff_url` first. If it is
-absent, present `checkout_compact_url` in a code block; older raw Stripe URLs
-can be long, wrapped, and fragile in mobile terminals. `credits fake-purchase`
+absent, present the full `checkout_url` in a code block; do not remove the
+Stripe `#...` fragment because Checkout needs it in the browser. `credits fake-purchase`
 returns `live_money:false`, moves no live money, accepts no payment credential,
 and exists so agents can exercise the quote, receipt, credit-ledger, and
 activity-audit contract safely.
@@ -538,9 +537,9 @@ closed if durable hosted feedback storage is unavailable.
   top-ups when the required budget is already known.
 - Use `credits buy --provider stripe --json` only to create a Stripe-hosted
   checkout action. Present `checkout_handoff_url` to humans; if it is absent,
-  present `checkout_compact_url` in a code block. Treat `checkout_url` as a
-  fragment-stripped Stripe compatibility fallback. Session creation itself does
-  not grant credits.
+  present the full `checkout_url` in a code block. Do not remove the
+  Stripe `#...` fragment; Checkout needs it in the browser. Session creation
+  itself does not grant credits.
 - Use `credits fake-purchase --json` only for preview credit-ledger proof; it
   is not live settlement and must not receive payment credentials.
 - Treat credits as prepaid cents of Image Skill value. Operation debits are

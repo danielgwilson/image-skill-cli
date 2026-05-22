@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.9 - 2026-05-22
+
+- Emergency Stripe Checkout payment-link hotfix.
+- Restored full Stripe Checkout URL preservation, including the `#...`
+  fragment required by Stripe's browser checkout app.
+- Kept `checkout_handoff_url` as the preferred short human payment link, but
+  made stale-server fallback safe by no longer fragment-stripping
+  `checkout_url`, `checkout_compact_url`, or `next.fallback_checkout_url`.
+- Do not use `image-skill@0.1.8` for live Stripe payments.
+
 ## 0.1.8 - 2026-05-22
 
 - Hardened Stripe Checkout handoff responses for mobile terminals and chat.
