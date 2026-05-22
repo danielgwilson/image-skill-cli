@@ -504,7 +504,7 @@ async function credits(argv) {
         idempotency_key: idempotency.value,
       },
     });
-    return result;
+    return withStripeCheckoutCopyFallback(result);
   }
   if (subcommand === "fake-purchase") {
     const args = parseArgs(rest);
@@ -551,13 +551,14 @@ async function credits(argv) {
     addQueryFlag(query, args, "payment-attempt-id", "payment_attempt_id");
     addQueryFlag(query, args, "checkout-session-id", "checkout_session_id");
     addQueryFlag(query, args, "receipt-id", "receipt_id");
-    return apiRequest({
+    const result = await apiRequest({
       command: "image-skill credits status",
       method: "GET",
       apiBaseUrl: apiBase(args),
       path: `/v1/credit-purchases/status?${query.toString()}`,
       token: token.token,
     });
+    return withStripeCheckoutCopyFallback(result);
   }
   return invalid(
     "image-skill credits",
@@ -1518,6 +1519,109 @@ function parseEnvelope(text, command, statusCode) {
       retryable: statusCode >= 500,
     },
   };
+}
+
+function withStripeCheckoutCopyFallback(result) {
+  const data = result.envelope.data;
+  if (!isRecord(data)) {
+    return result;
+  }
+
+  const updated = stripeCheckoutCopyFallbackData(data);
+  if (updated === data) {
+    return result;
+  }
+
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      data: updated,
+    },
+  };
+}
+
+function stripeCheckoutCopyFallbackData(data) {
+  let changed = false;
+  const updated = { ...data };
+
+  if (addCheckoutCompactUrl(updated)) {
+    changed = true;
+  }
+
+  if (isRecord(updated.next)) {
+    const next = { ...updated.next };
+    let nextChanged = addCheckoutCompactUrl(next);
+    if (
+      typeof updated.checkout_compact_url === "string" &&
+      typeof next.checkout_compact_url !== "string"
+    ) {
+      next.checkout_compact_url = updated.checkout_compact_url;
+      nextChanged = true;
+    }
+    if (nextChanged) {
+      updated.next = next;
+      changed = true;
+    }
+  }
+
+  if (isRecord(updated.payment_attempt)) {
+    const paymentAttempt = { ...updated.payment_attempt };
+    if (addCheckoutCompactUrl(paymentAttempt)) {
+      updated.payment_attempt = paymentAttempt;
+      changed = true;
+    }
+    if (isRecord(updated.next)) {
+      const next = { ...updated.next };
+      if (
+        next.human_action === "open_checkout_url" &&
+        typeof paymentAttempt.checkout_compact_url === "string" &&
+        typeof next.checkout_compact_url !== "string"
+      ) {
+        next.checkout_compact_url = paymentAttempt.checkout_compact_url;
+        updated.next = next;
+        changed = true;
+      }
+    }
+  }
+
+  return changed ? updated : data;
+}
+
+function addCheckoutCompactUrl(record) {
+  if (typeof record.checkout_compact_url === "string") {
+    return false;
+  }
+  const raw =
+    typeof record.checkout_url === "string"
+      ? record.checkout_url
+      : typeof record.fallback_checkout_url === "string"
+        ? record.fallback_checkout_url
+        : null;
+  if (raw === null || raw.length === 0) {
+    return false;
+  }
+  record.checkout_compact_url = stripeCheckoutCompactUrl(raw);
+  return true;
+}
+
+function stripeCheckoutCompactUrl(checkoutUrl) {
+  const trimmed = checkoutUrl.trim();
+  if (trimmed.length === 0) {
+    return checkoutUrl;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    const hashIndex = trimmed.indexOf("#");
+    return hashIndex === -1 ? trimmed : trimmed.slice(0, hashIndex);
+  }
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 async function promptValue(args) {

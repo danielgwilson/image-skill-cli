@@ -342,6 +342,11 @@ the raw Stripe fallback for compatibility, but it can be very long and may
 include URL fragments; do not ask a person to copy it when
 `checkout_handoff_url` is present.
 
+If a stale server or older client only exposes the raw Stripe URL, use
+`checkout_compact_url` instead of `checkout_url` for human copy/paste. It is the
+same Checkout URL with the long `#...` fragment removed; present it in a fenced
+code block so terminal wrapping does not corrupt it.
+
 ```bash
 image-skill credits buy \
   --provider stripe \
@@ -361,6 +366,7 @@ Minimum success data:
   "accepted_payment_method": "stripe_checkout",
   "checkout_session_id": "cs_...",
   "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
+  "checkout_compact_url": "https://checkout.stripe.com/c/pay/cs_...",
   "checkout_url": "https://checkout.stripe.com/...",
   "credits": 500,
   "amount_cents": 500,
@@ -369,8 +375,9 @@ Minimum success data:
   "next": {
     "human_action": "open_checkout_url",
     "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
+    "checkout_compact_url": "https://checkout.stripe.com/c/pay/cs_...",
     "fallback_checkout_url": "https://checkout.stripe.com/...",
-    "after_payment": "open checkout_handoff_url, then poll image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json or image-skill usage quota --json; credits are granted only after verified webhook fulfillment"
+    "after_payment": "open checkout_handoff_url, or checkout_compact_url if only the raw Stripe URL is available, then poll image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json or image-skill usage quota --json; credits are granted only after verified webhook fulfillment"
   }
 }
 ```
@@ -415,6 +422,7 @@ Minimum action-required data:
     "payment_attempt_id": "payatt_...",
     "checkout_session_id": "cs_...",
     "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
+    "checkout_compact_url": "https://checkout.stripe.com/c/pay/cs_...",
     "checkout_url": "https://checkout.stripe.com/...",
     "attempt_status": "requires_action"
   },
@@ -423,7 +431,8 @@ Minimum action-required data:
   "next": {
     "retry_after_seconds": 10,
     "human_action": "open_checkout_url",
-    "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_..."
+    "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
+    "checkout_compact_url": "https://checkout.stripe.com/c/pay/cs_..."
   }
 }
 ```

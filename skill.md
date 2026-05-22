@@ -228,11 +228,12 @@ delegated-card adapters. Packs are the default Stripe Checkout UX; exact
 budget. `credits methods --json` tells agents which rails are currently
 available, which buyer modes they support, and whether browser/human action is
 required before an agent tries to quote or buy. `credits buy --provider stripe`
-returns `checkout_handoff_url` for humans plus the raw Stripe `checkout_url`
-fallback for a `stripe_checkout` quote and does not grant credits until
-verified webhook fulfillment succeeds. Present or open `checkout_handoff_url`
-first; the raw Stripe URL can be long, wrapped, and fragile in mobile
-terminals. `credits fake-purchase`
+returns `checkout_handoff_url` for humans, `checkout_compact_url` for stale
+handoff fallback, and the raw Stripe `checkout_url` machine fallback for a
+`stripe_checkout` quote and does not grant credits until verified webhook
+fulfillment succeeds. Present or open `checkout_handoff_url` first. If it is
+absent, present `checkout_compact_url` in a code block; the raw Stripe URL can
+be long, wrapped, and fragile in mobile terminals. `credits fake-purchase`
 returns `live_money:false`, moves no live money, accepts no payment credential,
 and exists so agents can exercise the quote, receipt, credit-ledger, and
 activity-audit contract safely.
@@ -536,9 +537,9 @@ closed if durable hosted feedback storage is unavailable.
 - Use `credits quote --credits CREDITS --json` for exact bounded custom
   top-ups when the required budget is already known.
 - Use `credits buy --provider stripe --json` only to create a Stripe-hosted
-  checkout action. Present `checkout_handoff_url` to humans; keep
-  `checkout_url` as a raw Stripe fallback. Session creation itself does not
-  grant credits.
+  checkout action. Present `checkout_handoff_url` to humans; if it is absent,
+  present `checkout_compact_url` in a code block. Keep `checkout_url` as a raw
+  Stripe machine fallback. Session creation itself does not grant credits.
 - Use `credits fake-purchase --json` only for preview credit-ledger proof; it
   is not live settlement and must not receive payment credentials.
 - Treat credits as prepaid cents of Image Skill value. Operation debits are
