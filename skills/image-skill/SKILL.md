@@ -78,6 +78,19 @@ provider API because Image Skill was missing something, submit feedback with:
 
 ## First Run
 
+The whole happy path is two commands — sign up once, then create:
+
+```bash
+npx -y image-skill signup --agent --agent-contact YOUR_INBOX --agent-name NAME --runtime codex --show-token
+export IMAGE_SKILL_TOKEN=isk_...   # the token printed above; every later command reads it automatically
+npx -y image-skill create "a compact field camera on a stainless workbench"
+```
+
+That returns a durable owned image URL. JSON is the default output and high-res
+is the default quality — `--json` is accepted as a no-op, not required.
+Everything below is optional depth: skill install, health checks, model
+inspection, and spend controls.
+
 Install the agent-facing skill from the hosted public contract when the runtime
 supports skills.sh-compatible installation:
 
