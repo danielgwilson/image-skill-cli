@@ -366,7 +366,7 @@ image-skill edit \
   --json
 ```
 
-Use owned reference assets for models that advertise Kling element guidance:
+Use owned reference assets for models that advertise reference guidance:
 
 ```bash
 image-skill edit \
@@ -379,22 +379,40 @@ image-skill edit \
   --json
 ```
 
+```bash
+image-skill create \
+  --model fal.dreamo \
+  --prompt "Studio portrait preserving identity with a bolder editorial style" \
+  --reference-image ./identity.png@0:id \
+  --reference-image ./style.webp@1:style \
+  --model-parameters-json '{"image_size":{"width":1280,"height":720}}' \
+  --max-estimated-usd-per-image 0.06 \
+  --json
+```
+
 For local paths and external URLs, the public CLI uploads the input first and
 then edits the resulting Image Skill-owned asset id. On mask-capable models,
 `--mask` uses the same resolver and sends only `mask_asset_id`; provider-native
 `mask_url` remains private to Image Skill. Reference-capable models use the
-same owned-asset resolver: `--element-frontal IMAGE[@ELEMENT_INDEX]` and
-`--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]` upload local or
-remote images first, then send top-level `references[]` entries with
-`asset_id`, `role`, `index`, and optional `reference_index`. Do not pass raw
-provider `elements`, `image_url`, `image_urls`, `frontal_image_url`, or
-`reference_image_urls`; Image Skill resolves provider-private URLs server-side.
-Current public `references[]` support covers Kling Image O1, Kling Image O3
-image-to-image/text-to-image, and Kling Image v3 image-to-image/text-to-image:
-at most 40 entries, at most 10 contiguous element indexes from `0`, one
-frontal image per referenced element, up to three additional reference images
-per element, owned PNG/JPEG/WebP only, 10MB max, minimum 300px width/height,
-and aspect ratio 0.40-2.50.
+same owned-asset resolver: Kling element routes use
+`--element-frontal IMAGE[@ELEMENT_INDEX]` and
+`--element-reference IMAGE[@ELEMENT_INDEX[:REFERENCE_INDEX]]`; flat
+reference-image routes such as DreamO use
+`--reference-image IMAGE[@INDEX[:TASK]]` with `TASK` `ip`, `id`, or `style`.
+The CLI sends top-level `references[]` entries with `asset_id`, `role`,
+`index`, and role-specific fields such as `reference_index` or
+`reference_task`. Do not pass raw provider `elements`, `image_url`,
+`image_urls`, `frontal_image_url`, `reference_image_urls`, `first_image_url`,
+`second_image_url`, or `*_reference_task`; Image Skill resolves
+provider-private URLs server-side. Current public `references[]` support
+covers Kling Image O1, Kling Image O3 image-to-image/text-to-image, Kling
+Image v3 image-to-image/text-to-image, and Fal DreamO create. Kling accepts at
+most 40 entries across at most 10 contiguous element indexes from `0`, one
+frontal image per referenced element, and up to three additional reference
+images per element. DreamO accepts up to two contiguous `reference_image`
+indexes from `0`, each with optional `reference_task`. Reference assets must be
+owned PNG/JPEG/WebP only, 10MB max, minimum 300px width/height, and aspect
+ratio 0.40-2.50.
 Preview hosted create/edit
 uses paths such as Fal Gemini 3 Pro Image Preview Create, Fal Nano Banana 2
 Edit, Fal Ideogram V2 Edit, Fal Gemini 3 Pro Image Preview Edit, Fal FLUX Pro

@@ -1091,7 +1091,11 @@ async function resolveInputAssetId(input, args, token) {
 }
 
 function parseReferencePlan(args, command) {
-  for (const flag of ["element-frontal", "element-reference"]) {
+  for (const flag of [
+    "element-frontal",
+    "element-reference",
+    "reference-image",
+  ]) {
     if (
       args.flags.has(flag) &&
       args.flags.get(flag)?.some((value) => typeof value !== "string")
@@ -1117,6 +1121,7 @@ function parseReferencePlan(args, command) {
       role: "element_frontal",
       index: parsed.index,
       referenceIndex: null,
+      referenceTask: null,
     });
   }
   for (const value of flagStrings(args, "element-reference")) {
@@ -1133,6 +1138,23 @@ function parseReferencePlan(args, command) {
       role: "element_reference",
       index: parsed.index,
       referenceIndex: parsed.referenceIndex,
+      referenceTask: null,
+    });
+  }
+  for (const value of flagStrings(args, "reference-image")) {
+    const parsed = parseReferenceImageFlag(value, {
+      flag: "--reference-image",
+      command,
+    });
+    if (!parsed.ok) {
+      return parsed;
+    }
+    referencePlans.push({
+      input: parsed.input,
+      role: "reference_image",
+      index: parsed.index,
+      referenceIndex: null,
+      referenceTask: parsed.referenceTask,
     });
   }
   const planValidation = validateElementReferencePlan(referencePlans, command);
@@ -1157,6 +1179,17 @@ async function resolveReferences(referencePlans, args, token) {
       });
       continue;
     }
+    if (plan.role === "reference_image") {
+      references.push({
+        asset_id: assetId.assetId,
+        role: "reference_image",
+        index: plan.index,
+        ...(plan.referenceTask === null
+          ? {}
+          : { reference_task: plan.referenceTask }),
+      });
+      continue;
+    }
     references.push({
       asset_id: assetId.assetId,
       role: "element_reference",
@@ -1177,6 +1210,9 @@ function validateElementReferencePlan(referencePlans, command) {
   const referencesByElement = new Map();
   const elementIndexes = new Set();
   for (const plan of referencePlans) {
+    if (plan.role === "reference_image") {
+      continue;
+    }
     elementIndexes.add(plan.index);
     if (plan.role === "element_frontal") {
       if (frontals.has(plan.index)) {
@@ -1227,7 +1263,78 @@ function validateElementReferencePlan(referencePlans, command) {
       };
     }
   }
+  const referenceImageIndexes = new Set();
+  for (const plan of referencePlans) {
+    if (plan.role !== "reference_image") {
+      continue;
+    }
+    if (referenceImageIndexes.has(plan.index)) {
+      return {
+        ok: false,
+        result: invalid(
+          command,
+          `only one --reference-image is allowed for index ${plan.index}`,
+        ),
+      };
+    }
+    referenceImageIndexes.add(plan.index);
+  }
+  const sortedReferenceImageIndexes = [...referenceImageIndexes].sort(
+    (left, right) => left - right,
+  );
+  for (
+    let expected = 0;
+    expected < sortedReferenceImageIndexes.length;
+    expected += 1
+  ) {
+    if (sortedReferenceImageIndexes[expected] !== expected) {
+      return {
+        ok: false,
+        result: invalid(
+          command,
+          "reference image indexes must be contiguous starting at 0",
+        ),
+      };
+    }
+  }
   return { ok: true };
+}
+
+function parseReferenceImageFlag(value, options) {
+  const parsed = parseReferenceImageSuffix(value);
+  if (parsed.input.length === 0) {
+    return {
+      ok: false,
+      result: invalid(options.command, `${options.flag} requires an image`),
+    };
+  }
+  if (parsed.index > 9) {
+    return {
+      ok: false,
+      result: invalid(
+        options.command,
+        `${options.flag} index must be between 0 and 9`,
+      ),
+    };
+  }
+  return { ok: true, ...parsed };
+}
+
+function parseReferenceImageSuffix(value) {
+  const atIndex = value.lastIndexOf("@");
+  if (atIndex === -1) {
+    return { input: value, index: 0, referenceTask: null };
+  }
+  const suffix = value.slice(atIndex + 1);
+  if (!/^\d+(?::(?:ip|id|style))?$/.test(suffix)) {
+    return { input: value, index: 0, referenceTask: null };
+  }
+  const [index, referenceTask] = suffix.split(":");
+  return {
+    input: value.slice(0, atIndex),
+    index: Number(index),
+    referenceTask: referenceTask ?? null,
+  };
 }
 
 function parseElementReferenceFlag(value, options) {
