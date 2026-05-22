@@ -331,9 +331,16 @@ curl -sS https://api.image-skill.com/v1/credit-quotes \
 
 Creates a live-provider payment action for a previously returned quote. Stripe
 Checkout is the first supported provider. This creates a hosted Stripe Checkout
-Session and returns an `action_required` response with `checkout_url`; credits
-are granted only after verified Stripe webhook fulfillment succeeds. Session
-creation itself must not mutate credit balances.
+Session and returns an `action_required` response with
+`checkout_handoff_url`; credits are granted only after verified Stripe webhook
+fulfillment succeeds. Session creation itself must not mutate credit balances.
+
+Agents should present or open `checkout_handoff_url` for humans. It is a short
+Image Skill URL that redirects to Stripe Checkout and is safe to copy from
+mobile terminals, SSH clients, and wrapped chat output. `checkout_url` remains
+the raw Stripe fallback for compatibility, but it can be very long and may
+include URL fragments; do not ask a person to copy it when
+`checkout_handoff_url` is present.
 
 ```bash
 image-skill credits buy \
@@ -353,6 +360,7 @@ Minimum success data:
   "provider": "stripe",
   "accepted_payment_method": "stripe_checkout",
   "checkout_session_id": "cs_...",
+  "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
   "checkout_url": "https://checkout.stripe.com/...",
   "credits": 500,
   "amount_cents": 500,
@@ -360,7 +368,9 @@ Minimum success data:
   "live_money": true,
   "next": {
     "human_action": "open_checkout_url",
-    "after_payment": "poll image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json or image-skill usage quota --json; credits are granted only after verified webhook fulfillment"
+    "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
+    "fallback_checkout_url": "https://checkout.stripe.com/...",
+    "after_payment": "open checkout_handoff_url, then poll image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json or image-skill usage quota --json; credits are granted only after verified webhook fulfillment"
   }
 }
 ```
@@ -404,6 +414,7 @@ Minimum action-required data:
   "payment_attempt": {
     "payment_attempt_id": "payatt_...",
     "checkout_session_id": "cs_...",
+    "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_...",
     "checkout_url": "https://checkout.stripe.com/...",
     "attempt_status": "requires_action"
   },
@@ -411,7 +422,8 @@ Minimum action-required data:
   "credit_event": null,
   "next": {
     "retry_after_seconds": 10,
-    "human_action": "open_checkout_url"
+    "human_action": "open_checkout_url",
+    "checkout_handoff_url": "https://api.image-skill.com/pay/payatt_..."
   }
 }
 ```

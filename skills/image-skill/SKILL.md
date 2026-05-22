@@ -228,9 +228,11 @@ delegated-card adapters. Packs are the default Stripe Checkout UX; exact
 budget. `credits methods --json` tells agents which rails are currently
 available, which buyer modes they support, and whether browser/human action is
 required before an agent tries to quote or buy. `credits buy --provider stripe`
-returns a
-Stripe-hosted `checkout_url` for a `stripe_checkout` quote and does not grant
-credits until verified webhook fulfillment succeeds. `credits fake-purchase`
+returns `checkout_handoff_url` for humans plus the raw Stripe `checkout_url`
+fallback for a `stripe_checkout` quote and does not grant credits until
+verified webhook fulfillment succeeds. Present or open `checkout_handoff_url`
+first; the raw Stripe URL can be long, wrapped, and fragile in mobile
+terminals. `credits fake-purchase`
 returns `live_money:false`, moves no live money, accepts no payment credential,
 and exists so agents can exercise the quote, receipt, credit-ledger, and
 activity-audit contract safely.
@@ -534,12 +536,17 @@ closed if durable hosted feedback storage is unavailable.
 - Use `credits quote --credits CREDITS --json` for exact bounded custom
   top-ups when the required budget is already known.
 - Use `credits buy --provider stripe --json` only to create a Stripe-hosted
-  checkout action. Session creation itself does not grant credits.
+  checkout action. Present `checkout_handoff_url` to humans; keep
+  `checkout_url` as a raw Stripe fallback. Session creation itself does not
+  grant credits.
 - Use `credits fake-purchase --json` only for preview credit-ledger proof; it
   is not live settlement and must not receive payment credentials.
 - Treat credits as prepaid cents of Image Skill value. Operation debits are
   model-aware and appear in `cost.credit_pricing`.
 - Use dry-run modes and explicit budget caps for exploration.
+- Do not silently downgrade to the cheapest model just to avoid payment when a
+  user has asked for quality or is willing to pay. Preserve the creative intent,
+  quote the needed credits, and use the Stripe Checkout handoff flow.
 - Do not mistake quota limits or free-preview policy for creative quality
   labels. Ask capabilities what a capability supports.
 - Do not bypass claim state, scopes, policy checks, or telemetry.
