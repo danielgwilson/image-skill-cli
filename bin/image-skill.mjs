@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.9";
+const VERSION = "0.1.10";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const PROMPTLESS_EDIT_MODEL_IDS = new Set([
   "fal.flux-dev-redux",
@@ -1589,6 +1589,19 @@ function stripeCheckoutCopyFallbackData(data) {
 }
 
 function addCheckoutCompactUrl(record) {
+  const handoff =
+    typeof record.checkout_handoff_url === "string"
+      ? record.checkout_handoff_url
+      : null;
+  if (handoff !== null && handoff.length > 0) {
+    let changed = false;
+    if (record.checkout_compact_url !== handoff) {
+      record.checkout_compact_url = handoff;
+      changed = true;
+    }
+    return changed;
+  }
+
   const raw =
     typeof record.checkout_url === "string"
       ? record.checkout_url

@@ -228,8 +228,9 @@ delegated-card adapters. Packs are the default Stripe Checkout UX; exact
 budget. `credits methods --json` tells agents which rails are currently
 available, which buyer modes they support, and whether browser/human action is
 required before an agent tries to quote or buy. `credits buy --provider stripe`
-returns `checkout_handoff_url` for humans and full Stripe `checkout_url`/`checkout_compact_url` fallback fields for a
-`stripe_checkout` quote and does not grant credits until verified webhook
+returns `checkout_handoff_url` for humans, `checkout_compact_url` as the
+copy-safe handoff, and full Stripe `checkout_url` only as a fallback for a
+`stripe_checkout` quote. It does not grant credits until verified webhook
 fulfillment succeeds. Present or open `checkout_handoff_url` first. If it is
 absent, present the full `checkout_url` in a code block; do not remove the
 Stripe `#...` fragment because Checkout needs it in the browser. `credits fake-purchase`

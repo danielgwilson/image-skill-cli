@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.10 - 2026-05-22
+
+- Stripe Checkout payment-link hardening follow-up.
+- Make `checkout_compact_url` copy-safe by preferring the short Image Skill
+  `checkout_handoff_url` whenever the hosted API provides one.
+- Keep raw Stripe `checkout_url` only as the full fallback and preserve its
+  required `#...` browser fragment.
+- Add proof coverage that the Image Skill handoff redirects to the exact Stripe
+  Checkout URL with the fragment intact.
+
 ## 0.1.9 - 2026-05-22
 
 - Emergency Stripe Checkout payment-link hotfix.
