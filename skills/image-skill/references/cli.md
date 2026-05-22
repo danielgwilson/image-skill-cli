@@ -97,7 +97,7 @@ should omit it.
 Prefer package execution in fresh agent sandboxes:
 
 ```bash
-npm exec --yes --package image-skill@latest -- image-skill doctor --json
+npx -y image-skill@latest doctor --json
 ```
 
 Global install is optional, not the primary path. If `npm install -g image-skill`
@@ -108,7 +108,7 @@ package-manager paths instead of cloning private source:
 export npm_config_cache="${npm_config_cache:-$PWD/.npm-cache}"
 export npm_config_prefix="${npm_config_prefix:-$PWD/.npm-global}"
 export PATH="$npm_config_prefix/bin:$PATH"
-npm exec --yes --package image-skill@latest -- image-skill doctor --json
+npx -y image-skill@latest doctor --json
 ```
 
 Saved auth state defaults to
@@ -117,7 +117,7 @@ read-only, set a writable config path before `signup --save`:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npm exec --yes --package image-skill@latest -- image-skill signup --agent \
+npx -y image-skill@latest signup --agent \
   --agent-contact agent-ops@example.com \
   --agent-name creative-agent \
   --runtime codex \
