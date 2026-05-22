@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.7";
+const VERSION = "0.1.8";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const PROMPTLESS_EDIT_MODEL_IDS = new Set([
   "fal.flux-dev-redux",
@@ -1589,9 +1589,6 @@ function stripeCheckoutCopyFallbackData(data) {
 }
 
 function addCheckoutCompactUrl(record) {
-  if (typeof record.checkout_compact_url === "string") {
-    return false;
-  }
   const raw =
     typeof record.checkout_url === "string"
       ? record.checkout_url
@@ -1601,8 +1598,27 @@ function addCheckoutCompactUrl(record) {
   if (raw === null || raw.length === 0) {
     return false;
   }
-  record.checkout_compact_url = stripeCheckoutCompactUrl(raw);
-  return true;
+  const compact = stripeCheckoutCompactUrl(raw);
+  let changed = false;
+  if (record.checkout_compact_url !== compact) {
+    record.checkout_compact_url = compact;
+    changed = true;
+  }
+  if (
+    typeof record.checkout_url === "string" &&
+    record.checkout_url !== compact
+  ) {
+    record.checkout_url = compact;
+    changed = true;
+  }
+  if (
+    typeof record.fallback_checkout_url === "string" &&
+    record.fallback_checkout_url !== compact
+  ) {
+    record.fallback_checkout_url = compact;
+    changed = true;
+  }
+  return changed;
 }
 
 function stripeCheckoutCompactUrl(checkoutUrl) {

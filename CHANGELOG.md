@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.8 - 2026-05-22
+
+- Hardened Stripe Checkout handoff responses for mobile terminals and chat.
+- Added fragment-stripped `checkout_url` normalization so stale hosted API
+  responses no longer cause the public CLI to print a long `#...` Stripe URL
+  under the easiest field for agents to copy.
+- Kept `checkout_handoff_url` as the preferred human payment link and
+  `checkout_compact_url` as the explicit stale-server fallback.
+
 ## 0.1.7 - 2026-05-16
 
 - Published public package `image-skill@0.1.7`.
