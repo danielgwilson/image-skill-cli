@@ -179,7 +179,10 @@ Minimum success data shape:
   "methods": [
     {
       "method_id": "fake",
+      "status": "available",
       "available": true,
+      "quoteable": true,
+      "purchasable": true,
       "live_money": false,
       "buyer_modes": ["agent_only", "hybrid", "human_only"],
       "requires_browser": false,
@@ -187,12 +190,26 @@ Minimum success data shape:
     },
     {
       "method_id": "stripe_checkout",
+      "status": "available",
       "available": true,
+      "quoteable": true,
+      "purchasable": true,
       "live_money": true,
       "buyer_modes": ["hybrid", "human_only"],
       "requires_browser": true,
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-checkout-sessions"
+    },
+    {
+      "method_id": "stripe_x402.exact.usdc",
+      "status": "preview",
+      "available": false,
+      "quoteable": false,
+      "purchasable": false,
+      "live_money": true,
+      "buyer_modes": ["agent_only", "hybrid"],
+      "requires_browser": false,
+      "unavailable_reason": "stripe_x402_preview_not_configured"
     }
   ]
 }
@@ -200,7 +217,9 @@ Minimum success data shape:
 
 `available` is environment-dependent. `available:false` means the rail is known
 but not currently usable in the queried environment; read `unavailable_reason`
-and `recovery`.
+and `recovery`. `quoteable:false` and `purchasable:false` mean the method is
+visible for planning but must not be used for `credits quote` or `credits buy`
+yet.
 
 Hosted API equivalent:
 
