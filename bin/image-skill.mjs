@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.11";
+const VERSION = "0.1.12";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const PROMPTLESS_EDIT_MODEL_IDS = new Set([
   "fal.flux-dev-redux",

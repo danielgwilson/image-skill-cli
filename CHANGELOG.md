@@ -4,6 +4,13 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.12 - 2026-05-26
+
+- Publish the action-only payment-method public contract: public discovery now
+  shows usable payment rails only.
+- Remove staged/watch-only payment rail examples from the public npm docs and
+  bundled skill references so agents are not steered toward unavailable flows.
+
 ## 0.1.11 - 2026-05-26
 
 - Remove private no-spend fake payment rails from the public CLI and public
