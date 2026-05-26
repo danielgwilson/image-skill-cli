@@ -236,6 +236,8 @@ copy-safe handoff, and full Stripe `checkout_url` only as a fallback for a
 fulfillment succeeds. Present or open `checkout_handoff_url` first. If it is
 absent, present the full `checkout_url` in a code block; do not remove the
 Stripe `#...` fragment because Checkout needs it in the browser.
+Operator-provided promotion codes are entered on Stripe-hosted Checkout, not in
+the Image Skill CLI.
 `credits quote --payment-method x402.fake.exact` and
 `credits buy --provider x402` exercise the agent-only x402 handoff shape with a
 redacted JSON quote challenge, synthetic authorization hashes, exactly-once

@@ -430,6 +430,10 @@ not present it unless no handoff URL is available. Do not trim Stripe Checkout
 URLs: the long `#...` fragment is required by Stripe Checkout in the browser.
 Present any fallback Stripe URL in a fenced code block so terminal wrapping does
 not corrupt it.
+Stripe-hosted Checkout may also show a promotion-code field for
+operator-provided codes; agents should let the human enter those codes on
+Stripe, never collect promo codes, card details, or wallet credentials in the
+Image Skill CLI.
 
 ```bash
 image-skill credits buy \
