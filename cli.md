@@ -188,31 +188,15 @@ Minimum success data shape:
       "requires_browser": true,
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-checkout-sessions"
-    },
-    {
-      "method_id": "stripe_x402.exact.usdc",
-      "status": "preview",
-      "available": false,
-      "quoteable": false,
-      "purchasable": false,
-      "live_money": true,
-      "buyer_modes": ["agent_only", "hybrid"],
-      "requires_browser": false,
-      "unavailable_reason": "stripe_x402_preview_not_configured"
     }
   ]
 }
 ```
 
-`available` is environment-dependent. `available:false` means the rail is known
-but not currently usable in the queried environment; read `unavailable_reason`
-and `recovery`. `quoteable:false` and `purchasable:false` mean the method is
-visible for planning but must not be used for `credits quote` or `credits buy`
-yet.
-
-Agent-native payment rails may appear here later as preview or available methods,
-but only methods returned as `available:true`, `quoteable:true`, and
-`purchasable:true` should be used for public top-up flows.
+Public payment discovery is intentionally action-only. Rails that are merely
+planned, watch-only, fake, or private harness-only are not returned here. Use a
+method only when it is returned with `available:true`, `quoteable:true`, and
+`purchasable:true`.
 
 Hosted API equivalent:
 
