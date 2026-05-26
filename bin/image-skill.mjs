@@ -23,6 +23,30 @@ const SIGNUP_SUGGESTED_COMMAND =
   "image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --save --json";
 const SIGNUP_CONTACT_GUIDANCE =
   "Use --agent-contact for the accountable contact, sponsor, operator, or agent inbox for this restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox. --human-email remains a compatibility alias.";
+const X402_FAKE_PAYMENT_METHOD = "x402.fake.exact";
+const X402_FAKE_NETWORK = "local-no-spend";
+const X402_FAKE_ASSET = "synthetic-usdc";
+const X402_FAKE_SETTLEMENT = "fake_no_spend";
+const PAYMENT_CREDENTIAL_FLAGS = new Set([
+  "payment-token",
+  "payment-secret",
+  "payment-required",
+  "payment-signature",
+  "payment-response",
+  "authorization",
+  "bearer-token",
+  "wallet-private-key",
+  "private-key",
+  "mnemonic",
+  "seed-phrase",
+  "card",
+  "card-number",
+  "card-token",
+  "stripe-secret-key",
+  "stripe-webhook-secret",
+  "provider-key",
+  "provider-receipt",
+]);
 
 const argv = process.argv.slice(2);
 const result = await main(argv);
@@ -431,6 +455,13 @@ async function credits(argv) {
   }
   if (subcommand === "quote") {
     const args = parseArgs(rest);
+    const credentialFlag = rejectPaymentCredentialFlags(
+      args,
+      "image-skill credits quote",
+    );
+    if (credentialFlag !== null) {
+      return credentialFlag;
+    }
     const token = await resolveToken(args);
     if (!token.ok) {
       return token.result;
@@ -467,11 +498,18 @@ async function credits(argv) {
   }
   if (subcommand === "buy") {
     const args = parseArgs(rest);
+    const credentialFlag = rejectPaymentCredentialFlags(
+      args,
+      "image-skill credits buy",
+    );
+    if (credentialFlag !== null) {
+      return credentialFlag;
+    }
     const provider = flagString(args, "provider");
-    if (provider !== "stripe") {
+    if (provider !== "stripe" && provider !== "x402") {
       return invalid(
         "image-skill credits buy",
-        "credits buy currently requires --provider stripe",
+        "credits buy currently supports only --provider stripe or --provider x402",
       );
     }
     const quoteId = flagString(args, "quote-id");
@@ -488,11 +526,88 @@ async function credits(argv) {
     const idempotency = requiredIdempotencyKey(
       args,
       "image-skill credits buy",
-      "credits buy creates or replays a Stripe Checkout attempt and requires --idempotency-key for retry-safe payment mutation",
+      "credits buy creates or replays a payment purchase and requires --idempotency-key for retry-safe payment mutation",
     );
     if (!idempotency.ok) {
       return idempotency.result;
     }
+    if (provider === "x402") {
+      const statusResult = await apiRequest({
+        command: "image-skill credits buy",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: `/v1/credit-purchases/status?quote_id=${encodeURIComponent(
+          quoteId,
+        )}`,
+        token: token.token,
+      });
+      const challenge =
+        statusResult.exitCode === 0 && statusResult.envelope.ok
+          ? (statusResult.envelope.data?.quote?.x402 ?? null)
+          : null;
+      const quote =
+        statusResult.exitCode === 0 && statusResult.envelope.ok
+          ? (statusResult.envelope.data?.quote ?? null)
+          : null;
+      if (challenge === null || quote === null) {
+        const existingReceipt =
+          statusResult.exitCode === 0 && statusResult.envelope.ok
+            ? (statusResult.envelope.data?.receipt ?? null)
+            : null;
+        if (existingReceipt?.quote_id === quoteId) {
+          return apiRequest({
+            command: "image-skill credits buy",
+            method: "POST",
+            apiBaseUrl: apiBase(args),
+            path: "/v1/credit-purchases",
+            token: token.token,
+            body: {
+              quote_id: quoteId,
+              idempotency_key: idempotency.value,
+              payment_method: X402_FAKE_PAYMENT_METHOD,
+            },
+          });
+        }
+        return failure(
+          "image-skill credits buy",
+          2,
+          "X402_CHALLENGE_UNAVAILABLE",
+          "credits buy --provider x402 requires an open x402.fake.exact quote with quote.x402 challenge data",
+          true,
+          {
+            suggested_command:
+              "image-skill credits quote --pack starter-500 --payment-method x402.fake.exact --idempotency-key QUOTE_KEY --json",
+            docs_url: "https://image-skill.com/cli.md#image-skill-credits-buy",
+          },
+        );
+      }
+      const authorization = x402FakeClientAuthorization(
+        challenge,
+        idempotency.value,
+      );
+      return apiRequest({
+        command: "image-skill credits buy",
+        method: "POST",
+        apiBaseUrl: apiBase(args),
+        path: "/v1/credit-purchases",
+        token: token.token,
+        body: {
+          quote_id: quoteId,
+          idempotency_key: idempotency.value,
+          payment_method: X402_FAKE_PAYMENT_METHOD,
+          x402_network: X402_FAKE_NETWORK,
+          x402_asset: X402_FAKE_ASSET,
+          x402_amount_cents: quote.price_amount_cents,
+          x402_credits: quote.credits,
+          x402_challenge_id: challenge.challenge_id,
+          x402_quote_digest: challenge.quote_digest,
+          x402_payment_required_hash: challenge.payment_required_hash,
+          x402_payment_signature_hash: authorization.payment_signature_hash,
+          x402_payment_response_hash: authorization.payment_response_hash,
+        },
+      });
+    }
+
     const result = await apiRequest({
       command: "image-skill credits buy",
       method: "POST",
@@ -508,6 +623,13 @@ async function credits(argv) {
   }
   if (subcommand === "fake-purchase") {
     const args = parseArgs(rest);
+    const credentialFlag = rejectPaymentCredentialFlags(
+      args,
+      "image-skill credits fake-purchase",
+    );
+    if (credentialFlag !== null) {
+      return credentialFlag;
+    }
     const quoteId = flagString(args, "quote-id");
     if (quoteId === null) {
       return invalid(
@@ -1885,6 +2007,24 @@ function flagBool(args, name) {
   return args.flags.has(name) && args.flags.get(name)?.at(-1) !== "false";
 }
 
+function rejectPaymentCredentialFlags(args, command) {
+  for (const flag of args.flags.keys()) {
+    if (PAYMENT_CREDENTIAL_FLAGS.has(flag)) {
+      return failure(
+        command,
+        2,
+        "PAYMENT_CREDENTIAL_FLAG_REJECTED",
+        `public Image Skill credits commands never accept payment credential flag --${flag}`,
+        false,
+        {
+          docs_url: "https://image-skill.com/cli.md#image-skill-credits-buy",
+        },
+      );
+    }
+  }
+  return null;
+}
+
 function signupContact(args) {
   if (
     args.flags.has("agent-contact") &&
@@ -2216,6 +2356,40 @@ function mimeFromFilename(filename) {
 
 function sha256Hex(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function x402FakeClientAuthorization(challenge, purchaseIdempotencyKey) {
+  const paymentSignatureHash = sha256Object({
+    version: "x402_fake_payment_signature.v0",
+    quote_digest: challenge.quote_digest,
+    purchase_idempotency_key: purchaseIdempotencyKey,
+  });
+  return {
+    payment_signature_hash: paymentSignatureHash,
+    payment_response_hash: sha256Object({
+      version: "x402_fake_payment_response.v0",
+      quote_digest: challenge.quote_digest,
+      payment_signature_hash: paymentSignatureHash,
+      settlement: X402_FAKE_SETTLEMENT,
+    }),
+  };
+}
+
+function sha256Object(value) {
+  return sha256Hex(stableStringify(value));
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function sleep(ms) {
