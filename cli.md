@@ -178,17 +178,6 @@ Minimum success data shape:
   "status_endpoint": "/v1/credit-purchases/status",
   "methods": [
     {
-      "method_id": "fake",
-      "status": "available",
-      "available": true,
-      "quoteable": true,
-      "purchasable": true,
-      "live_money": false,
-      "buyer_modes": ["agent_only", "hybrid", "human_only"],
-      "requires_browser": false,
-      "purchase_endpoint": "/v1/credit-purchases"
-    },
-    {
       "method_id": "stripe_checkout",
       "status": "available",
       "available": true,
@@ -199,25 +188,6 @@ Minimum success data shape:
       "requires_browser": true,
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-checkout-sessions"
-    },
-    {
-      "method_id": "x402.fake.exact",
-      "status": "available",
-      "available": true,
-      "quoteable": true,
-      "purchasable": true,
-      "live_money": false,
-      "buyer_modes": ["agent_only", "hybrid", "human_only"],
-      "requires_browser": false,
-      "default_pack_id": "starter-500",
-      "purchase_endpoint": "/v1/credit-purchases",
-      "preview": {
-        "scheme": "exact",
-        "network": "local-no-spend",
-        "asset": "synthetic-usdc",
-        "settlement": "fake_no_spend",
-        "direct_media_execution": false
-      }
     },
     {
       "method_id": "stripe_x402.exact.usdc",
@@ -240,11 +210,9 @@ and `recovery`. `quoteable:false` and `purchasable:false` mean the method is
 visible for planning but must not be used for `credits quote` or `credits buy`
 yet.
 
-`x402.fake.exact` is the no-spend agent-payment rehearsal rail. It exercises
-the quote, challenge, authorization, receipt, credit grant, replay, and debit
-path without accepting raw payment headers, wallet material, or live settlement.
-Use `stripe_x402.exact.usdc` only as a future live-rail planning signal until
-the catalog marks it available.
+Agent-native payment rails may appear here later as preview or available methods,
+but only methods returned as `available:true`, `quoteable:true`, and
+`purchasable:true` should be used for public top-up flows.
 
 Hosted API equivalent:
 
@@ -296,10 +264,9 @@ curl -sS https://api.image-skill.com/v1/credit-packs
 
 ### `image-skill credits quote`
 
-Requests a bounded credit quote from the hosted service. By default this uses
-the harness-safe fake/test settlement rail; agents can request Stripe Checkout
-terms with `--payment-method stripe_checkout` or the no-spend x402 rehearsal
-rail with `--payment-method x402.fake.exact`. A quote never grants credits.
+Requests a bounded credit quote from the hosted service. Public top-ups use
+Stripe Checkout with `--payment-method stripe_checkout`. A quote never grants
+credits.
 One Image Skill credit is a stable user-facing value unit worth `$0.01`.
 Creative operations can consume more than one credit based on the selected
 model's provider cost and Image Skill's margin policy; inspect
@@ -307,7 +274,7 @@ model's provider cost and Image Skill's margin policy; inspect
 debit before spending.
 
 ```bash
-image-skill credits quote --credits 10 --json
+image-skill credits quote --credits 10 --payment-method stripe_checkout --json
 ```
 
 For retry-stable automation, provide an explicit non-secret idempotency key:
@@ -345,17 +312,6 @@ image-skill credits quote \
   --json
 ```
 
-For no-spend x402 rehearsal terms, quote a pack or exact credit amount with
-`x402.fake.exact`:
-
-```bash
-image-skill credits quote \
-  --pack starter-500 \
-  --payment-method x402.fake.exact \
-  --idempotency-key x402-pack-quote-run-001 \
-  --json
-```
-
 Minimum success data:
 
 ```json
@@ -366,43 +322,13 @@ Minimum success data:
   "price_amount_cents": 10,
   "currency": "USD",
   "expires_at": "2026-05-08T20:00:00.000Z",
-  "accepted_payment_method": "fake",
+  "accepted_payment_method": "stripe_checkout",
   "idempotency_key": "quote-run-001",
   "pack_id": null,
   "pack": null,
-  "live_money": false,
-  "x402": null
+  "live_money": true
 }
 ```
-
-An `x402.fake.exact` quote includes a safe challenge object:
-
-```json
-{
-  "accepted_payment_method": "x402.fake.exact",
-  "live_money": false,
-  "x402": {
-    "scheme": "exact",
-    "network": "local-no-spend",
-    "asset": "synthetic-usdc",
-    "settlement": "fake_no_spend",
-    "challenge_id": "x402_chal_...",
-    "quote_digest": "79bd1...",
-    "idempotency_key_hash": "bf85a...",
-    "payment_required_hash": "0e65...",
-    "expires_at": "2026-05-08T20:00:00.000Z",
-    "redacted_headers": {
-      "payment_required": "[redacted-x402-payment-required]",
-      "payment_signature": "[redacted-x402-payment-signature]",
-      "payment_response": "[redacted-x402-payment-response]"
-    }
-  }
-}
-```
-
-The challenge is intentionally not a live HTTP 402 settlement response. It is a
-redacted JSON rehearsal contract that lets agents prove the x402 handoff shape
-without live wallets or spend.
 
 Hosted API equivalent:
 
@@ -479,72 +405,6 @@ curl -sS https://api.image-skill.com/v1/credit-purchases/stripe-checkout-session
   -d '{"quote_id":"quote_...","idempotency_key":"stripe-buy-run-001"}'
 ```
 
-For an `x402.fake.exact` quote, `credits buy --provider x402` derives a
-synthetic authorization from the quote challenge and the purchase idempotency
-key. It grants no live-money credits unless the challenge fields match the
-quote exactly, and replay returns the same receipt with zero new credits:
-
-```bash
-image-skill credits buy \
-  --provider x402 \
-  --quote-id quote_... \
-  --idempotency-key x402-buy-run-001 \
-  --json
-```
-
-Minimum no-spend x402 success data:
-
-```json
-{
-  "state": "succeeded",
-  "quote_id": "quote_...",
-  "receipt_id": "receipt_...",
-  "credit_event_id": "credit_event_...",
-  "credits_granted": 500,
-  "amount_cents": 500,
-  "currency": "USD",
-  "provider": "x402",
-  "accepted_payment_method": "x402.fake.exact",
-  "idempotency_key": "x402-buy-run-001",
-  "balance_after": 500,
-  "live_money": false,
-  "x402": {
-    "scheme": "exact",
-    "network": "local-no-spend",
-    "asset": "synthetic-usdc",
-    "amount_cents": 500,
-    "credits": 500,
-    "settlement": "fake_no_spend",
-    "challenge_id": "x402_chal_...",
-    "quote_digest": "79bd1...",
-    "idempotency_key_hash": "bf85a...",
-    "purchase_idempotency_key_hash": "6408...",
-    "payment_required_hash": "0e65...",
-    "payment_signature_hash": "cc40...",
-    "payment_response_hash": "2275...",
-    "redacted_headers": {
-      "payment_required": "[redacted-x402-payment-required]",
-      "payment_signature": "[redacted-x402-payment-signature]",
-      "payment_response": "[redacted-x402-payment-response]"
-    }
-  }
-}
-```
-
-Hosted API equivalent:
-
-```bash
-curl -sS https://api.image-skill.com/v1/credit-purchases \
-  -H "authorization: Bearer $IMAGE_SKILL_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"quote_id":"quote_...","idempotency_key":"x402-buy-run-001","payment_method":"x402.fake.exact","x402_network":"local-no-spend","x402_asset":"synthetic-usdc","x402_amount_cents":500,"x402_credits":500,"x402_challenge_id":"x402_chal_...","x402_quote_digest":"...","x402_payment_required_hash":"...","x402_payment_signature_hash":"...","x402_payment_response_hash":"..."}'
-```
-
-The public CLI supplies the safe `x402_*` challenge hashes after reading quote
-status. Do not pass raw `PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`,
-`PAYMENT-RESPONSE`, wallet secrets, private keys, seed phrases, bearer tokens,
-Stripe secrets, or provider credentials to Image Skill.
-
 ### `image-skill credits status`
 
 Shows the durable state of a quote, Stripe Checkout attempt, Checkout Session,
@@ -595,11 +455,6 @@ Minimum action-required data:
 Minimum success data includes `state: "succeeded"`, `receipt`,
 `credit_event`, and the updated hosted `limits`.
 
-When queried by `--quote-id`, an open `x402.fake.exact` quote includes the
-same safe `quote.x402` challenge object returned by `credits quote`. Agents can
-use that status read to recover the challenge before calling
-`credits buy --provider x402`.
-
 Hosted API equivalent:
 
 ```bash
@@ -607,56 +462,11 @@ curl -sS "https://api.image-skill.com/v1/credit-purchases/status?payment_attempt
   -H "authorization: Bearer $IMAGE_SKILL_TOKEN"
 ```
 
-### `image-skill credits fake-purchase`
-
-Confirms a previously returned fake/test quote and grants bounded
-payment-backed credits in the hosted credit ledger. This command is deliberately
-named `fake-purchase` because it is a harness-safe settlement precursor:
-`live_money:false`, no live money moved, and no payment credential is accepted.
-
-```bash
-image-skill credits fake-purchase \
-  --quote-id quote_... \
-  --idempotency-key purchase-run-001 \
-  --json
-```
-
-`--idempotency-key` is required because the command mutates credit state even
-though the settlement rail is fake/test-only.
-
-Minimum success data:
-
-```json
-{
-  "state": "succeeded",
-  "quote_id": "quote_...",
-  "receipt_id": "receipt_...",
-  "credit_event_id": "credit_event_...",
-  "credits_granted": 10,
-  "amount_cents": 10,
-  "currency": "USD",
-  "accepted_payment_method": "fake",
-  "idempotency_key": "purchase-run-001",
-  "balance_after": 10,
-  "live_money": false
-}
-```
-
-Hosted API equivalent:
-
-```bash
-curl -sS https://api.image-skill.com/v1/credit-purchases \
-  -H "authorization: Bearer $IMAGE_SKILL_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"quote_id":"quote_...","idempotency_key":"purchase-run-001"}'
-```
-
 Do not pass card data, wallet secrets, provider receipts, Stripe secrets, MPP
 tokens, SPTs, live x402 payment headers, or any payment credential to credits
 commands. Stripe Checkout collects payment details only on Stripe-hosted pages.
 The public request fields are `credits`, `pack_id`, `payment_method`,
-`quote_id`, status reference IDs, `idempotency_key`, and the safe `x402_*`
-hash fields emitted by Image Skill for `x402.fake.exact`.
+`quote_id`, status reference IDs, and `idempotency_key`.
 
 ### `image-skill models`
 
@@ -1332,7 +1142,7 @@ below.
 | `feedback.created`                         | `feedback` | feedback    | Hosted agent feedback is accepted into product memory.            | `feedback_id`                                                      |
 | `feedback.github_queue.processed`          | `feedback` | feedback    | Feedback is processed by the GitHub implementation queue handoff. | `feedback_id`                                                      |
 | `payment.checkout_session.created`         | `payment`  | payment     | A Stripe Checkout session is created and awaits external action.  | `quote_id`, `payment_attempt_id`, `checkout_session_id`            |
-| `credits.payment_backed_granted`           | `credit`   | credits     | Verified payment or fake-payment proof grants paid credits.       | `quote_id`, `receipt_id`, `credit_event_id`                        |
+| `credits.payment_backed_granted`           | `credit`   | credits     | Verified payment fulfillment grants paid credits.                 | `quote_id`, `receipt_id`, `credit_event_id`                        |
 | `credits.payment_backed_refunded`          | `credit`   | credits     | A Stripe refund debits payment-backed credits.                    | `quote_id`, `receipt_id`, `payment_reversal_id`, `credit_event_id` |
 | `credits.payment_backed_disputed`          | `credit`   | credits     | A Stripe dispute debit applies to payment-backed credits.         | `quote_id`, `receipt_id`, `payment_reversal_id`, `credit_event_id` |
 | `credits.payment_backed_reinstated`        | `credit`   | credits     | Stripe dispute funds were reinstated and recorded.                | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
@@ -1384,7 +1194,7 @@ example, `BUDGET_REQUIRES_CONFIRMATION` returns
 `required_flag: "--accept-unknown-cost"`.
 
 `whoami`, `usage quota`, `quota`, `credits quote`, `credits buy`,
-`credits status`, `credits fake-purchase`, `create`, `activity list`,
+`credits status`, `create`, `activity list`,
 `activity show`, and `feedback create` accept `--token-stdin` for stdin-based
 secret handoff.
 `credits methods` and `credits packs list` do not require auth.

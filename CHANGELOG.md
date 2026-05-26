@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.11 - 2026-05-26
+
+- Remove private no-spend fake payment rails from the public CLI and public
+  skill/docs contract.
+- Make public credit quotes default to Stripe Checkout and reject fake payment
+  methods locally before calling the hosted API.
+- Hide the private `credits fake-purchase` harness command from the public CLI
+  package.
+
 ## 0.1.10 - 2026-05-22
 
 - Stripe Checkout payment-link hardening follow-up.

@@ -208,20 +208,6 @@ image-skill credits buy \
   --quote-id QUOTE_ID \
   --idempotency-key stripe-buy-run-001 \
   --json
-image-skill credits quote \
-  --pack starter-500 \
-  --payment-method x402.fake.exact \
-  --idempotency-key x402-pack-quote-run-001 \
-  --json
-image-skill credits buy \
-  --provider x402 \
-  --quote-id QUOTE_ID \
-  --idempotency-key x402-buy-run-001 \
-  --json
-image-skill credits fake-purchase \
-  --quote-id QUOTE_ID \
-  --idempotency-key purchase-run-001 \
-  --json
 ```
 
 This is the agent-facing precursor to future MPP, live x402, wallet, or
@@ -238,12 +224,6 @@ absent, present the full `checkout_url` in a code block; do not remove the
 Stripe `#...` fragment because Checkout needs it in the browser.
 Operator-provided promotion codes are entered on Stripe-hosted Checkout, not in
 the Image Skill CLI.
-`credits quote --payment-method x402.fake.exact` and
-`credits buy --provider x402` exercise the agent-only x402 handoff shape with a
-redacted JSON quote challenge, synthetic authorization hashes, exactly-once
-credit grant, and replay protection, but still return `live_money:false` and
-move no live money. `credits fake-purchase` remains the simpler fake/test
-credit-ledger proof path. Neither fake path accepts payment credentials.
 One Image Skill credit is `$0.01`. Creative operations debit model-priced
 credits, not a flat one-credit unit. Use `models show MODEL_ID --json` and the
 operation response `cost.credit_pricing` to see `credits_required`,
@@ -541,9 +521,6 @@ closed if durable hosted feedback storage is unavailable.
 - Use `credits packs list --json` to inspect recommended live-money packs.
 - Use `credits quote --pack PACK_ID --payment-method stripe_checkout --json`
   for the default Stripe Checkout path.
-- Use `credits quote --pack PACK_ID --payment-method x402.fake.exact --json`
-  and `credits buy --provider x402 --json` only for no-spend x402 handoff
-  rehearsal. This is not live x402 settlement.
 - Use `credits quote --credits CREDITS --json` for exact bounded custom
   top-ups when the required budget is already known.
 - Use `credits buy --provider stripe --json` only to create a Stripe-hosted
@@ -551,12 +528,9 @@ closed if durable hosted feedback storage is unavailable.
   present the full `checkout_url` in a code block. Do not remove the
   Stripe `#...` fragment; Checkout needs it in the browser. Session creation
   itself does not grant credits.
-- Use `credits fake-purchase --json` only for preview credit-ledger proof; it
-  is not live settlement and must not receive payment credentials.
 - Never pass live x402 payment headers, wallet private keys, seed phrases,
   bearer tokens, Stripe secrets, provider keys, card data, or provider receipts
-  to Image Skill. The x402 fake rail only uses safe `x402_*` hashes supplied by
-  Image Skill's own quote/status response.
+  to Image Skill.
 - Treat credits as prepaid cents of Image Skill value. Operation debits are
   model-aware and appear in `cost.credit_pricing`.
 - Use dry-run modes and explicit budget caps for exploration.
