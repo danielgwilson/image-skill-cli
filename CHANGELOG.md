@@ -4,6 +4,11 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.13 - 2026-05-26
+
+- Remove public changelog breadcrumbs for private harness payment rails.
+- Keep the npm tarball aligned with the action-only public payment contract.
+
 ## 0.1.12 - 2026-05-26
 
 - Publish the action-only payment-method public contract: public discovery now
@@ -13,12 +18,11 @@ provenance; this file is the human- and agent-readable release map.
 
 ## 0.1.11 - 2026-05-26
 
-- Remove private no-spend fake payment rails from the public CLI and public
+- Remove private non-production payment rails from the public CLI and public
   skill/docs contract.
-- Make public credit quotes default to Stripe Checkout and reject fake payment
-  methods locally before calling the hosted API.
-- Hide the private `credits fake-purchase` harness command from the public CLI
-  package.
+- Make public credit quotes default to Stripe Checkout and reject unavailable
+  payment methods locally before calling the hosted API.
+- Keep private harness-only payment commands out of the public CLI package.
 
 ## 0.1.10 - 2026-05-22
 
