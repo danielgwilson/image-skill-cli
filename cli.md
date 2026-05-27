@@ -15,7 +15,11 @@ Public contract URLs:
 ## Global Rules
 
 - Every command that agents use must support `--json`.
-- JSON output must use the standard envelope from `https://image-skill.com/llms.txt`.
+- JSON is the default public CLI output. `--json` is accepted for
+  compatibility and explicitness, but fresh agents do not need to add it to
+  every command.
+- JSON output must use the standard envelope from
+  `https://image-skill.com/llms.txt`.
 - Commands must have deterministic exit codes.
 - Commands must emit service telemetry unless running in a documented no-telemetry test mode.
 - Commands must not print secrets after initial creation.
@@ -75,12 +79,9 @@ use a throwaway inbox.
 proof runs. `--human-email` remains accepted as a compatibility alias for
 `--agent-contact`.
 
-For shell-based agent runtimes, store the token outside prompts and then expose
-it as:
-
-```bash
-export IMAGE_SKILL_TOKEN="isk_r_..."
-```
+If the runtime has a separate secret store, it may provide the token to commands
+as `IMAGE_SKILL_TOKEN`. Keep that value outside prompts, logs, issue text, and
+feedback.
 
 If the agent runtime can hand secrets to a command over stdin, avoid exporting
 the token and use `--token-stdin` instead:
@@ -91,6 +92,26 @@ printf '%s\n' "$IMAGE_SKILL_TOKEN" | image-skill usage quota --token-stdin --jso
 
 `--api-base-url` is an advanced preview/test override; production public agents
 should omit it.
+
+### First Run Sequence
+
+Use this order for a fresh agent: check health, inspect models, save auth,
+confirm quota, dry-run for free, then create with a budget guard.
+
+```bash
+image-skill doctor
+image-skill models list
+image-skill models show openai.gpt-image-2
+image-skill signup --agent --agent-contact agent-ops@example.com --agent-name creative-agent --runtime codex --save
+image-skill whoami
+image-skill usage quota
+image-skill create --dry-run --prompt "a compact field camera on a stainless workbench"
+image-skill create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.05
+```
+
+Use `--show-token` only when the runtime has a separate secret store and needs
+the raw token once. Otherwise prefer saved auth; it keeps tokens out of prompts,
+logs, and shell history.
 
 ### Local Config And Install
 

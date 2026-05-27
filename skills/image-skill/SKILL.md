@@ -78,18 +78,33 @@ provider API because Image Skill was missing something, submit feedback with:
 
 ## First Run
 
-The whole happy path is two commands — sign up once, then create:
+JSON is the default output for the public CLI. `--json` remains accepted for
+compatibility, but fresh agents do not need to add it to every command.
+
+Start by checking the service and inspecting model capability before committing
+quota or spend:
 
 ```bash
-npx -y image-skill signup --agent --agent-contact YOUR_INBOX --agent-name NAME --runtime codex --show-token
-export IMAGE_SKILL_TOKEN=isk_...   # the token printed above; every later command reads it automatically
-npx -y image-skill create "a compact field camera on a stainless workbench"
+npx -y image-skill@latest doctor
+npx -y image-skill@latest models list
+npx -y image-skill@latest models show openai.gpt-image-2
 ```
 
-That returns a durable owned image URL. JSON is the default output and high-res
-is the default quality — `--json` is accepted as a no-op, not required.
-Everything below is optional depth: skill install, health checks, model
-inspection, and spend controls.
+Then sign up once with saved auth, confirm identity and quota, plan for free,
+and run a bounded create:
+
+```bash
+npx -y image-skill@latest signup --agent --agent-contact YOUR_INBOX --agent-name NAME --runtime codex --save
+npx -y image-skill@latest whoami
+npx -y image-skill@latest usage quota
+npx -y image-skill@latest create --dry-run --prompt "a compact field camera on a stainless workbench"
+npx -y image-skill@latest create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.05
+```
+
+That returns durable owned media URLs, a recoverable job, cost receipts, and
+capability-preserving model metadata. Everything below is optional depth:
+skill install, writable config recovery, payment handoff, advanced model
+parameters, asset recovery, jobs, activity, and feedback.
 
 Install the agent-facing skill from the hosted public contract when the runtime
 supports skills.sh-compatible installation:
@@ -108,7 +123,7 @@ Run the executable CLI from npm without relying on a writable global npm
 prefix:
 
 ```bash
-npx -y image-skill@latest doctor --json
+npx -y image-skill@latest doctor
 ```
 
 For repeated shell use, use global package linking only after confirming the
@@ -119,33 +134,32 @@ home is read-only.
 Check service and client health:
 
 ```bash
-image-skill doctor --json
+image-skill doctor
 ```
 
 Inspect models before committing to a provider or model-specific parameter:
 
 ```bash
-image-skill models list --json
-image-skill models show openai.gpt-image-2 --json
-image-skill models show openai.gpt-image-1.5 --json
+image-skill models list
+image-skill models show openai.gpt-image-2
+image-skill models show openai.gpt-image-1.5
 ```
 
-Bootstrap restricted agent access:
+Bootstrap restricted agent access and save auth for later commands:
 
 ```bash
 image-skill signup --agent \
   --agent-contact CONTACT_OR_SPONSOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME \
-  --show-token \
-  --json
+  --save
 ```
 
-Hosted signup returns your token once. Put it in `IMAGE_SKILL_TOKEN` (your
-runtime's secret store or environment) and every later command authenticates
-automatically — you sign up once and then just run commands, with no token to
-pass and no config file to manage. If you do pass the token explicitly, prefer
-`--token-stdin` over `--token` so it never lands in shell history.
+Saved auth lets every later command authenticate automatically — you sign up
+once and then just run commands, with no token to pass in prompts or shell
+history. Use `--show-token` only when the runtime has a separate secret store
+and needs the raw token once. If you do pass the token explicitly, prefer
+`--token-stdin` over `--token`.
 
 In the preview contract, `--agent-contact` means the accountable contact,
 sponsor, operator, or agent inbox for the restricted agent identity. If no
@@ -162,29 +176,30 @@ placing the token in command args.
 
 ## Local Config And Install
 
-Your hosted token lives in `IMAGE_SKILL_TOKEN`, not on disk, so a read-only home
-or npm prefix never blocks you. Run the published package directly and keep the
-token in the environment:
+Run the published package directly; do not clone private source because a global
+install or default config directory is blocked. Saved auth state defaults to the
+user config directory. If that location is read-only, point
+`IMAGE_SKILL_CONFIG_PATH` at a writable persistent path before `signup --save`:
 
 ```bash
+export IMAGE_SKILL_CONFIG_PATH="$PWD/image-skill-config.json"
 npx -y image-skill@latest signup --agent \
   --agent-contact CONTACT_OR_SPONSOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME \
-  --show-token --json
-# copy the returned token, then:
-export IMAGE_SKILL_TOKEN=isk_...
-npx -y image-skill@latest whoami --json
+  --save
+npx -y image-skill@latest whoami
 ```
 
 Do not fall back to another tool because a global install or the default config
-directory is blocked — the hosted path above needs neither.
+directory is blocked. Follow the CLI's structured recovery command and continue
+with `whoami`, `usage quota`, `models list`, and the requested creative flow.
 
 Inspect identity and quota:
 
 ```bash
-image-skill whoami --json
-image-skill usage quota --json
+image-skill whoami
+image-skill usage quota
 ```
 
 The preview hosted signup path currently uses the agent-contact inbox above.
