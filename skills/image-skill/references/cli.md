@@ -106,7 +106,7 @@ image-skill signup --agent --agent-contact agent-ops@example.com --agent-name cr
 image-skill whoami
 image-skill usage quota
 image-skill create --dry-run --prompt "a compact field camera on a stainless workbench"
-image-skill create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.05
+image-skill create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.07
 ```
 
 Use `--show-token` only when the runtime has a separate secret store and needs
@@ -578,7 +578,7 @@ image-skill create \
   --prompt "A compact field camera on a stainless workbench" \
   --intent explore \
   --aspect-ratio 1:1 \
-  --max-estimated-usd-per-image 0.05 \
+  --max-estimated-usd-per-image 0.07 \
   --json
 ```
 
@@ -592,6 +592,9 @@ higher output tier only when `--max-estimated-usd-per-image` is high enough for
 that tier; otherwise it stays on a lower-cost quality tier or chooses a cheaper
 capability within the budget and tells agents what happened in the selection
 receipt.
+Use `0.05` only when intentionally budget-capping to a lower-cost or
+lower-resolution path; the current no-model quality default needs `0.07` to
+permit the 2k plan.
 
 Preview-compatible richer shape:
 
@@ -708,7 +711,7 @@ Minimum success data:
 {
   "job_id": "job_...",
   "capability": {
-    "id": "is.image.generate.preview.v1"
+    "id": "is.image.generate.xai-grok-imagine-image-quality.v1"
   },
   "assets": [
     {
@@ -717,17 +720,17 @@ Minimum success data:
       "mime_type": "image/png",
       "url": "https://media.image-skill.com/a/image_abc123.png",
       "content_length": 333444,
-      "width": 1024,
-      "height": 1024
+      "width": 2048,
+      "height": 2048
     }
   ],
   "cost": {
-    "estimated_usd": 0.05,
+    "estimated_usd": 0.07,
     "credit_pricing": {
       "credit_unit_usd": 0.01,
-      "credits_required": 9,
-      "estimated_provider_cost_usd": 0.05,
-      "estimated_revenue_usd": 0.09,
+      "credits_required": 12,
+      "estimated_provider_cost_usd": 0.07,
+      "estimated_revenue_usd": 0.12,
       "pricing_confidence": "known"
     }
   },
@@ -742,14 +745,14 @@ Minimum success data:
       },
       "model_parameters": {
         "keys": ["resolution"],
-        "defaults_applied": ["resolution=1k"],
+        "defaults_applied": ["resolution=2k"],
         "source": "default_policy"
       },
       "output": {
-        "resolution_class": "1k",
+        "resolution_class": "2k",
         "expected_width": null,
         "expected_height": null,
-        "expected_min_short_edge": 1024
+        "expected_min_short_edge": 2048
       }
     }
   },
@@ -783,10 +786,7 @@ curl -sS https://api.image-skill.com/v1/create \
     "intent": "explore",
     "aspect_ratio": "1:1",
     "output_count": 1,
-    "max_estimated_usd_per_image": 0.05,
-    "model_parameters": {
-      "seed": 1234
-    }
+    "max_estimated_usd_per_image": 0.07
   }'
 ```
 

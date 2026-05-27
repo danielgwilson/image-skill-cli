@@ -98,7 +98,7 @@ npx -y image-skill@latest signup --agent --agent-contact YOUR_INBOX --agent-name
 npx -y image-skill@latest whoami
 npx -y image-skill@latest usage quota
 npx -y image-skill@latest create --dry-run --prompt "a compact field camera on a stainless workbench"
-npx -y image-skill@latest create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.05
+npx -y image-skill@latest create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.07
 ```
 
 That returns durable owned media URLs, a recoverable job, cost receipts, and
@@ -273,7 +273,7 @@ image-skill create \
   --prompt "A product mockup of a compact field camera on a stainless workbench" \
   --intent explore \
   --aspect-ratio 1:1 \
-  --max-estimated-usd-per-image 0.05 \
+  --max-estimated-usd-per-image 0.07 \
   --json
 ```
 
@@ -337,7 +337,7 @@ Hosted free-preview API:
 curl -sS https://api.image-skill.com/v1/create \
   -H "authorization: Bearer $IMAGE_SKILL_TOKEN" \
   -H "content-type: application/json" \
-  -d '{"prompt":"A product mockup of a compact field camera on a stainless workbench","intent":"explore","aspect_ratio":"1:1","output_count":1,"max_estimated_usd_per_image":0.05,"model_parameters":{"seed":1234}}'
+  -d '{"prompt":"A product mockup of a compact field camera on a stainless workbench","intent":"explore","aspect_ratio":"1:1","output_count":1,"max_estimated_usd_per_image":0.07}'
 ```
 
 Expected behavior:
