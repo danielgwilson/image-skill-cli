@@ -381,25 +381,31 @@ async function whoami(argv) {
 
 async function usage(argv) {
   const [subcommand, ...rest] = argv;
+  if (subcommand === undefined || subcommand.startsWith("-")) {
+    return await quota(argv, "image-skill usage quota");
+  }
   if (subcommand !== "quota") {
     return invalid("image-skill usage", "usage requires the quota subcommand");
   }
-  return quota(rest);
+  return quota(rest, "image-skill usage quota");
 }
 
-async function quota(argv) {
+async function quota(argv, command = "image-skill quota") {
   const args = parseArgs(argv);
   const token = await resolveToken(args);
   if (!token.ok) {
-    return token.result;
+    return withCommand(token.result, command);
   }
-  return apiRequest({
-    command: "image-skill quota",
-    method: "GET",
-    apiBaseUrl: apiBase(args),
-    path: "/v1/quota",
-    token: token.token,
-  });
+  return withCommand(
+    await apiRequest({
+      command,
+      method: "GET",
+      apiBaseUrl: apiBase(args),
+      path: "/v1/quota",
+      token: token.token,
+    }),
+    command,
+  );
 }
 
 async function credits(argv) {
@@ -2110,6 +2116,16 @@ function invalid(command, message) {
   return failure(command, 2, "INVALID_ARGUMENTS", message, false, {
     docs_url: "https://image-skill.com/cli.md",
   });
+}
+
+function withCommand(result, command) {
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      command,
+    },
+  };
 }
 
 function failure(command, exitCode, code, message, retryable, recovery) {
