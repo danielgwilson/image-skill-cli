@@ -654,13 +654,24 @@ async function create(argv) {
   if (!prompt.ok) {
     return prompt.result;
   }
-  const token = await resolveToken(args);
-  if (!token.ok) {
-    return token.result;
+  let referenceToken = null;
+  if (flagBool(args, "dry-run") && hasReferenceFlags(args)) {
+    referenceToken = await resolveToken(args);
+    if (!referenceToken.ok) {
+      return referenceToken.result;
+    }
   }
   const referencePlan = parseReferencePlan(args, "image-skill create");
   if (!referencePlan.ok) {
     return referencePlan.result;
+  }
+  const anonymousDryRun =
+    flagBool(args, "dry-run") && referencePlan.referencePlans.length === 0;
+  const token =
+    referenceToken ??
+    (await resolveToken(args, { allowMissing: anonymousDryRun }));
+  if (!token.ok) {
+    return token.result;
   }
   const modelParameters = jsonObjectFlag(args, "model-parameters-json");
   if (!modelParameters.ok) {
@@ -672,11 +683,14 @@ async function create(argv) {
   if (!outputCount.ok) {
     return outputCount.result;
   }
-  const references = await resolveReferences(
-    referencePlan.referencePlans,
-    args,
-    token.token,
-  );
+  const references =
+    token.token === null
+      ? { ok: true, references: [] }
+      : await resolveReferences(
+          referencePlan.referencePlans,
+          args,
+          token.token,
+        );
   if (!references.ok) {
     return references.result;
   }
@@ -685,7 +699,7 @@ async function create(argv) {
     method: "POST",
     apiBaseUrl: apiBase(args),
     path: "/v1/create",
-    token: token.token,
+    ...(token.token === null ? {} : { token: token.token }),
     body: {
       prompt: prompt.value,
       ...(flagString(args, "provider") === null
@@ -1168,6 +1182,14 @@ function parseReferencePlan(args, command) {
     return planValidation;
   }
   return { ok: true, referencePlans };
+}
+
+function hasReferenceFlags(args) {
+  return (
+    args.flags.has("element-frontal") ||
+    args.flags.has("element-reference") ||
+    args.flags.has("reference-image")
+  );
 }
 
 async function resolveReferences(referencePlans, args, token) {
@@ -1767,6 +1789,9 @@ async function resolveToken(args, options = {}) {
     if (typeof config.token === "string" && config.token.trim().length > 0) {
       return { ok: true, token: config.token.trim(), source: "config" };
     }
+  }
+  if (options.allowMissing === true) {
+    return { ok: true, token: null, source: "anonymous" };
   }
   return {
     ok: false,
