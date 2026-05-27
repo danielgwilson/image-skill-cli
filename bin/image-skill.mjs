@@ -886,7 +886,7 @@ async function assets(argv) {
     }
     const asset = shown.envelope.data?.asset ?? shown.envelope.data;
     const output =
-      flagString(args, "output") ?? basename(new URL(asset.url).pathname);
+      flagString(args, "output") ?? deriveAssetGetOutputPath(asset);
     const downloaded = await downloadUrl(asset.url, output, {
       overwrite: flagBool(args, "overwrite"),
     });
@@ -2193,6 +2193,13 @@ function assetIdFromReference(reference) {
   }
   try {
     const url = new URL(reference);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "media.image-skill.com" ||
+      !url.pathname.startsWith("/a/")
+    ) {
+      return null;
+    }
     const candidate = basename(url.pathname).replace(/\.[a-z0-9]+$/i, "");
     return isAssetId(candidate) ? candidate : null;
   } catch {
@@ -2204,6 +2211,97 @@ function isAssetId(value) {
   return /^(?:asset|image|video|audio|mask|thumb|file)_[a-zA-Z0-9._-]{1,128}$/.test(
     value,
   );
+}
+
+function deriveAssetGetOutputPath(asset) {
+  const urlBasename = safeUsefulUrlBasename(asset.url);
+  if (urlBasename !== null) {
+    return urlBasename;
+  }
+  const assetId =
+    typeof asset.asset_id === "string" &&
+    isSafeDerivedAssetFilename(asset.asset_id)
+      ? asset.asset_id
+      : (assetIdFromReference(asset.url) ?? "asset");
+  return `${assetId}${assetOutputExtension(asset)}`;
+}
+
+function safeUsefulUrlBasename(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  const rawBasename = basename(url.pathname);
+  if (rawBasename.length === 0) {
+    return null;
+  }
+  let decoded;
+  try {
+    decoded = decodeURIComponent(rawBasename);
+  } catch {
+    return null;
+  }
+  if (!isSafeDerivedAssetFilename(decoded)) {
+    return null;
+  }
+  return extname(decoded).length > 0 ? decoded : null;
+}
+
+function isSafeDerivedAssetFilename(value) {
+  return (
+    value.length > 0 &&
+    value.length <= 220 &&
+    value !== "." &&
+    value !== ".." &&
+    !value.startsWith(".") &&
+    /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(value)
+  );
+}
+
+function assetOutputExtension(asset) {
+  const mimeType =
+    typeof asset.mime_type === "string"
+      ? asset.mime_type.split(";")[0].trim().toLowerCase()
+      : null;
+  if (mimeType === "image/png") {
+    return ".png";
+  }
+  if (mimeType === "image/jpeg") {
+    return ".jpg";
+  }
+  if (mimeType === "image/webp") {
+    return ".webp";
+  }
+  if (mimeType === "image/gif") {
+    return ".gif";
+  }
+  if (mimeType === "image/avif") {
+    return ".avif";
+  }
+  return safeUrlExtension(asset.url) ?? "";
+}
+
+function safeUrlExtension(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  const rawBasename = basename(url.pathname);
+  if (rawBasename.length === 0) {
+    return null;
+  }
+  let decoded;
+  try {
+    decoded = decodeURIComponent(rawBasename);
+  } catch {
+    return null;
+  }
+  const extension = extname(decoded).toLowerCase();
+  return /^\.[a-z0-9]{1,10}$/.test(extension) ? extension : "";
 }
 
 async function downloadUrl(url, outputPath, options) {
