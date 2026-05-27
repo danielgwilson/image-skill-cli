@@ -20,7 +20,7 @@ const DEFAULT_CONFIG_PATH = join(
   "config.json",
 );
 const SIGNUP_SUGGESTED_COMMAND =
-  "image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --save --json";
+  "image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --json";
 const SIGNUP_CONTACT_GUIDANCE =
   "Use --agent-contact for the accountable contact, sponsor, operator, or agent inbox for this restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox. --human-email remains a compatibility alias.";
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
@@ -64,7 +64,7 @@ async function main(rawArgv) {
       docs_url: "https://image-skill.com/cli.md",
       commands: [
         "doctor",
-        "signup --agent --agent-contact --save",
+        "signup --agent --agent-contact",
         "auth status",
         "auth save",
         "auth logout",
@@ -232,7 +232,7 @@ async function signup(argv) {
       },
     );
   }
-  const save = flagBool(args, "save");
+  const save = shouldSaveSignupAuth(args);
   const showToken = flagBool(args, "show-token");
   if (save) {
     const configReady = await assertConfigWritable("image-skill signup");
@@ -252,6 +252,7 @@ async function signup(argv) {
       return_token: save || showToken,
     },
   });
+  result.envelope.command = "image-skill signup";
 
   const token = result.envelope.data?.token;
   const warnings = [...result.envelope.warnings];
@@ -261,7 +262,7 @@ async function signup(argv) {
         "image-skill signup",
         3,
         "SIGNUP_TOKEN_NOT_RETURNED",
-        "signup --save requires a returned hosted token",
+        "signup default auth persistence requires a returned hosted token",
         true,
         {
           suggested_command: SIGNUP_SUGGESTED_COMMAND,
@@ -282,22 +283,18 @@ async function signup(argv) {
     warnings.push(`saved hosted token to ${configPath()}`);
   }
 
-  if (
-    !showToken &&
-    result.envelope.data &&
-    typeof result.envelope.data === "object"
-  ) {
+  if (result.envelope.data && typeof result.envelope.data === "object") {
     result.envelope.data = {
       ...result.envelope.data,
-      token: null,
-      token_presented: false,
+      token: showToken ? (token ?? result.envelope.data.token ?? null) : null,
+      token_presented: showToken,
       storage: {
         ...(result.envelope.data.storage ?? {}),
         saved: save,
         config_path: save ? configPath() : null,
         reason: save
           ? "public CLI saved token locally with 0600 permissions"
-          : "token redacted; rerun with --show-token or --save at signup time",
+          : "token not saved; later hosted commands need saved auth, IMAGE_SKILL_TOKEN, or --token-stdin",
       },
     };
   }
@@ -1777,7 +1774,7 @@ async function resolveToken(args, options = {}) {
       commandLabel(process.argv.slice(2)),
       3,
       "AUTH_REQUIRED",
-      "hosted command requires auth; run signup --save, set IMAGE_SKILL_TOKEN, or pass --token-stdin",
+      "hosted command requires auth; run signup, set IMAGE_SKILL_TOKEN, or pass --token-stdin",
       false,
       {
         suggested_command: SIGNUP_SUGGESTED_COMMAND,
@@ -1840,10 +1837,14 @@ function configWriteFailure(command, error) {
     true,
     {
       suggested_command:
-        'IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json" image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --save --json',
+        'IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json" image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name NAME --runtime RUNTIME --json',
       docs_url: "https://image-skill.com/cli.md#local-config-and-install",
     },
   );
+}
+
+function shouldSaveSignupAuth(args) {
+  return !flagBool(args, "no-save");
 }
 
 function parseArgs(argv) {

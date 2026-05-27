@@ -32,7 +32,7 @@ runtime has a writable npm prefix:
 ```bash
 npm install -g image-skill
 image-skill doctor --json
-image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --save --json
+image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --json
 image-skill models list --json
 image-skill models show xai.grok-imagine-image --json
 image-skill credits methods --json
@@ -73,16 +73,17 @@ Release notes live in
 Detailed package verification steps live in
 [`PROVENANCE.md`](https://github.com/danielgwilson/image-skill-cli/blob/main/PROVENANCE.md).
 
-The CLI saves hosted agent tokens only when `--save` is explicit. Saved tokens
-live at `${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json` by default with
-0600 permissions. Use `IMAGE_SKILL_CONFIG_PATH` to override the config path and
-`IMAGE_SKILL_TOKEN` or `--token-stdin` for runtime secret injection.
+The CLI saves hosted agent tokens by default at
+`${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json` with 0600 permissions.
+Use `IMAGE_SKILL_CONFIG_PATH` to override the config path, `--no-save` to opt
+out, and `--show-token --no-save` only for runtime secret-store injection via
+`IMAGE_SKILL_TOKEN` or `--token-stdin`.
 
 Fresh sandboxes should prefer:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npm exec --yes --package image-skill@latest -- image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --save --json
+npm exec --yes --package image-skill@latest -- image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --json
 ```
 
 If npm prefix/cache paths are read-only, set `npm_config_cache` and
