@@ -101,7 +101,7 @@ you need capability details before spending:
 
 ```bash
 npx -y image-skill@latest doctor
-npx -y image-skill@latest models list
+npx -y image-skill@latest models list --available --operation image.generate
 npx -y image-skill@latest models show openai.gpt-image-2
 npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex --save
 npx -y image-skill@latest whoami
@@ -260,11 +260,19 @@ Inspect models first, especially when choosing between OpenAI, Fal, xAI, and
 future providers:
 
 ```bash
-image-skill models --json
-image-skill models list --json
+image-skill models list --available --operation image.generate --json
+image-skill models list --available --operation image.edit --json
+image-skill models list --catalog-only --provider fal --json
 image-skill models show openai.gpt-image-2 --json
 image-skill models show openai.gpt-image-1.5 --json
 ```
+
+Use `--available --operation image.generate` when you need a runnable create
+choice and `--available --operation image.edit` when you need a runnable edit
+choice. `--available` means both `status:"available"` and
+`execution.model_execution_status:"executable"`. The full catalog remains
+inspectable; `--catalog-only` shows source-backed rows that are useful for
+research but not runnable yet.
 
 `models show` is the first detailed discovery surface for agents. It exposes
 operations, media inputs/outputs, model-parameter schemas, fixed and wired

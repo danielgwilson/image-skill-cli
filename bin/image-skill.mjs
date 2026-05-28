@@ -632,13 +632,56 @@ async function models(argv) {
   ) {
     return invalid("image-skill models", "models supports list or show");
   }
+  const query = modelListQuery(args);
+  if (!query.ok) {
+    return invalid(
+      subcommand === "list" ? "image-skill models list" : "image-skill models",
+      query.message,
+    );
+  }
   return apiRequest({
     command:
       subcommand === "list" ? "image-skill models list" : "image-skill models",
     method: "GET",
     apiBaseUrl: apiBase(args),
-    path: "/v1/models",
+    path: query.path,
   });
+}
+
+function modelListQuery(args) {
+  const available = flagBool(args, "available");
+  const executable = flagBool(args, "executable");
+  const catalogOnly = flagBool(args, "catalog-only");
+  if (catalogOnly && (available || executable)) {
+    return {
+      ok: false,
+      message:
+        "models list --catalog-only cannot be combined with --available or --executable",
+    };
+  }
+  const params = new URLSearchParams();
+  if (available) {
+    params.set("available", "true");
+  }
+  if (executable) {
+    params.set("executable", "true");
+  }
+  if (catalogOnly) {
+    params.set("catalog_only", "true");
+  }
+  addQueryValue(params, "operation", flagString(args, "operation"));
+  addQueryValue(params, "provider", flagString(args, "provider"));
+  const query = params.toString();
+  return {
+    ok: true,
+    path: query.length === 0 ? "/v1/models" : `/v1/models?${query}`,
+  };
+}
+
+function addQueryValue(params, name, value) {
+  if (typeof value === "string" && value.trim().length > 0) {
+    params.set(name, value.trim());
+  }
 }
 
 async function capabilities(argv) {

@@ -493,6 +493,9 @@ capability-preserving schema for one model.
 ```bash
 image-skill models --json
 image-skill models list --json
+image-skill models list --available --operation image.generate --json
+image-skill models list --available --operation image.edit --json
+image-skill models list --catalog-only --provider fal --json
 image-skill models show MODEL_ID --json
 ```
 
@@ -509,6 +512,17 @@ and migration hints. Agents should inspect it before assuming a model supports
 seeds, masks, reference images, transparent backgrounds, arbitrary aspect
 ratios, image-size presets, output counts, resolution controls, safety
 controls, or provider-native options.
+
+`models list` is executable-first by default and returns `summary` with total,
+returned, available, executable, catalog-only, provider split, first actionable
+model ids, recommended filter commands, and full-catalog flags. Use
+`--available` for currently usable executable rows, `--operation
+image.generate` or `--operation image.edit` for the task, `--provider fal|xai|openai`
+to narrow by provider, and `--catalog-only` when you intentionally want
+source-backed rows that are inspectable but not runnable yet. Provider-level
+availability is not the same thing as model executability; for runnable
+choices require both `status:"available"` and
+`execution.model_execution_status:"executable"`.
 
 Image Skill standardizes common controls so agents can work quickly, but it
 must not flatten rich model capabilities into coarse universal categories.
