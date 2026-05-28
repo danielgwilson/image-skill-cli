@@ -56,7 +56,7 @@ Claim states:
 First-run flow:
 1. image-skill create --guide --prompt PROMPT. This is the canonical fresh-agent entrypoint. It performs read-only hosted reachability, model availability, auth/quota, and payment rail checks and returns data.stage, data.next_command, data.escape_hatches, and data.mutation. Guide mode must report provider_call: false, hosted_create: false, hosted_signup: false, payment_object: false, credit_debit: false, and media_write: false.
 2. If data.stage is prompt_required, rerun data.next_command with the real prompt.
-3. If data.stage is auth_required, run data.next_command. The signup command uses --agent-contact as the accountable contact, sponsor, operator, or agent inbox for the restricted agent identity. If no individual human is in the loop, use a durable operator/team/agent inbox that can receive future claim, billing, or abuse notices; do not invent a person or use a throwaway inbox. example.invalid addresses are only appropriate inside documented harness or proof runs. --human-email remains accepted as a compatibility alias, but the guide must not teach it. Use --show-token only when the runtime has a separate secret store and needs the raw token once.
+3. If data.stage is auth_required, run data.next_command. The signup command uses --agent-contact as an email-shaped durable contact inbox for the restricted agent identity, not as a requirement to find an individual human. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. example.invalid addresses are only appropriate inside documented harness or proof runs. --human-email remains accepted as a compatibility alias, but the guide must not teach it. Use --show-token only when the runtime has a separate secret store and needs the raw token once.
 4. Reuse the saved CLI auth for later commands. If the runtime needs the raw token once, store the returned data.token from --show-token in the agent runtime secret store and expose it as IMAGE_SKILL_TOKEN or pass it with --token-stdin.
 5. Rerun image-skill create --guide --prompt PROMPT after signup or payment changes. The guide should advance to ready_to_create once auth, quota, executable model selection, and budget guard are sufficient.
 6. If data.stage is quota_required, inspect data.checks.payments.suggested_commands. One Image Skill credit is $0.01. Credit quotes grant prepaid value units; create/edit operations debit model-priced credits reported as cost.credit_pricing. Starter preview currently gives bounded free-preview credits plus a two-job daily cap.
@@ -77,7 +77,7 @@ First-run flow:
 
 Core commands:
 - image-skill doctor --json
-- image-skill signup --agent --agent-contact EMAIL --agent-name NAME --runtime RUNTIME --save --json
+- image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --save --json
 - image-skill whoami --json
 - image-skill usage quota --json
 - image-skill quota --json (compatibility alias)
@@ -110,7 +110,7 @@ Core commands:
 - image-skill feedback create --type TYPE --title TITLE --body BODY --command COMMAND --expected EXPECTED --actual ACTUAL --proof-needed PROOF --surface cli,docs --evidence trace:TRACE_ID --severity medium --confidence high --next-state watch --json
 
 Hosted API endpoints:
-- POST https://api.image-skill.com/v1/agent-signups creates or rotates a restricted unclaimed agent token. Raw API request human_email is the compatibility contact field; CLI agents should prefer --agent-contact. The contact is not a requirement that an autonomous agent stop until a specific human is present. The response returns the token once as data.token. Store it in the agent runtime secret store; never put it in prompts, logs, issue text, or feedback.
+- POST https://api.image-skill.com/v1/agent-signups creates or rotates a restricted unclaimed agent token. Raw API request human_email is the legacy compatibility contact field; CLI agents should prefer --agent-contact. The preview hosted API currently expects an email-shaped durable contact inbox, but the contact is not a requirement that an autonomous agent stop until a specific human is present. The response returns the token once as data.token. Store it in the agent runtime secret store; never put it in prompts, logs, issue text, or feedback.
 - GET https://api.image-skill.com/v1/whoami returns durable hosted identity for Authorization: Bearer TOKEN.
 - GET https://api.image-skill.com/v1/quota returns durable hosted quota for Authorization: Bearer TOKEN.
 - GET https://api.image-skill.com/v1/payment-methods returns the no-auth action-only payment rail catalog. It tells agents which currently usable rails are available, whether live money can move, buyer modes (agent_only, hybrid, human_only), browser requirements, limits, endpoint paths, and recovery commands. Planned, watch-only, fake, and private harness rails are intentionally omitted.

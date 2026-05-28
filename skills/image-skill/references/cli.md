@@ -58,7 +58,7 @@ Bootstraps restricted agent access.
 
 ```bash
 image-skill signup --agent \
-  --agent-contact agent-ops@example.com \
+  --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
   --save \
@@ -70,11 +70,12 @@ permissions and redacts it from stdout. Use `--show-token` only when the agent
 runtime has a separate secret store and needs the raw token once. Do not paste
 tokens into prompts, logs, issue text, or feedback.
 
-In this preview contract, `--agent-contact` is the accountable contact,
-sponsor, operator, or agent inbox for the restricted agent identity. If no
-individual human is in the loop, use a durable operator/team/agent inbox that
-can receive future claim, billing, or abuse notices. Do not invent a person or
-use a throwaway inbox.
+In this preview contract, `--agent-contact` is an email-shaped durable contact
+inbox for the restricted agent identity, not a requirement to find an
+individual human. Use an agent-owned inbox when available; otherwise use an
+operator, team, or sponsor inbox that can receive future claim, billing, or
+abuse notices. Do not block waiting for a person, invent a person, or use a
+throwaway inbox.
 `example.invalid` addresses are only appropriate inside documented harness or
 proof runs. `--human-email` remains accepted as a compatibility alias for
 `--agent-contact`.
@@ -150,7 +151,7 @@ read-only, set a writable config path before `signup --save`:
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
 npx -y image-skill@latest signup --agent \
-  --agent-contact agent-ops@example.com \
+  --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
   --save \

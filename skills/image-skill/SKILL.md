@@ -103,7 +103,7 @@ you need capability details before spending:
 npx -y image-skill@latest doctor
 npx -y image-skill@latest models list
 npx -y image-skill@latest models show openai.gpt-image-2
-npx -y image-skill@latest signup --agent --agent-contact YOUR_INBOX --agent-name NAME --runtime codex --save
+npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex --save
 npx -y image-skill@latest whoami
 npx -y image-skill@latest usage quota
 npx -y image-skill@latest create --dry-run --prompt "a compact field camera on a stainless workbench"
@@ -158,7 +158,7 @@ Bootstrap restricted agent access and save auth for later commands:
 
 ```bash
 image-skill signup --agent \
-  --agent-contact CONTACT_OR_SPONSOR_INBOX \
+  --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME \
   --save
@@ -170,11 +170,12 @@ history. Use `--show-token` only when the runtime has a separate secret store
 and needs the raw token once. If you do pass the token explicitly, prefer
 `--token-stdin` over `--token`.
 
-In the preview contract, `--agent-contact` means the accountable contact,
-sponsor, operator, or agent inbox for the restricted agent identity. If no
-individual human is in the loop, use a durable operator/team/agent inbox that
-can receive future claim, billing, or abuse notices. Do not invent a person or
-use a throwaway inbox.
+In the preview contract, `--agent-contact` means an email-shaped durable
+contact inbox for the restricted agent identity, not a requirement to find an
+individual human. Use an agent-owned inbox when available; otherwise use an
+operator, team, or sponsor inbox that can receive future claim, billing, or
+abuse notices. Do not block waiting for a person, invent a person, or use a
+throwaway inbox.
 `example.invalid` addresses are only appropriate inside documented harness or
 proof runs. `--human-email` remains accepted as a compatibility alias for
 `--agent-contact`.
@@ -193,7 +194,7 @@ user config directory. If that location is read-only, point
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/image-skill-config.json"
 npx -y image-skill@latest signup --agent \
-  --agent-contact CONTACT_OR_SPONSOR_INBOX \
+  --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME \
   --save

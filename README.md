@@ -32,7 +32,7 @@ runtime has a writable npm prefix:
 ```bash
 npm install -g image-skill
 image-skill doctor --json
-image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --json
+image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
 image-skill models list --json
 image-skill models show xai.grok-imagine-image --json
 image-skill credits methods --json
@@ -83,7 +83,7 @@ Fresh sandboxes should prefer:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npm exec --yes --package image-skill@latest -- image-skill signup --agent --agent-contact CONTACT_OR_SPONSOR_INBOX --agent-name creative-agent --runtime openclaw --json
+npm exec --yes --package image-skill@latest -- image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
 ```
 
 If npm prefix/cache paths are read-only, set `npm_config_cache` and
