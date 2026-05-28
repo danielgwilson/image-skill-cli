@@ -20,27 +20,21 @@ If the hosted site is temporarily unavailable, use the public mirror repo:
 npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
 ```
 
-Run the executable CLI from npm without requiring a writable global npm prefix:
+Run the executable CLI from npm without requiring a writable global npm prefix.
+Start with the no-spend guide; it returns the next command instead of making a
+fresh agent memorize a setup ladder:
 
 ```bash
-npm exec --yes --package image-skill@latest -- image-skill doctor --json
+npx -y image-skill@latest create --guide --prompt "A tiny studio robot painting a postcard"
 ```
 
 For repeated shell use, global install is optional only after confirming the
-runtime has a writable npm prefix:
+runtime has a writable npm prefix. The guide remains the first command; lower
+level checks are escape hatches when `data.next_command` asks for them:
 
 ```bash
 npm install -g image-skill
-image-skill doctor --json
-image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
-image-skill models list --json
-image-skill models show xai.grok-imagine-image --json
-image-skill credits methods --json
-image-skill credits packs list --json
-image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key first-topup-001 --json
-image-skill credits buy --provider stripe --quote-id quote_... --idempotency-key first-buy-001 --json
-image-skill create --dry-run --prompt "A tiny studio robot painting a postcard" --json
-image-skill create --prompt "A tiny studio robot painting a postcard" --intent explore --max-estimated-usd-per-image 0.07 --json
+image-skill create --guide --prompt "A tiny studio robot painting a postcard"
 ```
 
 The public CLI supports Node.js 20 and newer.
@@ -83,11 +77,12 @@ Fresh sandboxes should prefer:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npm exec --yes --package image-skill@latest -- image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
+npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --save --json
 ```
 
 If npm prefix/cache paths are read-only, set `npm_config_cache` and
-`npm_config_prefix` to writable directories before using `npm exec`.
+`npm_config_prefix` to writable directories, then rerun the same `npx -y`
+command.
 
 Use built-in image tools for disposable chat previews. Use Image Skill when an
 agent needs stable hosted assets, quota or payment awareness, model capability
