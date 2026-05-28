@@ -81,19 +81,28 @@ provider API because Image Skill was missing something, submit feedback with:
 JSON is the default output for the public CLI. `--json` remains accepted for
 compatibility, but fresh agents do not need to add it to every command.
 
-Start by checking the service and inspecting model capability before committing
-quota or spend:
+Start with the no-spend guide. It checks hosted reachability, executable model
+availability, auth/quota state when credentials already exist, payment rail
+availability, and returns exactly one next command. Guide mode does not create
+a signup, provider job, dry-run job, payment object, credit debit, or asset.
+
+```bash
+npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench"
+```
+
+Read `data.stage`, `data.next_command`, and `data.mutation`. If the guide
+returns `auth_required`, run the signup command it gives you, then rerun the
+same guide. If it returns `quota_required`, inspect the payment commands it
+gives you and hand the Stripe link to a human sponsor. If it returns
+`ready_to_create`, run `data.next_command` for the bounded create.
+
+Use the lower-level inspection commands when the guide asks for them or when
+you need capability details before spending:
 
 ```bash
 npx -y image-skill@latest doctor
 npx -y image-skill@latest models list
 npx -y image-skill@latest models show openai.gpt-image-2
-```
-
-Then sign up once with saved auth, confirm identity and quota, plan for free,
-and run a bounded create:
-
-```bash
 npx -y image-skill@latest signup --agent --agent-contact YOUR_INBOX --agent-name NAME --runtime codex --save
 npx -y image-skill@latest whoami
 npx -y image-skill@latest usage quota

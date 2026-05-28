@@ -95,18 +95,29 @@ should omit it.
 
 ### First Run Sequence
 
-Use this order for a fresh agent: check health, inspect models, save auth,
-confirm quota, dry-run for free, then create with a budget guard.
+Use the no-spend guide first. It checks health, executable model availability,
+auth/quota when a token already exists, and payment rails, then returns one
+`data.next_command`. Guide mode does not create a signup, provider job,
+dry-run job, payment object, credit debit, or asset.
+
+```bash
+image-skill create --guide --prompt "a compact field camera on a stainless workbench"
+```
+
+Read `data.stage`. If it returns `auth_required`, run `data.next_command` and
+rerun the guide. If it returns `quota_required`, inspect the payment commands
+it provides. If it returns `ready_to_create`, run `data.next_command`.
+
+Manual inspection remains available when the guide asks for it or when a task
+needs deeper capability detail:
 
 ```bash
 image-skill doctor
 image-skill models list
 image-skill models show openai.gpt-image-2
-image-skill signup --agent --agent-contact agent-ops@example.com --agent-name creative-agent --runtime codex --save
 image-skill whoami
 image-skill usage quota
 image-skill create --dry-run --prompt "a compact field camera on a stainless workbench"
-image-skill create --prompt "a compact field camera on a stainless workbench" --intent explore --max-estimated-usd-per-image 0.07
 ```
 
 Use `--show-token` only when the runtime has a separate secret store and needs
@@ -571,7 +582,19 @@ image-skill capabilities show CAPABILITY_ID --json
 
 ### `image-skill create`
 
-Creates an image or plans a zero-cost dry run.
+Guides, creates, or plans a zero-cost dry run.
+
+Guide the first image path without mutation:
+
+```bash
+image-skill create --guide --prompt "A compact field camera on a stainless workbench" --json
+```
+
+`create --guide` returns `schema: image-skill.create-guide.v1`,
+`stage`, `next_command`, `escape_hatches`, selected executable model and cost,
+auth/quota/payment blockers, and mutation flags. All mutation flags must be
+false in guide mode: no provider call, hosted create, signup, payment object,
+credit debit, or media write.
 
 ```bash
 image-skill create \

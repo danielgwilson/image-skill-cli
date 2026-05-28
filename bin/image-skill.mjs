@@ -77,6 +77,7 @@ async function main(rawArgv) {
         "credits status",
         "models list",
         "models show",
+        "create --guide",
         "capabilities list",
         "capabilities show",
         "create",
@@ -654,8 +655,401 @@ async function capabilities(argv) {
   });
 }
 
+async function createGuide(args) {
+  if (flagBool(args, "dry-run")) {
+    return invalid(
+      "image-skill create --guide",
+      "create --guide cannot be combined with --dry-run; the guide returns the dry-run escape hatch separately",
+    );
+  }
+  if (hasReferenceFlags(args)) {
+    return invalid(
+      "image-skill create --guide",
+      "create --guide does not upload or resolve reference images; inspect the model with models show, then run create --dry-run before live referenced creates",
+    );
+  }
+  const modelParameters = jsonObjectFlag(args, "model-parameters-json");
+  if (!modelParameters.ok) {
+    return modelParameters.result;
+  }
+
+  const apiBaseUrl = apiBase(args);
+  const prompt = flagString(args, "prompt") ?? args.positionals[0] ?? "";
+  const trimmedPrompt = prompt.trim();
+  const requestedModelId = flagString(args, "model");
+  const requestedProviderId = flagString(args, "provider");
+  const requestedIntent = flagString(args, "intent") ?? "explore";
+  const health = await apiRequest({
+    command: "image-skill create --guide",
+    method: "GET",
+    apiBaseUrl,
+    path: "/healthz",
+  });
+  const models = await apiRequest({
+    command: "image-skill create --guide",
+    method: "GET",
+    apiBaseUrl,
+    path: "/v1/models",
+  });
+  const payments = await apiRequest({
+    command: "image-skill create --guide",
+    method: "GET",
+    apiBaseUrl,
+    path: "/v1/payment-methods",
+  });
+  const token = await resolveToken(args, { allowMissing: true });
+  if (!token.ok) {
+    return token.result;
+  }
+
+  const selected =
+    models.envelope.ok && models.envelope.data?.models
+      ? selectCreateGuideModel(models.envelope.data.models, requestedModelId)
+      : null;
+  const pricing = selected?.economics?.credit_pricing ?? null;
+  const estimatedCredits = pricing?.credits_required ?? null;
+  const estimatedUsdPerImage =
+    selected?.economics?.estimated_usd_per_image ??
+    (pricing === null ? null : pricing.estimated_revenue_usd);
+  const budgetGuard =
+    flagNumber(args, "max-estimated-usd-per-image") ??
+    estimatedUsdPerImage ??
+    (estimatedCredits === null ? 0.07 : estimatedCredits / 100);
+  const quota =
+    token.token === null
+      ? null
+      : await apiRequest({
+          command: "image-skill create --guide",
+          method: "GET",
+          apiBaseUrl,
+          path: "/v1/quota",
+          token: token.token,
+        });
+  const paymentSummary = createGuidePaymentSummary(payments.envelope.data);
+  const stage = createGuideStage({
+    prompt: trimmedPrompt,
+    health,
+    models,
+    selected,
+    token,
+    quota,
+    estimatedCredits,
+  });
+  const blocker = createGuideBlocker(stage, {
+    requestedModelId,
+    quota,
+    estimatedCredits,
+  });
+  const nextCommand = createGuideNextCommand(stage, {
+    prompt: trimmedPrompt,
+    selected,
+    requestedProviderId,
+    requestedIntent,
+    budgetGuard,
+    apiBaseUrl: explicitApiBaseUrl(args),
+    paymentSummary,
+  });
+  const afterNext =
+    stage === "auth_required" || stage === "quota_required"
+      ? renderGuideCommand(trimmedPrompt, explicitApiBaseUrl(args))
+      : null;
+  return success("image-skill create --guide", {
+    schema: "image-skill.create-guide.v1",
+    ready: stage === "ready_to_create",
+    stage,
+    checks: {
+      hosted_api: {
+        reachable: health.envelope.ok,
+        status: health.envelope.data?.status ?? null,
+        api_base_url: apiBaseUrl,
+        error_code: health.envelope.error?.code ?? null,
+      },
+      auth: {
+        source: token.source === "anonymous" ? "none" : token.source,
+        authenticated: quota?.envelope.data?.authenticated === true,
+        claim_state: quota?.envelope.data?.claim_state ?? null,
+        token_status: quota?.envelope.data?.token_status ?? null,
+        saved_config_path: configPath(),
+      },
+      models: {
+        reachable: models.envelope.ok,
+        executable_count: models.envelope.data?.summary?.executable ?? 0,
+        cataloged_not_wired_count:
+          models.envelope.data?.summary?.cataloged_not_wired ?? 0,
+        error_code: models.envelope.error?.code ?? null,
+      },
+      quota: {
+        checked: quota !== null,
+        authenticated: quota?.envelope.data?.authenticated === true,
+        remaining_credits: quotaRemainingCredits(quota?.envelope.data ?? null),
+        required_credits: estimatedCredits,
+        daily_jobs_remaining:
+          quota?.envelope.data?.daily_jobs?.remaining ?? null,
+        reason:
+          quota === null
+            ? "auth_required"
+            : quota.envelope.ok
+              ? null
+              : (quota.envelope.error?.code ?? "quota_unavailable"),
+      },
+      payments: paymentSummary,
+    },
+    selection:
+      selected === null
+        ? null
+        : {
+            operation: "create",
+            model_id: selected.id,
+            model_status: selected.status,
+            model_execution_status: selected.execution.model_execution_status,
+            reason:
+              requestedModelId === null
+                ? "default executable create model for first image"
+                : "requested executable create model",
+          },
+    cost: {
+      estimated_credits: estimatedCredits,
+      estimated_usd_per_image: estimatedUsdPerImage,
+      pricing_confidence: pricing?.pricing_confidence ?? null,
+    },
+    blocker,
+    next_command: nextCommand,
+    after_next: afterNext,
+    escape_hatches: {
+      doctor: "image-skill doctor --json",
+      model_inspection:
+        selected === null
+          ? "image-skill models list --json"
+          : `image-skill models show ${shellQuote(selected.id)} --json`,
+      payment_methods: "image-skill credits methods --json",
+      quota: "image-skill usage quota --json",
+      dry_run:
+        selected === null || trimmedPrompt.length === 0
+          ? "image-skill create --dry-run --prompt PROMPT --json"
+          : renderCreateCommand({
+              prompt: trimmedPrompt,
+              modelId: selected.id,
+              providerId: requestedProviderId,
+              intent: requestedIntent,
+              budgetGuard,
+              dryRun: true,
+              apiBaseUrl: explicitApiBaseUrl(args),
+            }),
+    },
+    mutation: {
+      provider_call: false,
+      hosted_create: false,
+      hosted_signup: false,
+      payment_object: false,
+      credit_debit: false,
+      media_write: false,
+    },
+  });
+}
+
+function selectCreateGuideModel(models, requestedModelId) {
+  const isExecutableCreate = (model) =>
+    model?.status === "available" &&
+    model?.execution?.model_execution_status === "executable" &&
+    Array.isArray(model?.supports) &&
+    model.supports.includes("create");
+  if (requestedModelId !== null) {
+    const requested = models.find((model) => model.id === requestedModelId);
+    return requested !== undefined && isExecutableCreate(requested)
+      ? requested
+      : null;
+  }
+  return models.find(isExecutableCreate) ?? null;
+}
+
+function createGuidePaymentSummary(data) {
+  const methods = Array.isArray(data?.methods)
+    ? data.methods.filter((method) => method.live_money)
+    : [];
+  return {
+    checked: data !== null && typeof data === "object",
+    live_money_methods: methods
+      .filter((method) => method.available)
+      .map((method) => method.method_id),
+    requires_browser: methods.some((method) => method.requires_browser),
+    buyer_modes: [
+      ...new Set(methods.flatMap((method) => method.buyer_modes ?? [])),
+    ],
+    suggested_commands: [
+      "image-skill credits methods --json",
+      "image-skill credits packs list --json",
+      methods[0]?.recovery?.quote_command ??
+        "image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key KEY --json",
+      methods[0]?.recovery?.purchase_command ??
+        "image-skill credits buy --provider stripe --quote-id QUOTE_ID --idempotency-key KEY --json",
+      methods[0]?.recovery?.status_command ??
+        "image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json",
+    ],
+  };
+}
+
+function createGuideStage(input) {
+  if (input.prompt.length === 0) {
+    return "prompt_required";
+  }
+  if (!input.health.envelope.ok || !input.models.envelope.ok) {
+    return "service_unreachable";
+  }
+  if (input.selected === null) {
+    return "no_executable_model";
+  }
+  if (input.token.token === null) {
+    return "auth_required";
+  }
+  if (input.quota === null || !input.quota.envelope.ok) {
+    return input.quota?.envelope.error?.code === "AUTH_REQUIRED"
+      ? "auth_required"
+      : "service_unreachable";
+  }
+  const remaining = quotaRemainingCredits(input.quota.envelope.data);
+  if (
+    input.estimatedCredits !== null &&
+    remaining !== null &&
+    remaining < input.estimatedCredits
+  ) {
+    return "quota_required";
+  }
+  if (
+    input.quota.envelope.data?.daily_jobs !== undefined &&
+    input.quota.envelope.data.daily_jobs.remaining <= 0
+  ) {
+    return "quota_required";
+  }
+  return "ready_to_create";
+}
+
+function createGuideBlocker(stage, input) {
+  if (stage === "ready_to_create") {
+    return null;
+  }
+  if (stage === "prompt_required") {
+    return {
+      code: "prompt_required",
+      message: "Add --prompt so the guide can return the exact create command.",
+    };
+  }
+  if (stage === "no_executable_model") {
+    return {
+      code: "no_executable_model",
+      message:
+        input.requestedModelId === null
+          ? "No available executable create model was found in the public registry."
+          : `Requested model is not currently an available executable create model: ${input.requestedModelId}`,
+    };
+  }
+  if (stage === "auth_required") {
+    return {
+      code: "auth_required",
+      message:
+        "Sign up once with a durable agent contact before creating hosted media.",
+    };
+  }
+  if (stage === "quota_required") {
+    const remaining = quotaRemainingCredits(input.quota?.envelope.data ?? null);
+    return {
+      code: "quota_required",
+      message: `Selected first image requires ${input.estimatedCredits ?? "unknown"} credits; current remaining credits are ${remaining ?? "unknown"}.`,
+    };
+  }
+  return {
+    code: "service_unreachable",
+    message:
+      input.quota?.envelope.error?.message ??
+      "Guide could not complete read-only hosted or registry checks.",
+  };
+}
+
+function createGuideNextCommand(stage, input) {
+  if (stage === "prompt_required") {
+    return renderGuideCommand("PROMPT", input.apiBaseUrl);
+  }
+  if (stage === "no_executable_model" || stage === "service_unreachable") {
+    return "image-skill models list --json";
+  }
+  if (stage === "auth_required") {
+    return "image-skill signup --agent --agent-contact CONTACT_OR_AGENT_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME";
+  }
+  if (stage === "quota_required") {
+    return input.paymentSummary.suggested_commands[0];
+  }
+  return renderCreateCommand({
+    prompt: input.prompt,
+    modelId: input.selected.id,
+    providerId: input.requestedProviderId,
+    intent: input.requestedIntent,
+    budgetGuard: input.budgetGuard,
+    dryRun: false,
+    apiBaseUrl: input.apiBaseUrl,
+  });
+}
+
+function renderGuideCommand(prompt, apiBaseUrl) {
+  return [
+    "image-skill create --guide --prompt",
+    shellQuote(prompt),
+    ...(apiBaseUrl === null ? [] : ["--api-base-url", shellQuote(apiBaseUrl)]),
+    "--json",
+  ].join(" ");
+}
+
+function renderCreateCommand(input) {
+  return [
+    "image-skill create",
+    ...(input.dryRun ? ["--dry-run"] : []),
+    ...(input.providerId === null
+      ? []
+      : ["--provider", shellQuote(input.providerId)]),
+    "--model",
+    shellQuote(input.modelId),
+    "--prompt",
+    shellQuote(input.prompt),
+    "--intent",
+    shellQuote(input.intent),
+    "--max-estimated-usd-per-image",
+    shellQuote(formatUsd(input.budgetGuard)),
+    ...(input.apiBaseUrl === null
+      ? []
+      : ["--api-base-url", shellQuote(input.apiBaseUrl)]),
+    "--json",
+  ].join(" ");
+}
+
+function explicitApiBaseUrl(args) {
+  return flagString(args, "api-base-url");
+}
+
+function formatUsd(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function shellQuote(value) {
+  return JSON.stringify(value);
+}
+
+function quotaRemainingCredits(data) {
+  if (data === null || data === undefined) {
+    return null;
+  }
+  const limits = data.limits ?? {};
+  const freeCredits =
+    typeof limits.remaining_credits === "number" ? limits.remaining_credits : 0;
+  const paidCredits =
+    typeof limits.payment_backed_remaining_credits === "number"
+      ? limits.payment_backed_remaining_credits
+      : 0;
+  return freeCredits + paidCredits;
+}
+
 async function create(argv) {
   const args = parseArgs(argv);
+  if (flagBool(args, "guide")) {
+    return createGuide(args);
+  }
   const prompt = await promptValue(args);
   if (!prompt.ok) {
     return prompt.result;
