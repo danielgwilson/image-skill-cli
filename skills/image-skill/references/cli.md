@@ -704,6 +704,10 @@ and never executes provider controls or consumes credits.
 For dry-run responses, `cost.credit_pricing.credits_required` is the planned
 live execution debit for the selected model. The actual debit for the dry run is
 `quota.consumed_credits: 0`.
+Authenticated hosted create dry-runs also create a recoverable planned job:
+`jobs show` returns `status: "planned"` with `plan_receipt`, and `activity`
+emits `job.planned`. Planned receipts do not create downloadable media assets or
+usage debits.
 
 Minimum success data:
 
@@ -1138,27 +1142,32 @@ Activity `type` values are stable public contract values. Do not infer new
 event names from provider responses or telemetry logs; use only the registry
 below.
 
-| Event type                                 | Subject    | Operation   | Emitted when                                                      | Stable links                                                       |
-| ------------------------------------------ | ---------- | ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `job.completed`                            | `job`      | create/edit | A hosted create or edit job reaches a terminal state.             | `job_id`, `asset_ids`, `usage_event_id`                            |
-| `asset.created`                            | `asset`    | create/edit | A hosted create or edit produces an output asset.                 | `job_id`, `asset_ids`, `usage_event_id`                            |
-| `asset.uploaded`                           | `asset`    | upload      | A public edit workflow uploads or imports input media.            | `job_id`, `asset_ids`, `usage_event_id`                            |
-| `usage.credit_consumed`                    | `usage`    | usage       | A creative operation records a preview-credit entry.              | `job_id`, `usage_event_id`                                         |
-| `feedback.created`                         | `feedback` | feedback    | Hosted agent feedback is accepted into product memory.            | `feedback_id`                                                      |
-| `feedback.github_queue.processed`          | `feedback` | feedback    | Feedback is processed by the GitHub implementation queue handoff. | `feedback_id`                                                      |
-| `payment.checkout_session.created`         | `payment`  | payment     | A Stripe Checkout session is created and awaits external action.  | `quote_id`, `payment_attempt_id`, `checkout_session_id`            |
-| `credits.payment_backed_granted`           | `credit`   | credits     | Verified payment fulfillment grants paid credits.                 | `quote_id`, `receipt_id`, `credit_event_id`                        |
-| `credits.payment_backed_refunded`          | `credit`   | credits     | A Stripe refund debits payment-backed credits.                    | `quote_id`, `receipt_id`, `payment_reversal_id`, `credit_event_id` |
-| `credits.payment_backed_disputed`          | `credit`   | credits     | A Stripe dispute debit applies to payment-backed credits.         | `quote_id`, `receipt_id`, `payment_reversal_id`, `credit_event_id` |
-| `credits.payment_backed_reinstated`        | `credit`   | credits     | Stripe dispute funds were reinstated and recorded.                | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
-| `credits.payment_backed_reversal_pending`  | `credit`   | credits     | A reversal was recorded but could not be fully applied.           | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
-| `credits.payment_backed_reversal_rejected` | `credit`   | credits     | A reversal was rejected because it could not safely reconcile.    | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
+| Event type                                 | Subject    | Operation   | Emitted when                                                       | Stable links                                                       |
+| ------------------------------------------ | ---------- | ----------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `job.completed`                            | `job`      | create/edit | A hosted create or edit job reaches a terminal state.              | `job_id`, `asset_ids`, `usage_event_id`                            |
+| `job.planned`                              | `job`      | create      | An authenticated create dry-run stores a recoverable plan receipt. | `job_id`                                                           |
+| `asset.created`                            | `asset`    | create/edit | A hosted create or edit produces an output asset.                  | `job_id`, `asset_ids`, `usage_event_id`                            |
+| `asset.uploaded`                           | `asset`    | upload      | A public edit workflow uploads or imports input media.             | `job_id`, `asset_ids`, `usage_event_id`                            |
+| `usage.credit_consumed`                    | `usage`    | usage       | A creative operation records a preview-credit entry.               | `job_id`, `usage_event_id`                                         |
+| `feedback.created`                         | `feedback` | feedback    | Hosted agent feedback is accepted into product memory.             | `feedback_id`                                                      |
+| `feedback.github_queue.processed`          | `feedback` | feedback    | Feedback is processed by the GitHub implementation queue handoff.  | `feedback_id`                                                      |
+| `payment.checkout_session.created`         | `payment`  | payment     | A Stripe Checkout session is created and awaits external action.   | `quote_id`, `payment_attempt_id`, `checkout_session_id`            |
+| `credits.payment_backed_granted`           | `credit`   | credits     | Verified payment fulfillment grants paid credits.                  | `quote_id`, `receipt_id`, `credit_event_id`                        |
+| `credits.payment_backed_refunded`          | `credit`   | credits     | A Stripe refund debits payment-backed credits.                     | `quote_id`, `receipt_id`, `payment_reversal_id`, `credit_event_id` |
+| `credits.payment_backed_disputed`          | `credit`   | credits     | A Stripe dispute debit applies to payment-backed credits.          | `quote_id`, `receipt_id`, `payment_reversal_id`, `credit_event_id` |
+| `credits.payment_backed_reinstated`        | `credit`   | credits     | Stripe dispute funds were reinstated and recorded.                 | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
+| `credits.payment_backed_reversal_pending`  | `credit`   | credits     | A reversal was recorded but could not be fully applied.            | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
+| `credits.payment_backed_reversal_rejected` | `credit`   | credits     | A reversal was rejected because it could not safely reconcile.     | `quote_id`, `receipt_id`, `payment_reversal_id`                    |
 
 `feedback.github_queue.processed` includes `details.github_queue` with
 machine-readable lifecycle fields such as `state`, `reason`, `issue_urls`,
 `issue_numbers`, `mode`, and `github_mutation`. Agents should use it to learn
 whether submitted feedback was promoted, skipped, deduped, blocked, or already
 mirrored without reading private repository artifacts.
+`job.planned` includes `details.plan_receipt` for authenticated hosted create
+dry-runs. It is a recoverable planning receipt, not completed media work:
+planned outputs do not have durable asset IDs, download URLs, usage debits, or
+provider execution.
 
 If a response includes an event type outside this registry, treat it as a
 contract bug and submit `image-skill feedback create --json` with the event ID
