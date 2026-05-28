@@ -227,7 +227,11 @@ image-skill credits quote \
   --payment-method stripe_checkout \
   --idempotency-key stripe-pack-quote-run-001 \
   --json
-image-skill credits quote --credits 137 --json
+image-skill credits quote \
+  --credits 137 \
+  --payment-method stripe_checkout \
+  --idempotency-key exact-quote-run-001 \
+  --json
 image-skill credits buy \
   --provider stripe \
   --quote-id QUOTE_ID \
@@ -235,14 +239,16 @@ image-skill credits buy \
   --json
 ```
 
-This is the agent-facing precursor to future MPP, live x402, wallet, or
-delegated-card adapters. Packs are the default Stripe Checkout UX; exact
+The public top-up path is Stripe Checkout. Future MPP, live x402, wallet, and
+delegated-card adapters remain private/canary until they are explicitly listed
+by `credits methods --json`. Packs are the default Stripe Checkout UX; exact
 `--credits` quotes remain available when an agent already knows the required
 budget. `credits methods --json` tells agents which rails are currently
 available, which buyer modes they support, and whether browser/human action is
-required before an agent tries to quote or buy. `credits buy --provider stripe`
-returns `checkout_handoff_url` for humans, `checkout_compact_url` as the
-copy-safe handoff, and full Stripe `checkout_url` only as a fallback for a
+required before an agent tries to quote or buy. `credits buy --provider stripe
+--quote-id QUOTE_ID --idempotency-key KEY --json` returns
+`checkout_handoff_url` for humans, `checkout_compact_url` as the copy-safe
+handoff, and full Stripe `checkout_url` only as a fallback for a
 `stripe_checkout` quote. It does not grant credits until verified webhook
 fulfillment succeeds. Present or open `checkout_handoff_url` first. If it is
 absent, present the full `checkout_url` in a code block; do not remove the
@@ -554,13 +560,15 @@ closed if durable hosted feedback storage is unavailable.
 - Use `credits packs list --json` to inspect recommended live-money packs.
 - Use `credits quote --pack PACK_ID --payment-method stripe_checkout --json`
   for the default Stripe Checkout path.
-- Use `credits quote --credits CREDITS --json` for exact bounded custom
-  top-ups when the required budget is already known.
-- Use `credits buy --provider stripe --json` only to create a Stripe-hosted
-  checkout action. Present `checkout_handoff_url` to humans; if it is absent,
-  present the full `checkout_url` in a code block. Do not remove the
-  Stripe `#...` fragment; Checkout needs it in the browser. Session creation
-  itself does not grant credits.
+- Use `credits quote --credits CREDITS --payment-method stripe_checkout
+--idempotency-key KEY --json` for exact bounded custom top-ups when the
+  required budget is already known.
+- Use `credits buy --provider stripe --quote-id QUOTE_ID --idempotency-key KEY
+--json` only to create a Stripe-hosted checkout action. Present
+  `checkout_handoff_url` to humans; if it is absent, present the full
+  `checkout_url` in a code block. Do not remove the Stripe `#...` fragment;
+  Checkout needs it in the browser. Session creation itself does not grant
+  credits.
 - Never pass live x402 payment headers, wallet private keys, seed phrases,
   bearer tokens, Stripe secrets, provider keys, card data, or provider receipts
   to Image Skill.
