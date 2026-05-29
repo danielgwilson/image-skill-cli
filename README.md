@@ -92,7 +92,7 @@ Fresh sandboxes should prefer:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --save --json
+npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
 ```
 
 If npm prefix/cache paths are read-only, set `npm_config_cache` and

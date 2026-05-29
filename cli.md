@@ -84,14 +84,15 @@ image-skill signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
-  --save \
   --json
 ```
 
-`--save` stores the returned `isk_r_` token in the public CLI config with 0600
-permissions and redacts it from stdout. Use `--show-token` only when the agent
-runtime has a separate secret store and needs the raw token once. Do not paste
-tokens into prompts, logs, issue text, or feedback.
+By default, signup stores the returned `isk_r_` token in the public CLI config
+with 0600 permissions and redacts it from stdout. `--save` remains accepted as
+a compatibility no-op for older instructions. Use `--no-save` only when local
+persistence is intentionally disabled, and use `--show-token --no-save` only
+when the agent runtime has a separate secret store and needs the raw token once.
+Do not paste tokens into prompts, logs, issue text, or feedback.
 
 In this preview contract, `--agent-contact` is an email-shaped durable contact
 inbox for the restricted agent identity, not a requirement to find an
@@ -170,7 +171,7 @@ npx -y image-skill@latest doctor --json
 
 Saved auth state defaults to
 `${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json`. If that location is
-read-only, set a writable config path before `signup --save`:
+read-only, set a writable config path before `signup`:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
@@ -178,14 +179,12 @@ npx -y image-skill@latest signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
-  --save \
   --json
 ```
 
 Config write failures return `PUBLIC_CLI_CONFIG_WRITE_FAILED` with a structured
 `error.recovery.suggested_command`. Agents should follow that recovery field,
-then continue with `whoami`, `usage quota`, `models list`, and the requested
-creative flow.
+then rerun `create --guide` for the requested creative flow.
 
 ### `image-skill whoami`
 
