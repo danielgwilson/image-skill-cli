@@ -20,7 +20,7 @@ const DEFAULT_CONFIG_PATH = join(
   "config.json",
 );
 const SIGNUP_SUGGESTED_COMMAND =
-  "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json";
+  "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --save --json";
 const SIGNUP_CONTACT_GUIDANCE =
   "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
@@ -1042,7 +1042,7 @@ function createGuideNextCommand(stage, input) {
     return "image-skill models list --json";
   }
   if (stage === "auth_required") {
-    return "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME";
+    return "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --save --json";
   }
   if (stage === "quota_required") {
     return input.paymentSummary.suggested_commands[0];
@@ -2332,7 +2332,7 @@ function configWriteFailure(command, error) {
     true,
     {
       suggested_command:
-        'IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json" image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json',
+        'IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json" image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --save --json',
       docs_url: "https://image-skill.com/cli.md#local-config-and-install",
     },
   );
