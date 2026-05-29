@@ -546,15 +546,20 @@ ratios, image-size presets, output counts, resolution controls, safety
 controls, or provider-native options.
 
 `models list` is executable-first by default and returns `summary` with total,
-returned, available, executable, catalog-only, provider split, first actionable
-model ids, recommended filter commands, and full-catalog flags. Use
+returned, available, executable, catalog-only, provider split,
+`execution_availability`, first actionable model ids, recommended filter
+commands, and catalog-inclusion flags. Default list output excludes
+catalog-only rows so fresh agents see executable candidates first. Use
 `--available` for currently usable executable rows, `--operation
 image.generate` or `--operation image.edit` for the task, `--provider fal|xai|openai`
 to narrow by provider, and `--catalog-only` when you intentionally want
 source-backed rows that are inspectable but not runnable yet. Provider-level
 availability is not the same thing as model executability; for runnable
 choices require both `status:"available"` and
-`execution.model_execution_status:"executable"`.
+`execution.model_execution_status:"executable"`. If a reachable provider has no
+runnable model for the requested operation, `summary.execution_availability`
+says so directly and includes the fastest `--available --operation ...`
+recovery command.
 
 Image Skill standardizes common controls so agents can work quickly, but it
 must not flatten rich model capabilities into coarse universal categories.

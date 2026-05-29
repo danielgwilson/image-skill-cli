@@ -276,9 +276,13 @@ image-skill models show openai.gpt-image-1.5 --json
 Use `--available --operation image.generate` when you need a runnable create
 choice and `--available --operation image.edit` when you need a runnable edit
 choice. `--available` means both `status:"available"` and
-`execution.model_execution_status:"executable"`. The full catalog remains
-inspectable; `--catalog-only` shows source-backed rows that are useful for
-research but not runnable yet.
+`execution.model_execution_status:"executable"`. Default list output excludes
+catalog-only rows. The source-backed catalog remains inspectable through
+`--catalog-only` for research-only rows that are not runnable yet. Do not
+treat provider-level `status:"available"` as a runnable model choice. If
+`summary.execution_availability.no_runnable_models.active` is true, follow its
+`recovery_command`; catalog-only rows are evidence to inspect, not create/edit
+targets.
 
 `models show` is the first detailed discovery surface for agents. It exposes
 operations, media inputs/outputs, model-parameter schemas, fixed and wired
