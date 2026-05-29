@@ -354,7 +354,7 @@ async function signup(argv) {
     apiBaseUrl: apiBase(args),
     path: "/v1/agent-signups",
     body: {
-      human_email: contact.value,
+      agent_contact: contact.value,
       agent_name: agentName,
       runtime,
       return_token: save || showToken,
@@ -417,7 +417,11 @@ function rewriteSignupContactFailure(result) {
   if (
     error !== null &&
     typeof error === "object" &&
-    error.message === "human_email must be a valid email address"
+    (error.message === "human_email must be a valid email address" ||
+      error.message ===
+        "agent_contact must be an email-shaped durable contact inbox" ||
+      error.message ===
+        "human_email is a legacy alias for agent_contact and must be an email-shaped durable contact inbox")
   ) {
     error.message =
       "preview signup currently requires --agent-contact to be an email-shaped durable contact inbox; it does not need to belong to an individual human";
@@ -431,9 +435,13 @@ function rewriteSignupContactFailure(result) {
 
 function publicSignupData(data) {
   const { human_email: humanEmail, ...rest } = data;
+  const agentContact =
+    typeof rest.agent_contact === "string" ? rest.agent_contact : humanEmail;
   return {
     ...rest,
-    ...(typeof humanEmail === "string" ? { agent_contact: humanEmail } : {}),
+    ...(typeof agentContact === "string"
+      ? { agent_contact: agentContact }
+      : {}),
   };
 }
 
