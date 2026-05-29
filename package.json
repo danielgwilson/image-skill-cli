@@ -1,6 +1,6 @@
 {
   "name": "image-skill",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Creative cloud CLI for agents: models, credits, jobs, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
   "type": "module",
   "private": false,

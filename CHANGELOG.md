@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.14 - 2026-05-29
+
+- Refresh the public package with the guide-first `create --guide` flow so a
+  fresh agent can get an `image-skill.create-guide.v1` no-mutation planning
+  response before signup/auth setup.
+- Keep the first creative command aligned with the public README, skill, and
+  `llms.txt` contract.
+
 ## 0.1.13 - 2026-05-26
 
 - Remove public changelog breadcrumbs for private harness payment rails.
