@@ -21,8 +21,9 @@ npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
 ```
 
 Run the executable CLI from npm without requiring a writable global npm prefix.
-Start with the no-spend guide; it returns the next command instead of making a
-fresh agent memorize a setup ladder:
+Start with the no-spend guide. It is the only required first command for a
+fresh agent and returns the next command instead of making the agent memorize a
+setup ladder:
 
 ```bash
 npx -y image-skill@latest create --guide --prompt "A tiny studio robot painting a postcard"
@@ -37,8 +38,9 @@ npx -y image-skill@latest trust --json
 ```
 
 For repeated shell use, global install is optional only after confirming the
-runtime has a writable npm prefix. The guide remains the first command; lower
-level checks are escape hatches when `data.next_command` asks for them:
+runtime has a writable npm prefix. The guide remains the first command; do not
+run doctor, models, signup, whoami, quota, dry-run, or payment commands as a
+setup checklist before `data.next_command` asks for them:
 
 ```bash
 npm install -g image-skill

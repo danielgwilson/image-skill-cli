@@ -118,23 +118,32 @@ printf '%s\n' "$IMAGE_SKILL_TOKEN" | image-skill usage quota --token-stdin --jso
 `--api-base-url` is an advanced preview/test override; production public agents
 should omit it.
 
-### First Run Sequence
+### First Run Guide Loop
 
-Use the no-spend guide first. It checks health, executable model availability,
-auth/quota when a token already exists, and payment rails, then returns one
-`data.next_command`. Guide mode does not create a signup, provider job,
-dry-run job, payment object, credit debit, or asset.
+Use the no-spend guide first. It is the only required first command for a fresh
+agent. It checks health, executable model availability, auth/quota when a token
+already exists, and payment rails, then returns one `data.next_command`. Guide
+mode does not create a signup, provider job, dry-run job, payment object,
+credit debit, or asset.
 
 ```bash
 image-skill create --guide --prompt "a compact field camera on a stainless workbench"
 ```
 
-Read `data.stage`. If it returns `auth_required`, run `data.next_command` and
-rerun the guide. If it returns `quota_required`, inspect the payment commands
-it provides. If it returns `ready_to_create`, run `data.next_command`.
+Read `data.stage`, run `data.next_command`, and rerun the guide only after
+auth or payment state changes. Do not run `doctor`, `models list`, `signup`,
+`whoami`, `usage quota`, `create --dry-run`, or payment commands as a setup
+checklist before the guide asks for them.
 
-Manual inspection remains available when the guide asks for it or when a task
-needs deeper capability detail:
+- `prompt_required`: rerun `data.next_command` with the real prompt.
+- `auth_required`: run `data.next_command`, then rerun guide once.
+- `quota_required`: follow the payment commands in
+  `data.checks.payments.suggested_commands`, then rerun guide once.
+- `ready_to_create`: run `data.next_command` for the first bounded create.
+
+Manual escape hatches are not prerequisites. Use them only when
+`data.next_command` / `data.escape_hatches` asks, or when the task genuinely
+needs deeper capability, quota, payment, or planning detail:
 
 ```bash
 image-skill trust
