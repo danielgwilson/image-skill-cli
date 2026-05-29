@@ -1,7 +1,7 @@
 {
   "name": "image-skill",
   "version": "0.1.14",
-  "description": "Creative cloud CLI for agents: models, credits, jobs, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
+  "description": "Zero-setup durable image CLI for agents: guide-first creation, model and cost inspection, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
   "type": "module",
   "private": false,
   "repository": {
@@ -33,7 +33,8 @@
     "agent",
     "agent-native",
     "agent-skill",
-    "creative-cloud",
+    "zero-setup",
+    "durable-media",
     "creative-runtime",
     "generative-media",
     "image-generation",
