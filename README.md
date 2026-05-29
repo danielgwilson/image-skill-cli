@@ -28,6 +28,14 @@ fresh agent memorize a setup ladder:
 npx -y image-skill@latest create --guide --prompt "A tiny studio robot painting a postcard"
 ```
 
+When an agent needs package provenance or selection evidence before choosing a
+tool, use the no-auth trust packet. It is an inspection command, not a required
+step before the first image:
+
+```bash
+npx -y image-skill@latest trust --json
+```
+
 For repeated shell use, global install is optional only after confirming the
 runtime has a writable npm prefix. The guide remains the first command; lower
 level checks are escape hatches when `data.next_command` asks for them:
@@ -54,6 +62,13 @@ Use npm metadata to map a package version to its public repo source commit:
 
 ```bash
 npm view image-skill@latest version gitHead dist.integrity dist.tarball dist.attestations.url repository.url --json
+```
+
+Or ask the CLI for the same evidence plus hosted contract hashes, API health,
+and model availability honesty:
+
+```bash
+npx -y image-skill@latest trust --json
 ```
 
 `gitHead` is the public repo commit for the published package. Public repo

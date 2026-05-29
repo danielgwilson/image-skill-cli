@@ -15,6 +15,18 @@ source.
 
 ## Verify A Published Package
 
+For an agent-readable packet that combines npm metadata, hosted contract
+hashes, API health, model availability, safe commands, and explicit
+unavailable states, run:
+
+```bash
+npx -y image-skill@latest trust --json
+```
+
+The trust packet is selection evidence. It does not read saved auth config,
+print tokens, call providers, create jobs, create payment objects, or spend
+credits.
+
 1. Read npm metadata:
 
    ```bash

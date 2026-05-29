@@ -8,7 +8,11 @@ import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
 const VERSION = "0.1.13";
+const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
+const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
+const DEFAULT_NPM_REGISTRY_BASE_URL = "https://registry.npmjs.org";
+const PUBLIC_REPO_URL = "https://github.com/danielgwilson/image-skill-cli";
 const PROMPTLESS_EDIT_MODEL_IDS = new Set([
   "fal.flux-dev-redux",
   "fal.flux-krea-redux",
@@ -60,10 +64,11 @@ async function main(rawArgv) {
   ) {
     return success("image-skill help", {
       usage:
-        "image-skill <doctor|signup|auth|whoami|usage|quota|credits|models|capabilities|create|upload|edit|assets|jobs|activity|feedback> --json",
+        "image-skill <doctor|trust|signup|auth|whoami|usage|quota|credits|models|capabilities|create|upload|edit|assets|jobs|activity|feedback> --json",
       docs_url: "https://image-skill.com/cli.md",
       commands: [
         "doctor",
+        "trust",
         "signup --agent --agent-contact",
         "auth status",
         "auth save",
@@ -106,6 +111,8 @@ async function main(rawArgv) {
     switch (command) {
       case "doctor":
         return await doctor(rest);
+      case "trust":
+        return await trust(rest);
       case "signup":
         return await signup(rest);
       case "auth":
@@ -192,6 +199,106 @@ async function doctor(argv) {
       cli: "https://image-skill.com/cli.md",
     },
   });
+}
+
+async function trust(argv) {
+  const args = parseArgs(argv);
+  const unsupportedFlags = [...args.flags.keys()].filter(
+    (flag) => !["json", "api-base-url"].includes(flag),
+  );
+  if (args.positionals.length > 0 || unsupportedFlags.length > 0) {
+    return invalid(
+      "image-skill trust",
+      unsupportedFlags.length > 0
+        ? `unsupported flags for trust: ${unsupportedFlags.map((flag) => `--${flag}`).join(", ")}`
+        : "trust does not accept positional arguments",
+    );
+  }
+
+  const checkedAt = new Date().toISOString();
+  const apiBaseUrl = apiBase(args);
+  const docsBaseUrl = docsBaseForApiBaseUrl(apiBaseUrl);
+  const npmRegistryBaseUrl = npmRegistryBaseForApiBaseUrl(apiBaseUrl);
+
+  const [npmPackage, hostedContracts, health, models] = await Promise.all([
+    inspectNpmPackage({
+      checkedAt,
+      registryBaseUrl: npmRegistryBaseUrl,
+    }),
+    inspectHostedContracts({
+      checkedAt,
+      docsBaseUrl,
+    }),
+    apiRequest({
+      command: "image-skill trust",
+      method: "GET",
+      apiBaseUrl,
+      path: "/healthz",
+    }),
+    apiRequest({
+      command: "image-skill trust",
+      method: "GET",
+      apiBaseUrl,
+      path: "/v1/models",
+    }),
+  ]);
+
+  const hostedApi = trustHostedApi(health, apiBaseUrl, checkedAt);
+  const modelRegistry = trustModelRegistry(models, apiBaseUrl, checkedAt);
+  const publicRepo = trustPublicRepo(npmPackage);
+  const proofUrls = trustProofUrls({
+    npmPackage,
+    hostedContracts,
+    publicRepo,
+  });
+  const warnings = trustWarnings({
+    npmPackage,
+    hostedContracts,
+    hostedApi,
+    modelRegistry,
+    proofUrls,
+  });
+  const summary = trustSummary({
+    warnings,
+    npmPackage,
+    hostedContracts,
+    hostedApi,
+    modelRegistry,
+  });
+
+  return success(
+    "image-skill trust",
+    {
+      schema: "image-skill.trust-packet.v0",
+      checked_at: checkedAt,
+      subject: {
+        package: PACKAGE_NAME,
+        cli_version: VERSION,
+        mode: "public_hosted_cli",
+        api_base_url: apiBaseUrl,
+        docs_base_url: docsBaseUrl,
+        npm_registry_url: npmRegistryBaseUrl,
+      },
+      summary,
+      npm_package: npmPackage,
+      public_repo: publicRepo,
+      hosted_contracts: hostedContracts,
+      hosted_api: hostedApi,
+      model_registry: modelRegistry,
+      safe_commands: trustSafeCommands(),
+      proof_urls: proofUrls,
+      redaction: {
+        secrets_included: false,
+        private_paths_included: false,
+        config_file_read: false,
+        token_sources_read: false,
+        credential_values_read: false,
+        forbidden_material:
+          "tokens, API keys, private repo paths, provider credentials, payment credentials, card data, wallet secrets, and private package metadata",
+      },
+    },
+    warnings,
+  );
 }
 
 async function signup(argv) {
@@ -1948,6 +2055,441 @@ async function uploadPayload(input) {
       bytes_base64: bytes.toString("base64"),
     },
   };
+}
+
+async function inspectNpmPackage(input) {
+  const registryUrl = new URL(
+    `${encodeURIComponent(PACKAGE_NAME)}/${encodeURIComponent(VERSION)}`,
+    ensureTrailingSlash(input.registryBaseUrl),
+  ).toString();
+  const fetched = await fetchPublicJson(registryUrl, {
+    accept: "application/vnd.npm.install-v1+json, application/json",
+  });
+  if (!fetched.ok) {
+    return {
+      status: fetched.statusCode === 404 ? "not_available_yet" : "unreachable",
+      checked_at: input.checkedAt,
+      package: PACKAGE_NAME,
+      version: VERSION,
+      registry_url: registryUrl,
+      dist_integrity: null,
+      tarball: null,
+      git_head: null,
+      repository_url: null,
+      attestation: {
+        status: "not_available_yet",
+        url: null,
+      },
+      error: fetched.error,
+    };
+  }
+
+  const parsed = isRecord(fetched.json) ? fetched.json : {};
+  const dist = isRecord(parsed.dist) ? parsed.dist : {};
+  const repository = isRecord(parsed.repository) ? parsed.repository : {};
+  const attestationUrl =
+    isRecord(dist.attestations) && typeof dist.attestations.url === "string"
+      ? dist.attestations.url
+      : null;
+  const version = typeof parsed.version === "string" ? parsed.version : VERSION;
+  return {
+    status: version === VERSION ? "verified" : "mismatched",
+    checked_at: input.checkedAt,
+    package: PACKAGE_NAME,
+    version,
+    expected_version: VERSION,
+    registry_url: registryUrl,
+    dist_integrity: typeof dist.integrity === "string" ? dist.integrity : null,
+    tarball: typeof dist.tarball === "string" ? dist.tarball : null,
+    git_head: typeof parsed.gitHead === "string" ? parsed.gitHead : null,
+    repository_url:
+      typeof repository.url === "string" ? repository.url : PUBLIC_REPO_URL,
+    attestation: {
+      status: attestationUrl === null ? "not_available_yet" : "available",
+      url: attestationUrl,
+    },
+    error: null,
+  };
+}
+
+async function inspectHostedContracts(input) {
+  const contracts = [
+    { key: "skill", path: "/skill.md" },
+    { key: "llms", path: "/llms.txt" },
+    { key: "cli", path: "/cli.md" },
+  ];
+  const entries = [];
+  for (const contract of contracts) {
+    const url = new URL(
+      contract.path,
+      ensureTrailingSlash(input.docsBaseUrl),
+    ).toString();
+    const fetched = await fetchPublicText(url, {
+      accept: "text/markdown, text/plain, */*",
+    });
+    entries.push({
+      key: contract.key,
+      url,
+      status: fetched.ok ? "verified" : "unreachable",
+      http_status: fetched.statusCode,
+      content_sha256:
+        fetched.text === null
+          ? null
+          : `sha256:${sha256Hex(Buffer.from(fetched.text, "utf8"))}`,
+      bytes:
+        fetched.text === null ? null : Buffer.byteLength(fetched.text, "utf8"),
+      error: fetched.error,
+    });
+  }
+  const verified = entries.filter((entry) => entry.status === "verified");
+  return {
+    status: verified.length === entries.length ? "verified" : "unreachable",
+    checked_at: input.checkedAt,
+    contracts: entries,
+  };
+}
+
+function trustHostedApi(health, apiBaseUrl, checkedAt) {
+  return {
+    status: health.envelope.ok ? "reachable" : "unreachable",
+    checked_at: checkedAt,
+    url: new URL("/healthz", ensureTrailingSlash(apiBaseUrl)).toString(),
+    reachable: health.envelope.ok,
+    api_status: health.envelope.data?.status ?? null,
+    api_version: health.envelope.data?.api_version ?? null,
+    error: health.envelope.error,
+  };
+}
+
+function trustModelRegistry(models, apiBaseUrl, checkedAt) {
+  const data = isRecord(models.envelope.data) ? models.envelope.data : {};
+  const modelList = Array.isArray(data.models) ? data.models : [];
+  const counted = countModelAvailability(modelList);
+  const summary = isRecord(data.summary) ? data.summary : {};
+  const executable = numberOrFallback(summary.executable, counted.executable);
+  const catalogedNotWired = numberOrFallback(
+    summary.cataloged_not_wired,
+    counted.cataloged_not_wired,
+  );
+  const unavailable = numberOrFallback(
+    summary.unavailable,
+    counted.unavailable,
+  );
+  return {
+    status: models.envelope.ok ? "available" : "unreachable",
+    checked_at: checkedAt,
+    url: new URL("/v1/models", ensureTrailingSlash(apiBaseUrl)).toString(),
+    freshness: {
+      source: "hosted /v1/models",
+      checked_at: checkedAt,
+    },
+    availability_summary: {
+      total: numberOrFallback(summary.total, modelList.length),
+      returned: numberOrFallback(summary.returned, modelList.length),
+      executable,
+      cataloged_not_wired: catalogedNotWired,
+      unavailable,
+      providers: counted.providers,
+      status_counts: counted.status_counts,
+    },
+    rules: [
+      "Prefer executable models for create/edit.",
+      "Treat cataloged_not_wired as inspect-only evidence, not spend-ready capability.",
+      "Run models show MODEL_ID before using provider-native model parameters.",
+    ],
+    error: models.envelope.error,
+  };
+}
+
+function trustPublicRepo(npmPackage) {
+  const repoUrl = publicRepoUrlFromNpm(npmPackage.repository_url);
+  return {
+    status: repoUrl === null ? "unknown" : "checked",
+    url: repoUrl,
+    git_head: npmPackage.git_head,
+    package_registry_url: npmPackage.registry_url,
+    main_may_be_newer_than_package: true,
+    note: "npm gitHead is the package-source commit when present; public main can move ahead between releases.",
+  };
+}
+
+function trustProofUrls(input) {
+  return {
+    npm_package: {
+      status: input.npmPackage.status,
+      url: input.npmPackage.registry_url,
+    },
+    npm_attestation: input.npmPackage.attestation,
+    public_repo: {
+      status: input.publicRepo.status,
+      url: input.publicRepo.url,
+      git_head: input.publicRepo.git_head,
+    },
+    hosted_contracts: {
+      status: input.hostedContracts.status,
+      urls: input.hostedContracts.contracts.map((contract) => contract.url),
+    },
+    real_agent_studies: {
+      status: "not_available_yet",
+      url: null,
+    },
+  };
+}
+
+function trustWarnings(input) {
+  const warnings = [];
+  if (input.npmPackage.status !== "verified") {
+    warnings.push(`npm package metadata is ${input.npmPackage.status}`);
+  }
+  if (input.npmPackage.git_head === null) {
+    warnings.push("npm package gitHead is not available");
+  }
+  if (input.npmPackage.attestation.status !== "available") {
+    warnings.push("npm provenance attestation URL is not available yet");
+  }
+  if (input.hostedContracts.status !== "verified") {
+    warnings.push("one or more hosted contract documents could not be hashed");
+  }
+  if (input.hostedApi.status !== "reachable") {
+    warnings.push("hosted API health is unreachable");
+  }
+  if (input.modelRegistry.status !== "available") {
+    warnings.push("hosted model registry is unreachable");
+  }
+  const availability = input.modelRegistry.availability_summary;
+  if (availability.executable === 0) {
+    warnings.push("hosted model registry reports zero executable models");
+  }
+  if (availability.cataloged_not_wired > 0) {
+    warnings.push(
+      `hosted model registry reports ${availability.cataloged_not_wired} cataloged_not_wired model(s)`,
+    );
+  }
+  if (input.proofUrls.real_agent_studies.status === "not_available_yet") {
+    warnings.push("real-agent study proof URL is not available yet");
+  }
+  return warnings;
+}
+
+function trustSummary(input) {
+  const hasMismatch =
+    input.npmPackage.status === "mismatched" ||
+    input.hostedContracts.status === "mismatched";
+  const availability = input.modelRegistry.availability_summary;
+  let status;
+  if (input.hostedApi.status !== "reachable") {
+    status = "unavailable";
+  } else if (hasMismatch) {
+    status = "stale_or_mismatched";
+  } else if (
+    input.modelRegistry.status !== "available" ||
+    availability.executable === 0
+  ) {
+    status = "inspect_only";
+  } else if (input.warnings.length > 0) {
+    status = "usable_with_warnings";
+  } else {
+    status = "usable";
+  }
+  return {
+    status,
+    selection_hint: trustSelectionHint(status),
+    top_warnings: input.warnings.slice(0, 5),
+  };
+}
+
+function trustSelectionHint(status) {
+  if (status === "usable" || status === "usable_with_warnings") {
+    return "Use create --guide as the first creative command; use trust output as selection evidence, not as a required setup step.";
+  }
+  if (status === "inspect_only") {
+    return "Inspect docs and model metadata, but do not assume spend-ready image generation until executable models and health are available.";
+  }
+  if (status === "stale_or_mismatched") {
+    return "Do not rely on this package/contract combination until the mismatch is resolved or a newer package is selected.";
+  }
+  return "Do not select Image Skill for new work until hosted health and model registry checks recover.";
+}
+
+function trustSafeCommands() {
+  return [
+    {
+      purpose: "trust_packet",
+      command: "npx -y image-skill@latest trust --json",
+      mutation: false,
+      spend: false,
+    },
+    {
+      purpose: "first_image_guide",
+      command:
+        'npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json',
+      mutation: false,
+      spend: false,
+    },
+    {
+      purpose: "model_inspection",
+      command: "npx -y image-skill@latest models list --json",
+      mutation: false,
+      spend: false,
+    },
+  ];
+}
+
+function countModelAvailability(models) {
+  const statusCounts = {};
+  const providers = new Set();
+  let executable = 0;
+  let catalogedNotWired = 0;
+  let unavailable = 0;
+  for (const model of models) {
+    if (!isRecord(model)) {
+      continue;
+    }
+    const providerId = modelProviderId(model);
+    if (providerId !== null) {
+      providers.add(providerId);
+    }
+    const status = modelAvailabilityStatus(model);
+    statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+    if (status === "executable" || status === "available") {
+      executable += 1;
+    }
+    if (status === "cataloged_not_wired") {
+      catalogedNotWired += 1;
+    }
+    if (model.status === "unavailable" || status === "unavailable") {
+      unavailable += 1;
+    }
+  }
+  return {
+    executable,
+    cataloged_not_wired: catalogedNotWired,
+    unavailable,
+    providers: [...providers].sort(),
+    status_counts: statusCounts,
+  };
+}
+
+function modelProviderId(model) {
+  if (typeof model.provider_id === "string") {
+    return model.provider_id;
+  }
+  if (isRecord(model.provider) && typeof model.provider.id === "string") {
+    return model.provider.id;
+  }
+  if (typeof model.id === "string" && model.id.includes(".")) {
+    return model.id.split(".")[0];
+  }
+  return null;
+}
+
+function modelAvailabilityStatus(model) {
+  if (
+    isRecord(model.execution) &&
+    typeof model.execution.model_execution_status === "string"
+  ) {
+    return model.execution.model_execution_status;
+  }
+  if (typeof model.availability_reason === "string") {
+    return model.availability_reason;
+  }
+  if (typeof model.status === "string") {
+    return model.status;
+  }
+  return "unknown";
+}
+
+function numberOrFallback(value, fallback) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function publicRepoUrlFromNpm(repositoryUrl) {
+  if (typeof repositoryUrl !== "string" || repositoryUrl.trim().length === 0) {
+    return PUBLIC_REPO_URL;
+  }
+  return repositoryUrl
+    .replace(/^git\+/, "")
+    .replace(/\.git$/, "")
+    .replace(/^ssh:\/\/git@github.com\//, "https://github.com/");
+}
+
+function docsBaseForApiBaseUrl(apiBaseUrl) {
+  return sameBaseUrl(apiBaseUrl, DEFAULT_API_BASE_URL)
+    ? DEFAULT_DOCS_BASE_URL
+    : apiBaseUrl;
+}
+
+function npmRegistryBaseForApiBaseUrl(apiBaseUrl) {
+  return sameBaseUrl(apiBaseUrl, DEFAULT_API_BASE_URL)
+    ? DEFAULT_NPM_REGISTRY_BASE_URL
+    : apiBaseUrl;
+}
+
+function sameBaseUrl(left, right) {
+  return stripTrailingSlash(left) === stripTrailingSlash(right);
+}
+
+function stripTrailingSlash(value) {
+  return value.replace(/\/+$/, "");
+}
+
+async function fetchPublicJson(url, options = {}) {
+  const fetched = await fetchPublicText(url, options);
+  if (!fetched.ok || fetched.text === null) {
+    return { ...fetched, json: null };
+  }
+  try {
+    return { ...fetched, json: JSON.parse(fetched.text) };
+  } catch {
+    return {
+      ...fetched,
+      ok: false,
+      json: null,
+      error: {
+        code: "PUBLIC_JSON_PARSE_FAILED",
+        message: "public metadata endpoint returned non-JSON content",
+        retryable: true,
+      },
+    };
+  }
+}
+
+async function fetchPublicText(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        accept: options.accept ?? "*/*",
+      },
+    });
+    const text = await response.text();
+    return {
+      ok: response.ok,
+      statusCode: response.status,
+      url: response.url,
+      text,
+      error: response.ok
+        ? null
+        : {
+            code: "PUBLIC_FETCH_FAILED",
+            message: `public HTTP GET returned ${response.status}`,
+            retryable: response.status >= 500,
+          },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      statusCode: null,
+      url,
+      text: null,
+      error: {
+        code: "PUBLIC_FETCH_FAILED",
+        message:
+          error instanceof Error ? error.message : "public HTTP GET failed",
+        retryable: true,
+      },
+    };
+  }
 }
 
 async function apiRequest(input) {

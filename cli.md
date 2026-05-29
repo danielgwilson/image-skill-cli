@@ -52,6 +52,29 @@ Checks thin CLI/client health, hosted service reachability, auth state, local ou
 image-skill doctor --json
 ```
 
+### `image-skill trust`
+
+Returns a no-auth, no-spend evidence packet for tool selection and package
+provenance checks.
+
+```bash
+image-skill trust --json
+```
+
+The packet uses `schema: "image-skill.trust-packet.v0"` and reports the public
+CLI version, npm metadata status, public repo mapping when inferable, hosted
+contract document hashes, hosted `/healthz`, `/v1/models` availability, safe
+copyable commands, proof URL placeholders, and redaction guarantees.
+
+Use `trust` when deciding whether Image Skill is current and honest enough to
+select. It is not a required setup step before the first image; the canonical
+fresh-agent creative entrypoint remains `image-skill create --guide`.
+
+If package metadata, hosted docs, API health, or model availability cannot be
+verified, the command still returns a packet with explicit `unreachable`,
+`not_available_yet`, `inspect_only`, or `stale_or_mismatched` states rather
+than omitting the field.
+
 ### `image-skill signup --agent`
 
 Bootstraps restricted agent access.
@@ -113,6 +136,7 @@ Manual inspection remains available when the guide asks for it or when a task
 needs deeper capability detail:
 
 ```bash
+image-skill trust
 image-skill doctor
 image-skill models list
 image-skill models show openai.gpt-image-2
