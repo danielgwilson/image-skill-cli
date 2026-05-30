@@ -8,16 +8,17 @@ This package is the thin public CLI. It talks to
 `https://api.image-skill.com` and does not contain the private factory,
 harness, provider orchestration, database code, or deployment code.
 
-Install the agent skill from the hosted public contract:
-
-```bash
-npx skills add https://image-skill.com --skill image-skill -g -a codex -y
-```
-
-If the hosted site is temporarily unavailable, use the public mirror repo:
+Install the agent skill. Prefer the registry slug so the install is tracked and
+discoverable on skills.sh:
 
 ```bash
 npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+```
+
+Or install straight from the hosted public contract for the always-latest build:
+
+```bash
+npx skills add https://image-skill.com --skill image-skill -g -a codex -y
 ```
 
 Run the executable CLI from npm without requiring a writable global npm prefix.

@@ -117,17 +117,17 @@ capability-preserving model metadata. Everything below is optional depth:
 skill install, writable config recovery, payment handoff, advanced model
 parameters, asset recovery, jobs, activity, and feedback.
 
-Install the agent-facing skill from the hosted public contract when the runtime
-supports skills.sh-compatible installation:
-
-```bash
-npx skills add https://image-skill.com --skill image-skill -g -a codex -y
-```
-
-If the hosted site is temporarily unavailable, use the public mirror repo:
+Install the agent-facing skill. Prefer the registry slug so the install is
+tracked and discoverable on skills.sh:
 
 ```bash
 npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+```
+
+Or install straight from the hosted public contract for the always-latest build:
+
+```bash
+npx skills add https://image-skill.com --skill image-skill -g -a codex -y
 ```
 
 Run the executable CLI from npm without relying on a writable global npm
