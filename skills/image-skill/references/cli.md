@@ -164,7 +164,7 @@ logs, and shell history.
 Prefer package execution in fresh agent sandboxes:
 
 ```bash
-npx -y image-skill@latest doctor --json
+npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
 ```
 
 Global install is optional, not the primary path. If `npm install -g image-skill`
@@ -175,7 +175,7 @@ package-manager paths instead of cloning private source:
 export npm_config_cache="${npm_config_cache:-$PWD/.npm-cache}"
 export npm_config_prefix="${npm_config_prefix:-$PWD/.npm-global}"
 export PATH="$npm_config_prefix/bin:$PATH"
-npx -y image-skill@latest doctor --json
+npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
 ```
 
 Saved auth state defaults to
