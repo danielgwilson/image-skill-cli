@@ -28,7 +28,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": [
     "agent",
     "agent-native",
