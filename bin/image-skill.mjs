@@ -27,6 +27,7 @@ const SIGNUP_SUGGESTED_COMMAND =
   "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json";
 const SIGNUP_CONTACT_GUIDANCE =
   "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
+const PUBLIC_NPX_COMMAND_PREFIX = "npx -y image-skill@latest";
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
   "payment-token",
   "payment-secret",
@@ -933,10 +934,15 @@ async function createGuide(args) {
     budgetGuard,
     apiBaseUrl: explicitApiBaseUrl(args),
     paymentSummary,
+    commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
   });
   const afterNext =
     stage === "auth_required" || stage === "quota_required"
-      ? renderGuideCommand(trimmedPrompt, explicitApiBaseUrl(args))
+      ? renderGuideCommand(
+          trimmedPrompt,
+          explicitApiBaseUrl(args),
+          PUBLIC_NPX_COMMAND_PREFIX,
+        )
       : null;
   return success("image-skill create --guide", {
     schema: "image-skill.create-guide.v1",
@@ -1001,16 +1007,34 @@ async function createGuide(args) {
     next_command: nextCommand,
     after_next: afterNext,
     escape_hatches: {
-      doctor: "image-skill doctor --json",
+      doctor: renderGuidePrefixedCommand(
+        PUBLIC_NPX_COMMAND_PREFIX,
+        "doctor --json",
+      ),
       model_inspection:
         selected === null
-          ? "image-skill models list --json"
-          : `image-skill models show ${shellQuote(selected.id)} --json`,
-      payment_methods: "image-skill credits methods --json",
-      quota: "image-skill usage quota --json",
+          ? renderGuidePrefixedCommand(
+              PUBLIC_NPX_COMMAND_PREFIX,
+              "models list --json",
+            )
+          : renderGuidePrefixedCommand(
+              PUBLIC_NPX_COMMAND_PREFIX,
+              `models show ${shellQuote(selected.id)} --json`,
+            ),
+      payment_methods: renderGuidePrefixedCommand(
+        PUBLIC_NPX_COMMAND_PREFIX,
+        "credits methods --json",
+      ),
+      quota: renderGuidePrefixedCommand(
+        PUBLIC_NPX_COMMAND_PREFIX,
+        "usage quota --json",
+      ),
       dry_run:
         selected === null || trimmedPrompt.length === 0
-          ? "image-skill create --dry-run --prompt PROMPT --json"
+          ? renderGuidePrefixedCommand(
+              PUBLIC_NPX_COMMAND_PREFIX,
+              "create --dry-run --prompt PROMPT --json",
+            )
           : renderCreateCommand({
               prompt: trimmedPrompt,
               modelId: selected.id,
@@ -1019,6 +1043,7 @@ async function createGuide(args) {
               budgetGuard,
               dryRun: true,
               apiBaseUrl: explicitApiBaseUrl(args),
+              commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
             }),
     },
     mutation: {
@@ -1151,16 +1176,25 @@ function createGuideBlocker(stage, input) {
 
 function createGuideNextCommand(stage, input) {
   if (stage === "prompt_required") {
-    return renderGuideCommand("PROMPT", input.apiBaseUrl);
+    return renderGuideCommand("PROMPT", input.apiBaseUrl, input.commandPrefix);
   }
   if (stage === "no_executable_model" || stage === "service_unreachable") {
-    return "image-skill models list --json";
+    return renderGuidePrefixedCommand(
+      input.commandPrefix,
+      "models list --json",
+    );
   }
   if (stage === "auth_required") {
-    return "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --json";
+    return renderGuidePrefixedCommand(
+      input.commandPrefix,
+      "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --json",
+    );
   }
   if (stage === "quota_required") {
-    return input.paymentSummary.suggested_commands[0];
+    return renderGuidePrefixedCommand(
+      input.commandPrefix,
+      stripImageSkillCommandPrefix(input.paymentSummary.suggested_commands[0]),
+    );
   }
   return renderCreateCommand({
     prompt: input.prompt,
@@ -1170,12 +1204,14 @@ function createGuideNextCommand(stage, input) {
     budgetGuard: input.budgetGuard,
     dryRun: false,
     apiBaseUrl: input.apiBaseUrl,
+    commandPrefix: input.commandPrefix,
   });
 }
 
-function renderGuideCommand(prompt, apiBaseUrl) {
+function renderGuideCommand(prompt, apiBaseUrl, commandPrefix = "image-skill") {
   return [
-    "image-skill create --guide --prompt",
+    commandPrefix,
+    "create --guide --prompt",
     shellQuote(prompt),
     ...(apiBaseUrl === null ? [] : ["--api-base-url", shellQuote(apiBaseUrl)]),
     "--json",
@@ -1184,7 +1220,8 @@ function renderGuideCommand(prompt, apiBaseUrl) {
 
 function renderCreateCommand(input) {
   return [
-    "image-skill create",
+    input.commandPrefix ?? "image-skill",
+    "create",
     ...(input.dryRun ? ["--dry-run"] : []),
     ...(input.providerId === null
       ? []
@@ -1202,6 +1239,14 @@ function renderCreateCommand(input) {
       : ["--api-base-url", shellQuote(input.apiBaseUrl)]),
     "--json",
   ].join(" ");
+}
+
+function renderGuidePrefixedCommand(commandPrefix, command) {
+  return `${commandPrefix} ${stripImageSkillCommandPrefix(command)}`;
+}
+
+function stripImageSkillCommandPrefix(command) {
+  return String(command ?? "").replace(/^image-skill\s+/, "");
 }
 
 function explicitApiBaseUrl(args) {
