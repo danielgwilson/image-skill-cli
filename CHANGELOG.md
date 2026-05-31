@@ -4,6 +4,18 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.15 - 2026-05-31
+
+- Republish from current `main` so the package matches the shipped contract:
+  registry-slug-first install guidance (`npx skills add danielgwilson/image-skill-cli`),
+  an MIT license, and the current zero-setup positioning (the prior
+  enterprise-umbrella framing is fully retired in this build).
+- Safety fix: this build rejects `edit --dry-run` with
+  `PUBLIC_CLI_FLAG_NOT_AVAILABLE` instead of silently running a real, billed edit
+  (the 0.1.14 behavior charged credits and consumed a daily job slot for a flag
+  the agent expected to be a free cost preview). First-class edit dry-run support
+  is tracked separately.
+
 ## 0.1.14 - 2026-05-29
 
 - Refresh the public package with the guide-first `create --guide` flow so a
