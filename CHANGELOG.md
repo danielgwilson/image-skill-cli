@@ -4,6 +4,18 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.16 - 2026-06-01
+
+- `credits buy` now accepts `--provider stripe_x402` to execute the agent-native
+  USDC credit deposit end-to-end, and `credits quote` accepts
+  `--payment-method stripe_x402.exact.usdc`. Previously the agent-native deposit
+  method was advertised by `credits methods` but the CLI could only run the
+  hosted-checkout provider, so an agent could discover the method without being
+  able to act on it. The deposit command returns the redacted payment challenge
+  and the `pay_stripe_crypto_deposit` next action; credits are granted only
+  after verified settlement (poll `credits status`). No change to the
+  `--provider stripe` hosted-checkout flow.
+
 ## 0.1.15 - 2026-05-31
 
 - Republish from current `main` so the package matches the shipped contract:
