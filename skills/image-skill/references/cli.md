@@ -876,6 +876,21 @@ If provider generation succeeds but artifact storage fails, the command returns
 should not retry the whole create blindly, because that may duplicate paid
 provider spend.
 
+For retry-safe create automation, pass an explicit non-secret
+`--idempotency-key`. A retry that reuses the same key does not create a second
+credit reservation, so a transient `502`/`PROVIDER_FAILURE` that already
+reserved a credit cannot double-charge on retry. `create --guide` bakes a
+generated `--idempotency-key` into its advertised create `next_command`, and a
+retryable create error returns an `error.recovery.idempotency_key` plus an
+`error.recovery.suggested_command` that re-runs the same create with that key.
+
+```bash
+image-skill create \
+  --prompt "A compact field camera on a stainless workbench" \
+  --idempotency-key create-run-001 \
+  --json
+```
+
 Hosted free-preview API equivalent:
 
 ```bash
@@ -1073,6 +1088,12 @@ Provider/model names in this paragraph are preview provenance, not the primary
 public UX. The public selection surface should be Image Skill capabilities and
 model-parameter schemas; provider/model details belong in explicit
 provenance/debug output.
+
+Edit accepts the same retry-safe `--idempotency-key` as create. A retry that
+reuses the same key does not create a second credit reservation, so a transient
+`502`/`PROVIDER_FAILURE` after a reservation cannot double-charge; a retryable
+edit error returns an `error.recovery.idempotency_key` and an
+`error.recovery.suggested_command` that re-runs the same edit with that key.
 
 ### `image-skill assets show`
 

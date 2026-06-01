@@ -1197,6 +1197,10 @@ function createGuideNextCommand(stage, input) {
     intent: input.requestedIntent,
     budgetGuard: input.budgetGuard,
     dryRun: false,
+    // Retry-safe by default (#1228): bake a stable idempotency key into the
+    // advertised create command so an agent that copies it and retries after a
+    // transient 502 does not double-charge.
+    idempotencyKey: `create-guide-${Date.now()}-${randomBytes(4).toString("hex")}`,
     apiBaseUrl: input.apiBaseUrl,
     commandPrefix: input.commandPrefix,
   });
@@ -1228,6 +1232,9 @@ function renderCreateCommand(input) {
     shellQuote(input.intent),
     "--max-estimated-usd-per-image",
     shellQuote(formatUsd(input.budgetGuard)),
+    ...(input.idempotencyKey === undefined || input.idempotencyKey === null
+      ? []
+      : ["--idempotency-key", shellQuote(input.idempotencyKey)]),
     ...(input.apiBaseUrl === null
       ? []
       : ["--api-base-url", shellQuote(input.apiBaseUrl)]),
@@ -1353,6 +1360,11 @@ async function create(argv) {
       ...(modelParameters.value === null
         ? {}
         : { model_parameters: modelParameters.value }),
+      // Retry-safe dedupe (#1228): when provided, a retry with the same key does
+      // not double-charge after a transient 502 that already debited a credit.
+      ...(flagString(args, "idempotency-key") === null
+        ? {}
+        : { idempotency_key: flagString(args, "idempotency-key") }),
       dry_run: flagBool(args, "dry-run"),
       accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
     },
@@ -1459,6 +1471,11 @@ async function edit(argv) {
       ...(modelParameters.value === null
         ? {}
         : { model_parameters: modelParameters.value }),
+      // Retry-safe dedupe (#1228): see create — same key dedupes a retry that
+      // follows a transient 502 which already debited a credit.
+      ...(flagString(args, "idempotency-key") === null
+        ? {}
+        : { idempotency_key: flagString(args, "idempotency-key") }),
       accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
     },
   });
@@ -2556,7 +2573,9 @@ async function apiRequest(input) {
       body: input.body === undefined ? undefined : JSON.stringify(input.body),
     });
     const text = await response.text();
-    const envelope = parseEnvelope(text, input.command, response.status);
+    const envelope = parseEnvelope(text, input.command, response.status, {
+      requestBody: input.body,
+    });
     const exitCodeHeader = response.headers.get("x-image-skill-exit-code");
     return {
       exitCode:
@@ -2583,7 +2602,7 @@ async function apiRequest(input) {
   }
 }
 
-function parseEnvelope(text, command, statusCode) {
+function parseEnvelope(text, command, statusCode, options = {}) {
   try {
     const parsed = JSON.parse(text);
     if (parsed && typeof parsed === "object" && "ok" in parsed) {
@@ -2592,18 +2611,59 @@ function parseEnvelope(text, command, statusCode) {
   } catch {
     // Fall through to normalized public error.
   }
+  const retryable = statusCode >= 500;
+  // Money integrity (#1228): a proxy-killed 502 returns a non-JSON body, so the
+  // server's own recovery guidance never reaches the agent. For a retryable
+  // create/edit (which may already have debited a credit) synthesize an
+  // idempotency-keyed retry command so the advertised retry dedupes to one
+  // charge instead of double-charging. Echo the request's key when present;
+  // otherwise mint a stable key so the NEXT retry is safe.
+  const recovery =
+    retryable && isCreateOrEditCommand(command)
+      ? nonJsonRetryRecovery(command, options.requestBody)
+      : undefined;
   return {
     ok: false,
     command,
     trace_id: traceId(),
     actor: null,
     data: null,
-    warnings: [],
+    warnings: retryable
+      ? [
+          "the hosted API may have already reserved a credit; retry with the returned idempotency_key so the retry is not double-charged",
+        ]
+      : [],
     error: {
       code: "HOSTED_API_NON_JSON_RESPONSE",
       message: `hosted API returned HTTP ${statusCode} without a JSON envelope`,
-      retryable: statusCode >= 500,
+      retryable,
+      ...(recovery === undefined ? {} : { recovery }),
     },
+  };
+}
+
+function isCreateOrEditCommand(command) {
+  return command === "image-skill create" || command === "image-skill edit";
+}
+
+function nonJsonRetryRecovery(command, requestBody) {
+  const operation = command === "image-skill edit" ? "edit" : "create";
+  const existingKey =
+    requestBody &&
+    typeof requestBody === "object" &&
+    typeof requestBody.idempotency_key === "string"
+      ? requestBody.idempotency_key
+      : null;
+  const idempotencyKey =
+    existingKey ??
+    `${operation}-retry-${Date.now()}-${randomBytes(4).toString("hex")}`;
+  const anchor =
+    operation === "edit" ? "image-skill-edit" : "image-skill-create";
+  return {
+    suggested_command: `${command} --idempotency-key ${idempotencyKey} --json`,
+    idempotency_key: idempotencyKey,
+    docs_url: `https://image-skill.com/cli.md#${anchor}`,
+    retry_after_seconds: 5,
   };
 }
 
