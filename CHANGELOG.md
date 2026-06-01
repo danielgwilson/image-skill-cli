@@ -4,6 +4,17 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.17 - 2026-06-01
+
+- Money integrity: `create` and `edit` now send `--idempotency-key` to the
+  server so a retry of a transiently-failed generation REPLAYS the original
+  job instead of charging again. `create --guide` bakes a generated key into
+  its suggested command, and a proxy-killed 502 (`HOSTED_API_NON_JSON_RESPONSE`)
+  now returns a recovery block with the request's idempotency key so the
+  advertised retry is charge-safe. (0.1.16 parsed the flag but did not send it
+  on create, so same-key retries still double-charged against the live server's
+  dedup; this build closes that end-to-end.)
+
 ## 0.1.16 - 2026-06-01
 
 - `credits buy` now accepts `--provider stripe_x402` to execute the agent-native
