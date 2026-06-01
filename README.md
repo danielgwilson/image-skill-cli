@@ -85,17 +85,18 @@ Release notes live in
 Detailed package verification steps live in
 [`PROVENANCE.md`](https://github.com/danielgwilson/image-skill-cli/blob/main/PROVENANCE.md).
 
-The CLI saves hosted agent tokens by default at
-`${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json` with 0600 permissions.
-Use `IMAGE_SKILL_CONFIG_PATH` to override the config path, `--no-save` to opt
-out, and `--show-token --no-save` only for runtime secret-store injection via
-`IMAGE_SKILL_TOKEN` or `--token-stdin`.
+Hosted signup returns the raw `isk_r_` token only when `--show-token` is set,
+and only once. Store it immediately in the agent runtime secret store, then use
+`IMAGE_SKILL_TOKEN` or `--token-stdin` for later hosted commands. The hosted
+public CLI does not auto-save signup auth into the local config. Use
+`image-skill auth save --json` only when a runtime intentionally wants a local
+0600 compatibility config.
 
 Fresh sandboxes should prefer:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
+npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --show-token --json
 ```
 
 If npm prefix/cache paths are read-only, set `npm_config_cache` and

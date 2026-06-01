@@ -114,7 +114,7 @@ you need capability details before spending:
 npx -y image-skill@latest doctor
 npx -y image-skill@latest models list --available --operation image.generate
 npx -y image-skill@latest models show openai.gpt-image-2
-npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex
+npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex --show-token --json
 npx -y image-skill@latest whoami
 npx -y image-skill@latest usage quota
 npx -y image-skill@latest create --dry-run --prompt "a compact field camera on a stainless workbench"
@@ -165,21 +165,24 @@ image-skill models show openai.gpt-image-2
 image-skill models show openai.gpt-image-1.5
 ```
 
-Bootstrap restricted agent access; auth is saved by default for later commands:
+Bootstrap hosted restricted agent access. Hosted signup returns the raw token
+only when `--show-token` is set, and only once:
 
 ```bash
 image-skill signup --agent \
   --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
-  --runtime RUNTIME_NAME
+  --runtime RUNTIME_NAME \
+  --show-token \
+  --json
 ```
 
-Saved auth lets every later command authenticate automatically — you sign up
-once and then just run commands, with no token to pass in prompts or shell
-history. `--save` remains accepted as a compatibility no-op for older
-instructions. Use `--no-save` only when local persistence is intentionally
-disabled, and use `--show-token --no-save` only when the runtime has a separate
-secret store and needs the raw token once. If you do pass the token explicitly,
+Store the returned token immediately in the agent runtime secret store, then
+use `IMAGE_SKILL_TOKEN` or `--token-stdin` for later hosted commands. Public
+hosted signup does not auto-save auth into the CLI config. `--save` is local-only
+(`--local`) and rejected on the hosted path; `--no-save` remains accepted for
+older instructions. Use `--show-token --no-save` when the runtime has a separate
+secret store and needs the raw token once. If you pass the token explicitly,
 prefer `--token-stdin` over `--token`.
 
 In the preview contract, `--agent-contact` means an email-shaped durable
@@ -199,16 +202,19 @@ placing the token in command args.
 ## Local Config And Install
 
 Run the published package directly; do not clone private source because a global
-install or default config directory is blocked. Saved auth state defaults to the
-user config directory. If that location is read-only, point
-`IMAGE_SKILL_CONFIG_PATH` at a writable persistent path before `signup`:
+install or default config directory is blocked. Hosted signup does not auto-save
+auth; it returns the token once with `--show-token`. If the runtime also needs a
+writable compatibility config path, set `IMAGE_SKILL_CONFIG_PATH` before
+`signup`:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/image-skill-config.json"
 npx -y image-skill@latest signup --agent \
   --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
-  --runtime RUNTIME_NAME
+  --runtime RUNTIME_NAME \
+  --show-token \
+  --json
 npx -y image-skill@latest whoami
 ```
 

@@ -84,15 +84,18 @@ image-skill signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
+  --show-token \
   --json
 ```
 
-By default, signup stores the returned `isk_r_` token in the public CLI config
-with 0600 permissions and redacts it from stdout. `--save` remains accepted as
-a compatibility no-op for older instructions. Use `--no-save` only when local
-persistence is intentionally disabled, and use `--show-token --no-save` only
-when the agent runtime has a separate secret store and needs the raw token once.
-Do not paste tokens into prompts, logs, issue text, or feedback.
+Hosted signup returns the raw `isk_r_` token only when `--show-token` is set,
+and only once. Store it immediately in the agent runtime secret store, then use
+`IMAGE_SKILL_TOKEN` or `--token-stdin` for later hosted commands. Public hosted
+signup does not auto-save auth into the CLI config. `--save` is local-only
+(`--local`) and rejected on the hosted path; `--no-save` remains accepted for
+older hosted instructions. Use `--show-token --no-save` when the agent runtime
+has a separate secret store and needs the raw token once. Do not paste tokens
+into prompts, logs, issue text, or feedback.
 
 In this preview contract, `--agent-contact` is an email-shaped durable contact
 inbox for the restricted agent identity, not a requirement to find an
@@ -155,9 +158,9 @@ image-skill usage quota
 image-skill create --dry-run --prompt "a compact field camera on a stainless workbench"
 ```
 
-Use `--show-token` only when the runtime has a separate secret store and needs
-the raw token once. Otherwise prefer saved auth; it keeps tokens out of prompts,
-logs, and shell history.
+Use `--show-token` for hosted signup only when the runtime can immediately store
+the raw token once. For later commands, prefer `IMAGE_SKILL_TOKEN` or
+`--token-stdin`; both keep tokens out of prompts and shell history.
 
 ### Local Config And Install
 
@@ -178,9 +181,9 @@ export PATH="$npm_config_prefix/bin:$PATH"
 npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
 ```
 
-Saved auth state defaults to
-`${XDG_CONFIG_HOME:-~/.config}/image-skill/config.json`. If that location is
-read-only, set a writable config path before `signup`:
+Hosted signup does not auto-save auth state; it returns the token once with
+`--show-token`. If the runtime also needs a writable compatibility config path,
+set `IMAGE_SKILL_CONFIG_PATH` before `signup`:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
@@ -188,6 +191,7 @@ npx -y image-skill@latest signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
+  --show-token \
   --json
 ```
 
