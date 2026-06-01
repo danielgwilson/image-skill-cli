@@ -693,6 +693,24 @@ field. Credit pricing and `cost.credit_pricing.credits_required` are total
 operation debits across all requested outputs. `--max-estimated-usd-per-image`
 and raw API `max_estimated_usd_per_image` remain per-image budget guards.
 
+Generate video through the same `create` command and durable-media loop. Because
+the no-model default selects an image model, request a video model by id; the
+response returns a durable owned `video_...` mp4 asset URL, a `job_id`, and a
+`cost.credit_pricing` receipt just like an image create.
+
+```bash
+image-skill create \
+  --model fal.ltx-video-13b-distilled \
+  --prompt "A slow dolly push-in on a steaming espresso cup on a cafe counter, morning light" \
+  --aspect-ratio 16:9 \
+  --json
+```
+
+Inspect parameters, output media type, and cost first with `image-skill models
+show fal.ltx-video-13b-distilled --json`. Video runs synchronously through the
+same create call and can take longer than an image; the returned `assets[].url`
+is an owned `video/mp4`.
+
 For create models with wired reference support, pass owned reference assets
 with the model's advertised reference role. Kling element routes use
 `--element-frontal IMAGE[@ELEMENT_INDEX]` and

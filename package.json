@@ -1,7 +1,7 @@
 {
   "name": "image-skill",
   "version": "0.1.15",
-  "description": "Zero-setup durable image CLI for agents: guide-first creation, model and cost inspection, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
+  "description": "Zero-setup durable creative-media CLI for agents (image + video): guide-first creation, model and cost inspection, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
   "type": "module",
   "private": false,
   "repository": {
