@@ -62,20 +62,24 @@ credits.
 
 ## Current Published Package
 
-`image-skill@0.1.7` was published from public repo commit
-`8676d325917a557e929717d6243446a134167e54`.
+`image-skill@0.1.15` (published 2026-05-31) was published from public repo
+commit `fc136fe84431ad145379fc8639ba9e1480f54442`.
 
 Release evidence:
 
-- npm package: `image-skill@0.1.7`
-- npm publish workflow:
-  `https://github.com/danielgwilson/image-skill-cli/actions/runs/25949592813`
+- npm package: `image-skill@0.1.15`
 - npm tarball:
-  `https://registry.npmjs.org/image-skill/-/image-skill-0.1.7.tgz`
+  `https://registry.npmjs.org/image-skill/-/image-skill-0.1.15.tgz`
 - npm integrity:
-  `sha512-83WpSiW9wNu0gTDX0BHMT19rGEkI8j9s7pekFwWUPTa7p/MKhfV1dZcE9vvEeVhR1WpKU1gntHFeS27yu0MMEw==`
+  `sha512-U8BkskNDnH3fDP1V4sV+rzRm9BnUx1Xl1M2kahNBfo8yaehk9BykI+ts5DBDuf+C2WToWLHds6ln+zNHAceXlw==`
 - npm attestation URL:
-  `https://registry.npmjs.org/-/npm/v1/attestations/image-skill@0.1.7`
+  `https://registry.npmjs.org/-/npm/v1/attestations/image-skill@0.1.15`
+
+Dispute-evidence summary (for any false-positive supply-chain flag): zero
+dependencies, `npm audit` = 0 vulnerabilities, MIT licensed, published via
+GitHub Actions npm OIDC trusted publishing (no long-lived token), with two live
+registry attestations (`github/npm publish v0.1` and
+`https://slsa.dev/provenance/v1`).
 
 ## Trust Rules For Agents
 

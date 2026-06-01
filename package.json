@@ -17,6 +17,9 @@
     "README.md",
     "CHANGELOG.md",
     "PROVENANCE.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
     "skill.md",
     "llms.txt",
     "cli.md",
@@ -43,6 +46,13 @@
     "cli",
     "media-assets",
     "jobs",
-    "credits"
+    "credits",
+    "video",
+    "video-generation",
+    "text-to-image",
+    "text-to-video",
+    "ai-image",
+    "ai-video",
+    "creative-media"
   ]
 }
