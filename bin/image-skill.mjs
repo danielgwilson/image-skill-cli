@@ -606,10 +606,14 @@ async function credits(argv) {
     const idempotency = optionalIdempotencyKey(args, "quote");
     const paymentMethod =
       flagString(args, "payment-method") ?? "stripe_checkout";
-    if (paymentMethod !== "stripe_checkout") {
+    const PUBLIC_QUOTE_PAYMENT_METHODS = [
+      "stripe_checkout",
+      "stripe_x402.exact.usdc",
+    ];
+    if (!PUBLIC_QUOTE_PAYMENT_METHODS.includes(paymentMethod)) {
       return invalid(
         "image-skill credits quote",
-        "public credits quote supports --payment-method stripe_checkout",
+        `public credits quote supports --payment-method ${PUBLIC_QUOTE_PAYMENT_METHODS.join(" or ")}`,
       );
     }
     const body = {
@@ -643,10 +647,10 @@ async function credits(argv) {
       return credentialFlag;
     }
     const provider = flagString(args, "provider");
-    if (provider !== "stripe") {
+    if (provider !== "stripe" && provider !== "stripe_x402") {
       return invalid(
         "image-skill credits buy",
-        "credits buy currently supports only --provider stripe",
+        "credits buy supports --provider stripe (hosted checkout) or --provider stripe_x402 (agent-native USDC deposit)",
       );
     }
     const quoteId = flagString(args, "quote-id");
@@ -668,11 +672,15 @@ async function credits(argv) {
     if (!idempotency.ok) {
       return idempotency.result;
     }
+    const purchasePath =
+      provider === "stripe_x402"
+        ? "/v1/credit-purchases/stripe-x402-deposits"
+        : "/v1/credit-purchases/stripe-checkout-sessions";
     const result = await apiRequest({
       command: "image-skill credits buy",
       method: "POST",
       apiBaseUrl: apiBase(args),
-      path: "/v1/credit-purchases/stripe-checkout-sessions",
+      path: purchasePath,
       token: token.token,
       body: {
         quote_id: quoteId,
