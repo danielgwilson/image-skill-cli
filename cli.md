@@ -715,6 +715,27 @@ show fal.ltx-video-13b-distilled --json`. Video runs synchronously through the
 same create call and can take longer than an image; the returned `assets[].url`
 is an owned `video/mp4`.
 
+Generate audio (music, sound) through the same `create` command and
+durable-media loop. Request an audio model by id; the response returns a durable
+owned `audio_...` wav asset URL, a `job_id`, and a `cost.credit_pricing` receipt
+just like an image create. Audio has no aspect ratio, so do not pass
+`--aspect-ratio`.
+
+```bash
+image-skill create \
+  --model fal.stable-audio-25-text-to-audio \
+  --prompt "A warm lo-fi hip-hop loop with vinyl crackle and a mellow Rhodes piano" \
+  --json
+```
+
+`fal.stable-audio-25-text-to-audio` (Stable Audio 2.5) is text-to-audio at a flat
+$0.20/clip (about 34 credits, quoted before spend) and returns an owned
+`audio/wav` clip. The first slice is defaults-only (no tunable
+`model_parameters`); duration/steps controls are a later milestone. Inspect
+parameters, output media type, and cost first with `image-skill models show
+fal.stable-audio-25-text-to-audio --json`. Audio runs synchronously through the
+same create call and can take longer than an image.
+
 For create models with wired reference support, pass owned reference assets
 with the model's advertised reference role. Kling element routes use
 `--element-frontal IMAGE[@ELEMENT_INDEX]` and
@@ -1042,6 +1063,29 @@ Direct `/v1/edit` callers use the same owned-asset contract:
   ]
 }
 ```
+
+Create a 3D asset from an image through the same `edit` command and
+durable-media loop. Image-to-3D is promptless and image-conditioned, so it ships
+as a variation transform: pass exactly one owned input image (no prompt) to a 3D
+model by id and the response returns a durable owned `.glb` mesh asset URL (in
+`assets[].url`), a `job_id`, and a `cost.credit_pricing` receipt. A 3D mesh has
+no aspect ratio.
+
+```bash
+image-skill edit \
+  --input image_... \
+  --model fal.trellis-image-to-3d \
+  --json
+```
+
+`fal.trellis-image-to-3d` (Trellis) is image-to-3D at a flat $0.02/asset (about 4
+credits, quoted before spend) and returns an owned `model/gltf-binary` (`.glb`)
+textured mesh. The first slice is defaults-only (no tunable `model_parameters`);
+guidance/steps/mesh_simplify/texture_size controls are a later milestone. Inspect
+parameters, output media type, and cost first with `image-skill models show
+fal.trellis-image-to-3d --json`. The input must be one Image Skill-owned image;
+3D runs synchronously through the same edit call and can take longer than an
+image.
 
 Preview hosted create/edit supports model-specific provider-backed paths such
 as Fal Gemini 3 Pro Image Preview Create (`fal.gemini-3-pro-image-preview`),

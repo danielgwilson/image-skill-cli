@@ -4,6 +4,22 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.18 - 2026-06-02
+
+- Contract: advertise the now-shipped audio and 3D modalities so registries
+  (skills.sh, npm, the `.well-known` manifest) surface Image Skill for
+  audio/music/sound and 3D/mesh/glb searches. This is a factual capability
+  update — both modalities are live in production via the modality-generic path.
+  Audio (music, sound) generation runs through `create` with
+  `fal.stable-audio-25-text-to-audio` (Stable Audio 2.5), text-to-audio at a flat
+  $0.20/clip, returning a durable owned `audio/wav` URL. 3D asset creation runs
+  through `edit` as a promptless image-to-3D variation transform with
+  `fal.trellis-image-to-3d` (Trellis), at a flat $0.02/asset, returning a durable
+  owned `.glb` (`model/gltf-binary`) mesh URL. The skill/llms.txt frontmatter
+  `description` and the npm package keywords now include audio and 3D. No CLI
+  behavior change beyond the version bump; both modalities are model-id-gated
+  through the existing create/edit surface.
+
 ## 0.1.17 - 2026-06-01
 
 - Money integrity: `create` and `edit` now send `--idempotency-key` to the

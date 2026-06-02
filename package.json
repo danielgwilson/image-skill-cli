@@ -1,7 +1,7 @@
 {
   "name": "image-skill",
-  "version": "0.1.17",
-  "description": "Zero-setup durable creative-media CLI for agents (image + video): guide-first creation, model and cost inspection, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
+  "version": "0.1.18",
+  "description": "Zero-setup durable creative-media CLI for agents (image + video + audio + 3D): guide-first creation, model and cost inspection, owned URLs, JSON recovery, payments, reusable assets, and feedback.",
   "type": "module",
   "private": false,
   "repository": {
@@ -49,6 +49,12 @@
     "credits",
     "video",
     "video-generation",
+    "audio-generation",
+    "text-to-audio",
+    "music-generation",
+    "3d",
+    "image-to-3d",
+    "3d-generation",
     "text-to-image",
     "text-to-video",
     "ai-image",
