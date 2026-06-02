@@ -4,6 +4,17 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.21 - 2026-06-02
+
+- Release: ships the guide auth handoff already present on main to
+  `image-skill@latest`. Fresh agents that run `create --guide` now receive
+  `data.auth_handoff` templates in `auth_required` and `ready_to_create`, so a
+  one-time hosted signup token can be carried through `IMAGE_SKILL_TOKEN` or
+  `--token-stdin` without leaking it or falling back to URL installs.
+- Test: keeps the public trust-packet fixture aligned with the new npm version
+  so the release guard verifies the package, provenance, and CLI version as one
+  contract.
+
 ## 0.1.20 - 2026-06-02
 
 - Fix (funnel): the advertised `signup` usage line omitted the now-required
