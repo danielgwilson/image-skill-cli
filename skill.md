@@ -126,8 +126,9 @@ npx -y image-skill@latest create --guide --prompt "a compact field camera on a s
 
 Read `data.stage`, `data.next_command`, `data.auth_handoff`, and
 `data.mutation`. If the guide returns `auth_required`, run the signup command
-it gives you, store the returned token, then rerun the same guide. If the
-runtime does not inject that token automatically, use
+it gives you; hosted signup saves the restricted token to the public CLI config
+by default, so rerun the same guide normally. If the runtime intentionally uses
+`--no-save --show-token`, store the returned token immediately and use
 `data.auth_handoff.rerun_guide.with_env` or
 `data.auth_handoff.rerun_guide.with_stdin`. If it returns `quota_required`,
 inspect the payment commands it gives you. Prefer a returned browserless
@@ -145,7 +146,7 @@ you need capability details before spending:
 npx -y image-skill@latest doctor
 npx -y image-skill@latest models list --available --operation image.generate
 npx -y image-skill@latest models show openai.gpt-image-2
-npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex --show-token --json
+npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex --json
 npx -y image-skill@latest whoami
 npx -y image-skill@latest usage quota
 npx -y image-skill@latest create --dry-run --prompt "a compact field camera on a stainless workbench"
@@ -196,25 +197,22 @@ image-skill models show openai.gpt-image-2
 image-skill models show openai.gpt-image-1.5
 ```
 
-Bootstrap hosted restricted agent access. Hosted signup returns the raw token
-only when `--show-token` is set, and only once:
+Bootstrap hosted restricted agent access. Hosted signup saves the restricted
+token to the public CLI config by default:
 
 ```bash
 image-skill signup --agent \
   --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME \
-  --show-token \
   --json
 ```
 
-Store the returned token immediately in the agent runtime secret store, then
-use `IMAGE_SKILL_TOKEN` or `--token-stdin` for later hosted commands. Public
-hosted signup does not auto-save auth into the CLI config. `--save` is local-only
-(`--local`) and rejected on the hosted path; `--no-save` remains accepted for
-older instructions. Use `--show-token --no-save` when the runtime has a separate
-secret store and needs the raw token once. If you pass the token explicitly,
-prefer `--token-stdin` over `--token`.
+Later hosted commands can authenticate from that saved config. The raw token is
+returned only when `--show-token` is set, and only once. Use
+`--show-token --no-save` when the runtime has a separate secret store and does
+not want local config. If you pass the token explicitly, prefer `--token-stdin`
+over `--token`.
 The guide returns `data.auth_handoff` with copy-safe env/stdin command
 templates so the token does not need to appear in prompts, logs, issue text, or
 feedback.
@@ -236,10 +234,9 @@ placing the token in command args.
 ## Local Config And Install
 
 Run the published package directly; do not clone private source because a global
-install or default config directory is blocked. Hosted signup does not auto-save
-auth; it returns the token once with `--show-token`. If the runtime also needs a
-writable compatibility config path, set `IMAGE_SKILL_CONFIG_PATH` before
-`signup`:
+install or default config directory is blocked. Hosted signup saves auth to the
+public CLI config by default. If the runtime needs a writable config path, set
+`IMAGE_SKILL_CONFIG_PATH` before `signup`:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/image-skill-config.json"
@@ -247,7 +244,6 @@ npx -y image-skill@latest signup --agent \
   --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME \
-  --show-token \
   --json
 npx -y image-skill@latest whoami
 ```

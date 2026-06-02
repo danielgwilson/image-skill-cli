@@ -28,7 +28,7 @@ const DEFAULT_CONFIG_PATH = join(
   "config.json",
 );
 const SIGNUP_SUGGESTED_COMMAND =
-  "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --show-token --json";
+  "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json";
 const SIGNUP_CONTACT_GUIDANCE =
   "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
 const PUBLIC_NPX_COMMAND_PREFIX = "npx -y image-skill@latest";
@@ -75,7 +75,7 @@ async function main(rawArgv) {
       commands: [
         "doctor",
         "trust",
-        "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME --show-token",
+        "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME",
         "auth status",
         "auth save",
         "auth logout",
@@ -346,20 +346,21 @@ async function signup(argv) {
       },
     );
   }
-  const saveRequested = flagBool(args, "save");
   const showToken = flagBool(args, "show-token");
-  if (saveRequested) {
-    return failure(
+  const noSave = flagBool(args, "no-save");
+  const saveRequested = flagBool(args, "save");
+  if (saveRequested && noSave) {
+    return invalid(
       "image-skill signup",
-      2,
-      "INVALID_ARGUMENTS",
-      "signup --save is not available on the hosted public CLI; use --show-token once and store the token in the agent runtime secret store",
-      false,
-      {
-        suggested_command: SIGNUP_SUGGESTED_COMMAND,
-        docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
-      },
+      "use either --save or --no-save, not both",
     );
+  }
+  const shouldSave = !noSave;
+  if (shouldSave) {
+    const configReady = await assertConfigWritable("image-skill signup");
+    if (!configReady.ok) {
+      return configReady.result;
+    }
   }
   const result = await apiRequest({
     command: "image-skill signup",
@@ -370,7 +371,7 @@ async function signup(argv) {
       agent_contact: contact.value,
       agent_name: agentName,
       runtime,
-      return_token: showToken,
+      return_token: shouldSave || showToken,
     },
   });
   result.envelope.command = "image-skill signup";
@@ -378,9 +379,39 @@ async function signup(argv) {
 
   const token = result.envelope.data?.token;
   const warnings = [...result.envelope.warnings];
+  if (result.envelope.ok && shouldSave) {
+    if (typeof token !== "string" || token.trim().length === 0) {
+      return failure(
+        "image-skill signup",
+        3,
+        "AUTH_REQUIRED",
+        "hosted signup did not return the restricted token needed for local auth save",
+        false,
+        {
+          suggested_command: `${SIGNUP_SUGGESTED_COMMAND} --show-token --no-save`,
+          docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
+        },
+      );
+    }
+    try {
+      await saveConfig({
+        api_base_url: apiBase(args),
+        token: token.trim(),
+        saved_at: new Date().toISOString(),
+        actor: null,
+      });
+    } catch (error) {
+      return configWriteFailure("image-skill signup", error);
+    }
+    warnings.push(
+      "hosted restricted token was saved to the public CLI config with 0600 permissions; later commands can authenticate from config without repeating signup",
+    );
+  }
   if (result.envelope.ok && showToken) {
     warnings.push(
-      "hosted restricted token was returned once because --show-token was set; store it in the agent runtime secret store and use IMAGE_SKILL_TOKEN or --token-stdin for later commands",
+      shouldSave
+        ? "hosted restricted token was also returned once because --show-token was set; keep it out of prompts, logs, issue text, and feedback"
+        : "hosted restricted token was returned once because --show-token --no-save was set; store it in the agent runtime secret store and use IMAGE_SKILL_TOKEN or --token-stdin for later commands",
     );
   }
 
@@ -392,11 +423,21 @@ async function signup(argv) {
       token_presented: showToken,
       storage: {
         ...(publicData.storage ?? {}),
-        saved: false,
-        config_path: null,
-        reason: showToken
-          ? "hosted signup returned the token once for the agent runtime secret store"
-          : "hosted signup did not request a raw token; use --show-token only when the agent can immediately store it in a runtime secret store",
+        saved: shouldSave,
+        config_path: shouldSave ? configPath() : null,
+        reason: shouldSave
+          ? "hosted signup saved the restricted token to the public CLI config for later commands"
+          : showToken
+            ? "hosted signup returned the token once for the agent runtime secret store"
+            : "hosted signup did not request a raw token or save config because --no-save was set",
+      },
+      auth_handoff: {
+        accepted_methods: ["config", "IMAGE_SKILL_TOKEN", "--token-stdin"],
+        token_source_after_signup: shouldSave ? "config" : "not_saved",
+        secret_value_included: showToken,
+        next_step: shouldSave
+          ? "Run whoami, usage quota, feedback create, credits, create, or edit normally; the CLI will read the saved config."
+          : "Store data.token in the agent runtime secret store immediately, then pass it with IMAGE_SKILL_TOKEN or --token-stdin.",
       },
     };
   }
@@ -1335,8 +1376,8 @@ function createGuideAuthHandoff(stage, input) {
       accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
       signup: {
         returns_token_once: true,
-        public_cli_saves_config: false,
-        store_token_in: "agent_runtime_secret_store",
+        public_cli_saves_config: true,
+        store_token_in: "public_cli_config_by_default",
       },
       rerun_guide:
         input.afterNext === null
@@ -1380,7 +1421,7 @@ function createGuideNextCommand(stage, input) {
   if (stage === "auth_required") {
     return renderGuidePrefixedCommand(
       input.commandPrefix,
-      "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --show-token --json",
+      "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --json",
     );
   }
   if (stage === "quota_required") {

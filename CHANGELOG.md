@@ -6,6 +6,13 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+- Fix (activation): hosted `signup --agent` now saves the restricted token to
+  the public CLI config by default with `0600` permissions, while keeping the
+  raw token hidden unless `--show-token` is explicitly requested. Fresh agents
+  can run the guide's signup command, then continue with `whoami`, feedback,
+  credits, create, or edit from saved config instead of juggling a one-time
+  token through shell scope. `--show-token --no-save` remains available for
+  runtimes with their own secret store.
 - Feature (x402 self-fund): `credits buy --provider stripe_x402` now returns
   `stripe_x402.payable_instructions` when Stripe provides a Base crypto deposit
   address. Wallet-equipped agents get the exact USDC amount, atomic units,

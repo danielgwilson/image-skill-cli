@@ -84,18 +84,17 @@ image-skill signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
-  --show-token \
   --json
 ```
 
-Hosted signup returns the raw `isk_r_` token only when `--show-token` is set,
-and only once. Store it immediately in the agent runtime secret store, then use
-`IMAGE_SKILL_TOKEN` or `--token-stdin` for later hosted commands. Public hosted
-signup does not auto-save auth into the CLI config. `--save` is local-only
-(`--local`) and rejected on the hosted path; `--no-save` remains accepted for
-older hosted instructions. Use `--show-token --no-save` when the agent runtime
-has a separate secret store and needs the raw token once. Do not paste tokens
-into prompts, logs, issue text, or feedback.
+Hosted signup saves the restricted `isk_r_` token to the public CLI config by
+default with `0600` permissions, so later hosted commands can authenticate from
+config without repeating signup or carrying a raw token through prompts. Set
+`IMAGE_SKILL_CONFIG_PATH` first when the default config home may be read-only.
+The raw token is returned only when `--show-token` is set, and only once. Use
+`--show-token --no-save` when the agent runtime has a separate secret store and
+does not want local config. Do not paste tokens into prompts, logs, issue text,
+or feedback.
 
 In this preview contract, `--agent-contact` is an email-shaped durable contact
 inbox for the restricted agent identity, not a requirement to find an
@@ -109,7 +108,8 @@ proof runs. `--human-email` remains accepted as a compatibility alias for
 
 If the runtime has a separate secret store, it may provide the token to commands
 as `IMAGE_SKILL_TOKEN`. Keep that value outside prompts, logs, issue text, and
-feedback.
+feedback. Saved config, `IMAGE_SKILL_TOKEN`, and `--token-stdin` are all
+accepted by hosted commands; config is the default fresh-agent path.
 
 If the agent runtime can hand secrets to a command over stdin, avoid exporting
 the token and use `--token-stdin` instead:
@@ -139,9 +139,10 @@ auth or payment state changes. Do not run `doctor`, `models list`, `signup`,
 checklist before the guide asks for them.
 
 - `prompt_required`: rerun `data.next_command` with the real prompt.
-- `auth_required`: run `data.next_command`, store the returned token, then
-  rerun guide once. If the runtime does not automatically inject that token,
-  use `data.auth_handoff.rerun_guide.with_env` or
+- `auth_required`: run `data.next_command`, then rerun guide once. Hosted
+  signup saves auth to config by default. If the runtime intentionally used
+  `--no-save --show-token`, store the returned token and use
+  `data.auth_handoff.rerun_guide.with_env` or
   `data.auth_handoff.rerun_guide.with_stdin`.
 - `quota_required`: follow the payment commands in
   `data.checks.payments.suggested_commands`, then rerun guide once.
@@ -164,9 +165,10 @@ image-skill usage quota
 image-skill create --dry-run --prompt "a compact field camera on a stainless workbench"
 ```
 
-Use `--show-token` for hosted signup only when the runtime can immediately store
-the raw token once. For later commands, prefer `IMAGE_SKILL_TOKEN` or
-`--token-stdin`; both keep tokens out of prompts and shell history.
+Use `--show-token --no-save` for hosted signup only when the runtime can
+immediately store the raw token once outside local config. For later commands,
+saved config is the default; `IMAGE_SKILL_TOKEN` and `--token-stdin` remain
+available for runtimes with a separate secret store.
 `create --guide` also returns `data.auth_handoff` with copy-safe env/stdin
 templates when auth is required or when the returned create command needs the
 same auth context.
@@ -190,9 +192,9 @@ export PATH="$npm_config_prefix/bin:$PATH"
 npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
 ```
 
-Hosted signup does not auto-save auth state; it returns the token once with
-`--show-token`. If the runtime also needs a writable compatibility config path,
-set `IMAGE_SKILL_CONFIG_PATH` before `signup`:
+Hosted signup saves auth state to the public CLI config by default. If the
+runtime needs a writable compatibility config path, set
+`IMAGE_SKILL_CONFIG_PATH` before `signup`:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
@@ -200,7 +202,6 @@ npx -y image-skill@latest signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
-  --show-token \
   --json
 ```
 
