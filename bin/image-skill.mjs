@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.25";
+const VERSION = "0.1.26";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -62,47 +62,16 @@ process.exitCode = result.exitCode;
 async function main(rawArgv) {
   const [command, ...rest] = rawArgv;
 
-  if (
-    command === undefined ||
-    command === "help" ||
-    command === "--help" ||
-    command === "-h"
-  ) {
-    return success("image-skill help", {
-      usage:
-        "image-skill <doctor|trust|signup|auth|whoami|usage|quota|credits|models|capabilities|create|upload|edit|assets|jobs|activity|feedback> --json",
-      docs_url: "https://image-skill.com/cli.md",
-      commands: [
-        "doctor",
-        "trust",
-        "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME",
-        "auth status",
-        "auth save",
-        "auth logout",
-        "whoami",
-        "usage quota",
-        "credits methods",
-        "credits packs list",
-        "credits quote",
-        "credits buy",
-        "credits status",
-        "models list",
-        "models show",
-        "create --guide",
-        "capabilities list",
-        "capabilities show",
-        "create",
-        "upload",
-        "edit",
-        "assets show",
-        "assets get",
-        "jobs show",
-        "jobs wait",
-        "activity list",
-        "activity show",
-        "feedback create",
-      ],
-    });
+  if (command === undefined || command === "--help" || command === "-h") {
+    return publicCliHelp([]);
+  }
+
+  if (command === "help") {
+    return publicCliHelp(helpTarget(rest));
+  }
+
+  if (hasHelpFlag(rest)) {
+    return publicCliHelp(helpTarget([command, ...rest]));
   }
 
   if (command === "version" || command === "--version" || command === "-v") {
@@ -171,6 +140,321 @@ async function main(rawArgv) {
       true,
     );
   }
+}
+
+function publicCliHelp(path) {
+  const key = helpKey(path);
+  const help =
+    commandHelpByKey(key) ?? commandHelpByKey(helpKey(path.slice(0, 1)));
+  if (help === undefined) {
+    return publicCliHelp([]);
+  }
+  return success(help.command, help);
+}
+
+function hasHelpFlag(argv) {
+  return argv.includes("--help") || argv.includes("-h");
+}
+
+function helpTarget(argv) {
+  return argv.filter(
+    (arg) => arg !== "--help" && arg !== "-h" && arg !== "--json",
+  );
+}
+
+function helpKey(path) {
+  const clean = path.filter((arg) => !arg.startsWith("-"));
+  if (clean.length >= 2) {
+    return `${clean[0]} ${clean[1]}`;
+  }
+  return clean[0] ?? "";
+}
+
+function commandHelpByKey(key) {
+  return {
+    "": {
+      command: "image-skill help",
+      usage:
+        "image-skill <doctor|trust|signup|auth|whoami|usage|quota|credits|models|capabilities|create|upload|edit|assets|jobs|activity|feedback> --json",
+      docs_url: "https://image-skill.com/cli.md",
+      commands: [
+        "doctor",
+        "trust",
+        "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME",
+        "auth status",
+        "auth save",
+        "auth logout",
+        "whoami",
+        "usage quota",
+        "credits methods",
+        "credits packs list",
+        "credits quote",
+        "credits buy",
+        "credits status",
+        "models list",
+        "models show",
+        "create --guide",
+        "capabilities list",
+        "capabilities show",
+        "create",
+        "upload",
+        "edit",
+        "assets show",
+        "assets get",
+        "jobs show",
+        "jobs wait",
+        "activity list",
+        "activity show",
+        "feedback create",
+      ],
+    },
+    doctor: {
+      command: "image-skill doctor help",
+      usage: "image-skill doctor --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-doctor",
+      description:
+        "Check hosted API reachability, CLI version, auth state, and health.",
+    },
+    trust: {
+      command: "image-skill trust help",
+      usage: "image-skill trust --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-trust",
+      description:
+        "Return npm provenance, hosted contract hashes, API health, and model availability evidence.",
+    },
+    signup: {
+      command: "image-skill signup help",
+      usage:
+        "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
+      required_flags: [
+        "--agent",
+        "--agent-contact",
+        "--agent-name",
+        "--runtime",
+      ],
+      optional_flags: ["--show-token", "--no-save", "--token-stdin"],
+    },
+    auth: {
+      command: "image-skill auth help",
+      usage: "image-skill auth <status|save|logout> --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-auth",
+      subcommands: ["status", "save", "logout"],
+    },
+    "auth status": {
+      command: "image-skill auth status help",
+      usage: "image-skill auth status --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-auth",
+    },
+    "auth save": {
+      command: "image-skill auth save help",
+      usage: "image-skill auth save --token-stdin --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-auth",
+    },
+    "auth logout": {
+      command: "image-skill auth logout help",
+      usage: "image-skill auth logout --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-auth",
+    },
+    whoami: {
+      command: "image-skill whoami help",
+      usage: "image-skill whoami --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-whoami",
+    },
+    usage: {
+      command: "image-skill usage help",
+      usage: "image-skill usage quota --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-usage",
+      subcommands: ["quota"],
+    },
+    "usage quota": {
+      command: "image-skill usage quota help",
+      usage: "image-skill usage quota --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-usage",
+    },
+    quota: {
+      command: "image-skill quota help",
+      usage: "image-skill quota --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-quota",
+    },
+    credits: {
+      command: "image-skill credits help",
+      usage: "image-skill credits <methods|packs list|quote|buy|status> --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-credits",
+      subcommands: ["methods", "packs list", "quote", "buy", "status"],
+    },
+    "credits methods": {
+      command: "image-skill credits methods help",
+      usage: "image-skill credits methods --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-credits",
+    },
+    "credits packs": {
+      command: "image-skill credits packs help",
+      usage: "image-skill credits packs list --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-credits",
+      subcommands: ["list"],
+    },
+    "credits quote": {
+      command: "image-skill credits quote help",
+      usage:
+        "image-skill credits quote --pack PACK_ID --payment-method stripe_x402.exact.usdc --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-credits",
+      required_flags: ["--pack or --credits"],
+      optional_flags: ["--payment-method", "--idempotency-key"],
+    },
+    "credits buy": {
+      command: "image-skill credits buy help",
+      usage:
+        "image-skill credits buy --provider stripe_x402 --quote-id QUOTE_ID --idempotency-key KEY --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-credits",
+      required_flags: ["--provider", "--quote-id", "--idempotency-key"],
+      supported_providers: ["stripe", "stripe_x402"],
+    },
+    "credits status": {
+      command: "image-skill credits status help",
+      usage:
+        "image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-credits",
+      required_flags: ["--payment-attempt-id"],
+    },
+    models: {
+      command: "image-skill models help",
+      usage: "image-skill models <list|show> --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-models",
+      subcommands: ["list", "show"],
+    },
+    "models list": {
+      command: "image-skill models list help",
+      usage:
+        "image-skill models list --available --operation image.generate --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-models",
+    },
+    "models show": {
+      command: "image-skill models show help",
+      usage: "image-skill models show MODEL_ID --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-models",
+    },
+    capabilities: {
+      command: "image-skill capabilities help",
+      usage: "image-skill capabilities <list|show> --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-capabilities",
+      subcommands: ["list", "show"],
+    },
+    "capabilities list": {
+      command: "image-skill capabilities list help",
+      usage: "image-skill capabilities list --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-capabilities",
+    },
+    "capabilities show": {
+      command: "image-skill capabilities show help",
+      usage: "image-skill capabilities show CAPABILITY_ID --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-capabilities",
+    },
+    create: {
+      command: "image-skill create help",
+      usage:
+        'image-skill create --prompt "..." --intent explore --max-estimated-usd-per-image 0.07 --json',
+      docs_url: "https://image-skill.com/cli.md#image-skill-create",
+      optional_flags: [
+        "--guide",
+        "--dry-run",
+        "--model",
+        "--aspect-ratio",
+        "--output-count",
+        "--model-parameters-json",
+        "--idempotency-key",
+      ],
+    },
+    upload: {
+      command: "image-skill upload help",
+      usage: "image-skill upload PATH_OR_URL --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-upload",
+    },
+    edit: {
+      command: "image-skill edit help",
+      usage: 'image-skill edit --input image_... --prompt "..." --json',
+      docs_url: "https://image-skill.com/cli.md#image-skill-edit",
+      required_flags: ["--input"],
+      optional_flags: [
+        "--prompt",
+        "--model",
+        "--mask",
+        "--element-reference",
+        "--model-parameters-json",
+        "--idempotency-key",
+      ],
+    },
+    assets: {
+      command: "image-skill assets help",
+      usage: "image-skill assets <show|get> ASSET_ID_OR_URL --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-assets",
+      subcommands: ["show", "get"],
+    },
+    "assets show": {
+      command: "image-skill assets show help",
+      usage: "image-skill assets show ASSET_ID_OR_URL --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-assets",
+    },
+    "assets get": {
+      command: "image-skill assets get help",
+      usage: "image-skill assets get ASSET_ID_OR_URL --output PATH --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-assets",
+    },
+    jobs: {
+      command: "image-skill jobs help",
+      usage: "image-skill jobs <show|wait> JOB_ID --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-jobs",
+      subcommands: ["show", "wait"],
+    },
+    "jobs show": {
+      command: "image-skill jobs show help",
+      usage: "image-skill jobs show JOB_ID --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-jobs",
+    },
+    "jobs wait": {
+      command: "image-skill jobs wait help",
+      usage: "image-skill jobs wait JOB_ID --timeout-ms 30000 --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-jobs",
+    },
+    activity: {
+      command: "image-skill activity help",
+      usage: "image-skill activity <list|show> --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-activity",
+      subcommands: ["list", "show"],
+    },
+    "activity list": {
+      command: "image-skill activity list help",
+      usage: "image-skill activity list --subject JOB_ID --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-activity",
+    },
+    "activity show": {
+      command: "image-skill activity show help",
+      usage: "image-skill activity show REFERENCE --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-activity",
+    },
+    feedback: {
+      command: "image-skill feedback help",
+      usage: "image-skill feedback create --title TITLE --body BODY --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-feedback",
+      subcommands: ["create"],
+    },
+    "feedback create": {
+      command: "image-skill feedback create help",
+      usage:
+        "image-skill feedback create --title TITLE --body BODY --type user_feedback --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-feedback",
+      optional_flags: [
+        "--title",
+        "--body",
+        "--type",
+        "--severity",
+        "--confidence",
+        "--expected",
+        "--actual",
+        "--command",
+      ],
+    },
+  }[key];
 }
 
 async function doctor(argv) {

@@ -6,6 +6,13 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.26 - 2026-06-02
+
+- Fix (activation): public CLI subcommand help flags now return command help
+  instead of `INVALID_ARGUMENTS`. Fresh agents can run `signup --help`,
+  `credits buy --help`, `models show --help`, or similar discovery commands
+  without triggering auth, network, payment, or config validation.
+
 ## 0.1.25 - 2026-06-02
 
 - Fix (activation): `create --guide` now probes whether the public CLI auth
