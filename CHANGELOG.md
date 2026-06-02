@@ -6,6 +6,15 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+- Feature (discoverability): publish intent-named public skill aliases
+  (`ai-image-generation`, `image-edit`, `ai-video-generation`,
+  `ai-audio-generation`, `image-to-3d`, and `creative-media`) from the public
+  mirror and hosted `.well-known/agent-skills` index. Each alias points to the
+  same zero-setup Image Skill runtime, CLI/API contract, identity, wallet, jobs,
+  receipts, and feedback loop as the canonical `image-skill` skill, giving
+  skills.sh task searches literal skill names to index without fragmenting the
+  product.
+
 ## 0.1.27 - 2026-06-02
 
 - Fix (activation): default hosted signup now reports saved auth as a positive

@@ -15,6 +15,18 @@ discoverable on skills.sh:
 npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
 ```
 
+Intent-named aliases are published from the same repo and point to the same
+zero-setup runtime when an agent searches by task instead of brand:
+
+```bash
+npx skills add danielgwilson/image-skill-cli --skill ai-image-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --skill image-edit -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --skill ai-video-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --skill ai-audio-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --skill image-to-3d -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --skill creative-media -g -a codex -y
+```
+
 Or install straight from the hosted public contract for the always-latest build:
 
 ```bash
@@ -56,6 +68,7 @@ Agent-facing contracts:
 - [Hosted LLM contract](https://image-skill.com/llms.txt)
 - [Hosted CLI contract](https://image-skill.com/cli.md)
 - [Public repo skill source](https://github.com/danielgwilson/image-skill-cli/tree/main/skills/image-skill)
+- [Intent skill aliases](https://github.com/danielgwilson/image-skill-cli/tree/main/skills)
 - [Changelog](https://github.com/danielgwilson/image-skill-cli/blob/main/CHANGELOG.md)
 - [Provenance](https://github.com/danielgwilson/image-skill-cli/blob/main/PROVENANCE.md)
 
