@@ -1175,10 +1175,15 @@ function createGuidePaymentSummary(data) {
   const browserlessMethods = availableMethods.filter(
     (method) => method.requires_browser === false,
   );
-  const agentPayableMethods = browserlessMethods.filter((method) =>
-    (method.buyer_modes ?? []).some(
-      (mode) => mode === "agent_only" || mode === "hybrid",
-    ),
+  const agentPayableMethods = browserlessMethods.filter(
+    (method) =>
+      method.agent_settleable === true &&
+      (method.buyer_modes ?? []).some(
+        (mode) => mode === "agent_only" || mode === "hybrid",
+      ),
+  );
+  const agentInitiatedMethods = availableMethods.filter(
+    (method) => method.agent_initiated === true,
   );
   const humanHandoffMethods = availableMethods.filter(
     (method) =>
@@ -1186,7 +1191,10 @@ function createGuidePaymentSummary(data) {
       (method.buyer_modes ?? []).some((mode) => mode === "human_only"),
   );
   const preferredMethod =
-    agentPayableMethods[0] ?? browserlessMethods[0] ?? availableMethods[0];
+    agentPayableMethods[0] ??
+    humanHandoffMethods[0] ??
+    browserlessMethods[0] ??
+    availableMethods[0];
   return {
     checked: data !== null && typeof data === "object",
     live_money_methods: availableMethods.map((method) => method.method_id),
@@ -1194,7 +1202,13 @@ function createGuidePaymentSummary(data) {
       availableMethods.length > 0 &&
       availableMethods.every((method) => method.requires_browser === true),
     browserless_methods: browserlessMethods.map((method) => method.method_id),
+    agent_initiated_methods: agentInitiatedMethods.map(
+      (method) => method.method_id,
+    ),
     agent_payable_methods: agentPayableMethods.map(
+      (method) => method.method_id,
+    ),
+    agent_settleable_methods: agentPayableMethods.map(
       (method) => method.method_id,
     ),
     human_handoff_methods: humanHandoffMethods.map(

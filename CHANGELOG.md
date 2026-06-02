@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## Unreleased
+
+- Fix (payment readiness): `credits methods --json`, `create --guide`, public
+  skill docs, and the scoreboard now distinguish `agent_initiated` from
+  `agent_settleable`. A redacted browserless x402 deposit attempt is no longer
+  treated as autonomous self-fund ready unless the hosted catalog explicitly
+  reports `agent_settleable:true`; until then the guide prefers the Stripe
+  Checkout path that can actually be completed.
+
 ## 0.1.23 - 2026-06-02
 
 - Fix (guide payments): `create --guide` now distinguishes browserless,

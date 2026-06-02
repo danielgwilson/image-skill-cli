@@ -264,6 +264,9 @@ Minimum success data shape:
       "live_money": true,
       "buyer_modes": ["hybrid", "human_only"],
       "requires_browser": true,
+      "agent_initiated": true,
+      "agent_settleable": false,
+      "settlement_blocker": "requires human browser checkout completion",
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-checkout-sessions"
     },
@@ -276,6 +279,9 @@ Minimum success data shape:
       "live_money": true,
       "buyer_modes": ["agent_only", "hybrid"],
       "requires_browser": false,
+      "agent_initiated": true,
+      "agent_settleable": false,
+      "settlement_blocker": "stripe_x402 creates a live redacted crypto deposit attempt, but the public response does not yet include wallet-payable settlement instructions",
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-x402-deposits"
     }
@@ -299,11 +305,12 @@ curl -sS https://api.image-skill.com/v1/payment-methods
 
 Lists the recommended Image Skill credit packs. Packs are the default
 live-money buying UX because agents get obvious starter choices and avoid tiny
-fee traps. Use the payment method catalog to choose the rail: browserless
-`stripe_x402.exact.usdc` when it is available for agent self-funding, or
-`stripe_checkout` when a human sponsor needs a Checkout handoff. Exact custom
-quotes are still supported when an agent already knows the required credit
-budget.
+fee traps. Use the payment method catalog to choose the rail:
+`stripe_checkout` when a human sponsor can complete Checkout, or
+`stripe_x402.exact.usdc` when an agent is only creating a browserless live
+crypto deposit attempt to be settled by an external wallet/payment substrate.
+Exact custom quotes are still supported when an agent already knows the
+required credit budget.
 
 ```bash
 image-skill credits packs list --json
@@ -343,10 +350,9 @@ curl -sS https://api.image-skill.com/v1/credit-packs
 ### `image-skill credits quote`
 
 Requests a bounded credit quote from the hosted service. Public top-ups use the
-payment method returned by `credits methods --json`: `stripe_x402.exact.usdc`
-for browserless agent self-funding when it is available, or
-`stripe_checkout` for the human Checkout fallback. A quote never grants
-credits.
+payment method returned by `credits methods --json`: `stripe_checkout` for the
+human Checkout path, or `stripe_x402.exact.usdc` for a browserless
+action-required deposit attempt. A quote never grants credits.
 One Image Skill credit is a stable user-facing value unit worth `$0.01`.
 Creative operations can consume more than one credit based on the selected
 model's provider cost and Image Skill's margin policy; inspect
@@ -422,8 +428,8 @@ Minimum success data:
 ```
 
 For x402 quotes, `accepted_payment_method` is
-`"stripe_x402.exact.usdc"` and the response includes redacted
-`quote.x402` metadata for the agent-payable deposit flow.
+`"stripe_x402.exact.usdc"`. The quote does not include wallet-payable
+settlement instructions.
 
 Hosted API equivalent:
 
@@ -440,12 +446,14 @@ Creates a payment action for a previously returned quote. Choose the provider
 that matches the quote's `accepted_payment_method`.
 
 For a `stripe_x402.exact.usdc` quote, `--provider stripe_x402` creates a
-browserless agent-payable USDC deposit challenge. The response is live money
-when `live_money:true`; credits are granted only after verified settlement and
-webhook fulfillment succeeds. Deposit challenge creation itself must not mutate
-credit balances. Stay within the delegated cap and never pass wallet private
-keys, seed phrases, x402 payment headers, deposit client secrets, or provider
-receipts to Image Skill.
+browserless action-required USDC deposit attempt. The response is live money
+when `live_money:true`, but the public response intentionally redacts
+wallet-payable Stripe deposit instructions today, so it is not by itself an
+autonomous self-settlement path. Credits are granted only after verified
+settlement and webhook fulfillment succeeds. Deposit challenge creation itself
+must not mutate credit balances. Stay within the delegated cap and never pass
+wallet private keys, seed phrases, x402 payment headers, deposit client
+secrets, or provider receipts to Image Skill.
 
 ```bash
 image-skill credits buy \
