@@ -4,6 +4,19 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.22 - 2026-06-02
+
+- Fix (guide): `create --guide` now reports `cost.estimated_usd_per_image` as
+  the actual Image Skill credit debit dollars, matching `estimated_credits`.
+  The guide still exposes the upstream provider estimate separately as
+  `estimated_provider_usd_per_image`, so agents no longer see a confusing
+  "17 credits but $0.10" first-run cost mismatch.
+- Fix (payment discovery): `credits methods --json` and
+  `credits packs list --json` now tolerate `--token` / `--token-stdin`.
+  Fresh agents that safely carry their signup token through stdin can inspect
+  payment rails without hitting an unsupported-flag dead end; the token is
+  drained and not forwarded to the no-auth discovery endpoint.
+
 ## 0.1.21 - 2026-06-02
 
 - Release: ships the guide auth handoff already present on main to
