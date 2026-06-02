@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.19";
+const VERSION = "0.1.20";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -74,7 +74,7 @@ async function main(rawArgv) {
       commands: [
         "doctor",
         "trust",
-        "signup --agent --agent-contact --show-token",
+        "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME --show-token",
         "auth status",
         "auth save",
         "auth logout",

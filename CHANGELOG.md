@@ -4,6 +4,22 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.20 - 2026-06-02
+
+- Fix (funnel): the advertised `signup` usage line omitted the now-required
+  `--agent-name` and `--runtime` flags, so a cold agent's first signup always
+  stumbled before self-correcting via the recovery envelope. The top-level help
+  now advertises the full required flag set, so a first signup with the
+  advertised flags succeeds.
+- Fix (funnel): the live create/edit receipt reported `cost.estimated_usd: null`
+  while the dry-run/plan receipt populated it. The live receipt now derives
+  `estimated_usd` from the same reservation credit-pricing the plan used, so plan
+  and execution agree (a provider-reported concrete value still wins when
+  present).
+- Test: added a fault-injection test that forces the hosted provider to 5xx and
+  asserts the error envelope carries `recovery.idempotency_key` +
+  `suggested_command`, then proves a same-key retry replays and charges once.
+
 ## 0.1.19 - 2026-06-02
 
 - Fix: the two newly-shipped modalities were broken on live prod despite green
