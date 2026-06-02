@@ -6,6 +6,12 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+- Feature (x402 self-fund): `credits buy --provider stripe_x402` now returns
+  `stripe_x402.payable_instructions` when Stripe provides a Base crypto deposit
+  address. Wallet-equipped agents get the exact USDC amount, atomic units,
+  Base deposit address, optional token contract, expiry, and exact-amount flag
+  needed to settle without a browser; Stripe PaymentIntent ids and client
+  secrets remain redacted.
 - Fix (payment readiness): `credits methods --json`, `create --guide`, public
   skill docs, and the scoreboard now distinguish `agent_initiated` from
   `agent_settleable`. A redacted browserless x402 deposit attempt is no longer

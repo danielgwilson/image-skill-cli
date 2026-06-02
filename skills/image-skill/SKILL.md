@@ -26,9 +26,10 @@ one next command, and get back a durable owned URL when the guide reaches
 create/edit. If the guide needs a restricted agent identity first, it returns
 the signup command. When real spend is needed, inspect `credits methods --json`:
 if `stripe_x402.exact.usdc` is returned with `available:true`,
-`quoteable:true`, `purchasable:true`, and `requires_browser:false`, the agent
-can create a browserless live x402 deposit attempt; today that public response
-is still redacted and requires an external wallet/payment substrate to settle.
+`quoteable:true`, `purchasable:true`, `requires_browser:false`, and
+`agent_settleable:true`, the agent can create a browserless live x402 deposit
+attempt and pay the returned exact Base/USDC `payable_instructions` from a
+wallet substrate it controls.
 If no `agent_settleable:true` rail is available, hand the Stripe Checkout link
 to a human sponsor.
 
@@ -305,12 +306,13 @@ browserless agent-initiated rail is `stripe_x402.exact.usdc`: quote it with
 `--payment-method stripe_x402.exact.usdc`, then create the action-required
 deposit attempt with `credits buy --provider stripe_x402 --quote-id QUOTE_ID
 --idempotency-key KEY --json`. The x402 buy response is live money when
-`live_money:true`; it returns a redacted Stripe crypto deposit challenge and
-does not grant credits until verified settlement/webhook fulfillment succeeds.
-Treat it as `agent_initiated:true` but not `agent_settleable:true` unless the
-payment method catalog says otherwise.
+`live_money:true`; when `credits methods --json` returns the rail with
+`agent_settleable:true`, the buy response includes
+`stripe_x402.payable_instructions.deposit_address`, `token_amount_atomic`, and
+the related Base/USDC pay-to fields needed by a wallet-equipped agent. It does
+not grant credits until verified settlement/webhook fulfillment succeeds.
 Do not send wallet private keys, seed phrases, x402 payment headers, deposit
-client secrets, or provider receipts to Image Skill.
+client secrets, card data, Stripe secrets, or provider receipts to Image Skill.
 
 Stripe Checkout remains the human fallback. For a `stripe_checkout` quote,
 `credits buy --provider stripe --quote-id QUOTE_ID --idempotency-key KEY
@@ -635,8 +637,9 @@ closed if durable hosted feedback storage is unavailable.
 - When `credits methods --json` returns `stripe_x402.exact.usdc` with
   `available:true`, `quoteable:true`, `purchasable:true`, and
   `requires_browser:false`, it can create a browserless live deposit attempt.
-  Do not treat it as autonomously settleable unless the same method reports
-  `agent_settleable:true`.
+  Treat it as autonomously settleable only when the same method reports
+  `agent_settleable:true`; then `credits buy --provider stripe_x402` returns
+  `stripe_x402.payable_instructions` with the exact Base/USDC pay-to fields.
 - Use `credits quote --pack PACK_ID --payment-method stripe_checkout --json`
   for the human Stripe Checkout fallback.
 - Use `credits quote --credits CREDITS --payment-method stripe_checkout

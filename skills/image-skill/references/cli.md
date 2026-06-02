@@ -280,8 +280,8 @@ Minimum success data shape:
       "buyer_modes": ["agent_only", "hybrid"],
       "requires_browser": false,
       "agent_initiated": true,
-      "agent_settleable": false,
-      "settlement_blocker": "stripe_x402 creates a live redacted crypto deposit attempt, but the public response does not yet include wallet-payable settlement instructions",
+      "agent_settleable": true,
+      "settlement_blocker": null,
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-x402-deposits"
     }
@@ -307,8 +307,8 @@ Lists the recommended Image Skill credit packs. Packs are the default
 live-money buying UX because agents get obvious starter choices and avoid tiny
 fee traps. Use the payment method catalog to choose the rail:
 `stripe_checkout` when a human sponsor can complete Checkout, or
-`stripe_x402.exact.usdc` when an agent is only creating a browserless live
-crypto deposit attempt to be settled by an external wallet/payment substrate.
+`stripe_x402.exact.usdc` when a wallet-equipped agent can settle a browserless
+live crypto deposit attempt from returned pay-to instructions.
 Exact custom quotes are still supported when an agent already knows the
 required credit budget.
 
@@ -428,8 +428,9 @@ Minimum success data:
 ```
 
 For x402 quotes, `accepted_payment_method` is
-`"stripe_x402.exact.usdc"`. The quote does not include wallet-payable
-settlement instructions.
+`"stripe_x402.exact.usdc"`. The quote does not grant credits or include pay-to
+instructions; `credits buy --provider stripe_x402` creates the action-required
+deposit challenge.
 
 Hosted API equivalent:
 
@@ -446,14 +447,14 @@ Creates a payment action for a previously returned quote. Choose the provider
 that matches the quote's `accepted_payment_method`.
 
 For a `stripe_x402.exact.usdc` quote, `--provider stripe_x402` creates a
-browserless action-required USDC deposit attempt. The response is live money
-when `live_money:true`, but the public response intentionally redacts
-wallet-payable Stripe deposit instructions today, so it is not by itself an
-autonomous self-settlement path. Credits are granted only after verified
+browserless action-required USDC deposit attempt. When the response includes
+`stripe_x402.payable_instructions`, a wallet-equipped agent may pay the exact
+USDC amount to `deposit_address` on Base without using a browser. The response
+is live money when `live_money:true`. Credits are granted only after verified
 settlement and webhook fulfillment succeeds. Deposit challenge creation itself
 must not mutate credit balances. Stay within the delegated cap and never pass
 wallet private keys, seed phrases, x402 payment headers, deposit client
-secrets, or provider receipts to Image Skill.
+secrets, card data, Stripe secrets, or provider receipts to Image Skill.
 
 ```bash
 image-skill credits buy \
@@ -482,6 +483,21 @@ Minimum x402 action-required data:
     "network": "base",
     "token_currency": "usdc",
     "deposit_address_present": true,
+    "payable_instructions": {
+      "kind": "stripe_crypto_deposit",
+      "network": "base",
+      "token_currency": "usdc",
+      "token_decimals": 6,
+      "token_amount": "5.00",
+      "token_amount_atomic": "5000000",
+      "amount_cents": 500,
+      "amount_usd": "5.00",
+      "deposit_address": "0x...",
+      "token_contract_address": "0x...",
+      "supported_token_currencies": ["usdc"],
+      "expires_at": "2026-05-08T20:00:00.000Z",
+      "exact_amount_required": true
+    },
     "redacted": {
       "payment_intent_id": "[redacted-stripe-payment-intent]",
       "deposit_address": "[redacted-stripe-crypto-deposit-address]",
