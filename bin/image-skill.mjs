@@ -548,7 +548,8 @@ async function credits(argv) {
   if (subcommand === "methods") {
     const args = parseArgs(rest);
     const unknownFlags = [...args.flags.keys()].filter(
-      (flag) => !["json", "api-base-url"].includes(flag),
+      (flag) =>
+        !["json", "api-base-url", "token", "token-stdin"].includes(flag),
     );
     if (!flagBool(args, "json")) {
       return invalid(
@@ -563,6 +564,13 @@ async function credits(argv) {
           ? `unsupported flags for credits methods: ${unknownFlags.map((flag) => `--${flag}`).join(", ")}`
           : "credits methods does not accept positional arguments",
       );
+    }
+    const tokenHandoff = await acceptNoAuthTokenHandoff(
+      args,
+      "image-skill credits methods",
+    );
+    if (tokenHandoff !== null) {
+      return tokenHandoff;
     }
     return apiRequest({
       command: "image-skill credits methods",
@@ -580,6 +588,25 @@ async function credits(argv) {
       );
     }
     const args = parseArgs(packsRest);
+    const unknownFlags = [...args.flags.keys()].filter(
+      (flag) =>
+        !["json", "api-base-url", "token", "token-stdin"].includes(flag),
+    );
+    if (args.positionals.length > 0 || unknownFlags.length > 0) {
+      return invalid(
+        "image-skill credits packs list",
+        unknownFlags.length > 0
+          ? `unsupported flags for credits packs list: ${unknownFlags.map((flag) => `--${flag}`).join(", ")}`
+          : "credits packs list does not accept positional arguments",
+      );
+    }
+    const tokenHandoff = await acceptNoAuthTokenHandoff(
+      args,
+      "image-skill credits packs list",
+    );
+    if (tokenHandoff !== null) {
+      return tokenHandoff;
+    }
     return apiRequest({
       command: "image-skill credits packs list",
       method: "GET",
@@ -718,6 +745,33 @@ async function credits(argv) {
     "image-skill credits",
     "credits requires methods, packs, quote, buy, or status",
   );
+}
+
+async function acceptNoAuthTokenHandoff(args, command) {
+  const tokenValues = args.flags.get("token");
+  if (tokenValues !== undefined && typeof tokenValues.at(-1) !== "string") {
+    return invalid(command, "token requires a value");
+  }
+  if (flagBool(args, "token-stdin") && tokenValues !== undefined) {
+    return invalid(command, "use either --token or --token-stdin, not both");
+  }
+  if (!flagBool(args, "token-stdin")) {
+    return null;
+  }
+  if (process.stdin.isTTY) {
+    return invalid(command, "--token-stdin requires a token piped on stdin");
+  }
+  const token = (await readStdin()).trim();
+  if (token.length === 0) {
+    return failure(
+      command,
+      3,
+      "AUTH_REQUIRED",
+      "--token-stdin received empty stdin",
+      false,
+    );
+  }
+  return null;
 }
 
 async function models(argv) {
