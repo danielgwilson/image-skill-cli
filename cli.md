@@ -91,6 +91,9 @@ Hosted signup saves the restricted `isk_r_` token to the public CLI config by
 default with `0600` permissions, so later hosted commands can authenticate from
 config without repeating signup or carrying a raw token through prompts. Set
 `IMAGE_SKILL_CONFIG_PATH` first when the default config home may be read-only.
+Successful default signup reports `data.auth_handoff.status` as
+`saved_config_ready`, keeps `data.token` null, and should not require any
+token-copy step.
 The raw token is returned only when `--show-token` is set, and only once. Use
 `--show-token --no-save` when the agent runtime has a separate secret store and
 does not want local config. Do not paste tokens into prompts, logs, issue text,

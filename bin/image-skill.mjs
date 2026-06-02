@@ -31,6 +31,8 @@ const SIGNUP_SUGGESTED_COMMAND =
   "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json";
 const SIGNUP_CONTACT_GUIDANCE =
   "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
+const HOSTED_SIGNUP_TOKEN_RETURNED_WARNING =
+  "hosted restricted token is returned once; store it in the agent runtime secret store and never paste it into prompts, logs, issues, or product feedback";
 const PUBLIC_NPX_COMMAND_PREFIX = "npx -y image-skill@latest";
 const CREDIT_UNIT_USD = 0.01;
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
@@ -662,7 +664,9 @@ async function signup(argv) {
   rewriteSignupContactFailure(result);
 
   const token = result.envelope.data?.token;
-  const warnings = [...result.envelope.warnings];
+  const warnings = result.envelope.warnings.filter(
+    (warning) => warning !== HOSTED_SIGNUP_TOKEN_RETURNED_WARNING,
+  );
   if (result.envelope.ok && shouldSave) {
     if (typeof token !== "string" || token.trim().length === 0) {
       return failure(
@@ -687,9 +691,6 @@ async function signup(argv) {
     } catch (error) {
       return configWriteFailure("image-skill signup", error);
     }
-    warnings.push(
-      "hosted restricted token was saved to the public CLI config with 0600 permissions; later commands can authenticate from config without repeating signup",
-    );
   }
   if (result.envelope.ok && showToken) {
     warnings.push(
@@ -710,15 +711,25 @@ async function signup(argv) {
         saved: shouldSave,
         config_path: shouldSave ? configPath() : null,
         reason: shouldSave
-          ? "hosted signup saved the restricted token to the public CLI config for later commands"
+          ? "auth is ready in the public CLI config; no raw token copy step is required"
           : showToken
             ? "hosted signup returned the token once for the agent runtime secret store"
             : "hosted signup did not request a raw token or save config because --no-save was set",
       },
       auth_handoff: {
+        status: shouldSave
+          ? "saved_config_ready"
+          : showToken
+            ? "manual_token_handoff"
+            : "not_saved",
+        saved_auth_ready: shouldSave,
         accepted_methods: ["config", "IMAGE_SKILL_TOKEN", "--token-stdin"],
         token_source_after_signup: shouldSave ? "config" : "not_saved",
         secret_value_included: showToken,
+        raw_token_copy_required: !shouldSave,
+        rerun_guide_hint: shouldSave
+          ? "Rerun the guide command you just ran; the CLI will authenticate from saved config."
+          : "Rerun the guide with IMAGE_SKILL_TOKEN or --token-stdin after storing the returned token.",
         next_step: shouldSave
           ? "Run whoami, usage quota, feedback create, credits, create, or edit normally; the CLI will read the saved config."
           : "Store data.token in the agent runtime secret store immediately, then pass it with IMAGE_SKILL_TOKEN or --token-stdin.",
