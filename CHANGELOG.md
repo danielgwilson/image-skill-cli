@@ -4,6 +4,26 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.19 - 2026-06-02
+
+- Fix: the two newly-shipped modalities were broken on live prod despite green
+  unit tests. Audio (`fal.stable-audio-25-text-to-audio`) failed server-side
+  with `PROVIDER_FAILURE` "fal audio queue status returned HTTP 405" — the Fal
+  queue status/result poll appended `requests/<id>` to the full sub-pathed model
+  id, but Fal keys those endpoints by the app id only (`fal-ai/stable-audio-25`,
+  sub-path dropped), so the poll 405'd. The queue runner now prefers the absolute
+  `status_url`/`response_url` Fal returns and falls back to the app-level base.
+  Video and Trellis (no sub-path) are unaffected.
+- Fix: the documented promptless image-to-3D edit `image-skill edit --input
+image_... --model fal.trellis-image-to-3d --json` (no `--prompt`) was
+  unreachable — the edit validator required `--prompt` while the provider
+  rejected any prompt. The public CLI bin (and the server) now treat Trellis as
+  promptless: no `--prompt` is required and none is sent.
+- Fix: a failed edit's `PROVIDER_FAILURE` recovery `suggested_command` now
+  preserves `--input` and `--model` so the advertised retry is runnable verbatim
+  (it previously collapsed to a bare `image-skill edit --idempotency-key ...`
+  that failed "edit requires --input").
+
 ## 0.1.18 - 2026-06-02
 
 - Contract: advertise the now-shipped audio and 3D modalities so registries

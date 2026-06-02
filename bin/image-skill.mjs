@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.18";
+const VERSION = "0.1.19";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -17,6 +17,10 @@ const PROMPTLESS_EDIT_MODEL_IDS = new Set([
   "fal.flux-dev-redux",
   "fal.flux-krea-redux",
   "fal.flux-schnell-redux",
+  // Promptless image-to-3D variation: the documented `image-skill edit --input
+  // image_... --model fal.trellis-image-to-3d` (no --prompt) must succeed; the
+  // provider rejects any prompt, so the public CLI must not require/send one.
+  "fal.trellis-image-to-3d",
 ]);
 const DEFAULT_CONFIG_PATH = join(
   process.env.XDG_CONFIG_HOME ?? join(os.homedir(), ".config"),
