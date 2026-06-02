@@ -6,6 +6,8 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.24 - 2026-06-02
+
 - Fix (activation): hosted `signup --agent` now saves the restricted token to
   the public CLI config by default with `0600` permissions, while keeping the
   raw token hidden unless `--show-token` is explicitly requested. Fresh agents
