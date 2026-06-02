@@ -32,6 +32,7 @@ const SIGNUP_SUGGESTED_COMMAND =
 const SIGNUP_CONTACT_GUIDANCE =
   "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
 const PUBLIC_NPX_COMMAND_PREFIX = "npx -y image-skill@latest";
+const CREDIT_UNIT_USD = 0.01;
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
   "payment-token",
   "payment-secret",
@@ -863,6 +864,10 @@ async function createGuide(args) {
   const requestedModelId = flagString(args, "model");
   const requestedProviderId = flagString(args, "provider");
   const requestedIntent = flagString(args, "intent") ?? "explore";
+  const maxEstimatedUsdPerImage = flagNumber(
+    args,
+    "max-estimated-usd-per-image",
+  );
   const health = await apiRequest({
     command: "image-skill create --guide",
     method: "GET",
@@ -888,16 +893,22 @@ async function createGuide(args) {
 
   const selected =
     models.envelope.ok && models.envelope.data?.models
-      ? selectCreateGuideModel(models.envelope.data.models, requestedModelId)
+      ? selectCreateGuideModel(models.envelope.data.models, requestedModelId, {
+          maxEstimatedUsdPerImage,
+        })
       : null;
   const pricing = selected?.economics?.credit_pricing ?? null;
   const estimatedCredits = pricing?.credits_required ?? null;
-  const estimatedUsdPerImage =
+  const estimatedProviderUsdPerImage =
     selected?.economics?.estimated_usd_per_image ??
-    (pricing === null ? null : pricing.estimated_revenue_usd);
+    pricing?.estimated_provider_cost_usd ??
+    pricing?.fallback_provider_cost_usd ??
+    null;
+  const estimatedDebitUsdPerImage =
+    pricing?.estimated_revenue_usd ?? estimatedProviderUsdPerImage;
   const budgetGuard =
-    flagNumber(args, "max-estimated-usd-per-image") ??
-    estimatedUsdPerImage ??
+    maxEstimatedUsdPerImage ??
+    estimatedDebitUsdPerImage ??
     (estimatedCredits === null ? 0.07 : estimatedCredits / 100);
   const quota =
     token.token === null
@@ -1003,7 +1014,10 @@ async function createGuide(args) {
           },
     cost: {
       estimated_credits: estimatedCredits,
-      estimated_usd_per_image: estimatedUsdPerImage,
+      estimated_usd_per_image: estimatedDebitUsdPerImage,
+      estimated_debit_usd_per_image: estimatedDebitUsdPerImage,
+      estimated_provider_usd_per_image: estimatedProviderUsdPerImage,
+      credit_unit_usd: pricing?.credit_unit_usd ?? CREDIT_UNIT_USD,
       pricing_confidence: pricing?.pricing_confidence ?? null,
     },
     blocker,
@@ -1061,7 +1075,11 @@ async function createGuide(args) {
   });
 }
 
-function selectCreateGuideModel(models, requestedModelId) {
+function selectCreateGuideModel(
+  models,
+  requestedModelId,
+  { maxEstimatedUsdPerImage = null } = {},
+) {
   const isExecutableCreate = (model) =>
     model?.status === "available" &&
     model?.execution?.model_execution_status === "executable" &&
@@ -1073,7 +1091,26 @@ function selectCreateGuideModel(models, requestedModelId) {
       ? requested
       : null;
   }
-  return models.find(isExecutableCreate) ?? null;
+  const candidates = models.filter(isExecutableCreate);
+  if (maxEstimatedUsdPerImage === null) {
+    return candidates[0] ?? null;
+  }
+  const capped = candidates.filter((model) => {
+    const estimatedUsd = guideBudgetUsdForModel(model);
+    return estimatedUsd === null || estimatedUsd <= maxEstimatedUsdPerImage;
+  });
+  return (capped.length === 0 ? candidates : capped)[0] ?? null;
+}
+
+function guideBudgetUsdForModel(model) {
+  const pricing = model?.economics?.credit_pricing ?? null;
+  return (
+    pricing?.estimated_revenue_usd ??
+    model?.economics?.estimated_usd_per_image ??
+    pricing?.estimated_provider_cost_usd ??
+    pricing?.fallback_provider_cost_usd ??
+    null
+  );
 }
 
 function createGuidePaymentSummary(data) {

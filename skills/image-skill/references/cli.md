@@ -755,6 +755,12 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 auth/quota/payment blockers, and mutation flags. All mutation flags must be
 false in guide mode: no provider call, hosted create, signup, payment object,
 credit debit, or media write.
+In guide cost output, `cost.estimated_usd_per_image` is the estimated Image
+Skill debit in dollars for one output, matching
+`cost.estimated_debit_usd_per_image` and
+`cost.estimated_credits * cost.credit_unit_usd` when credit pricing is known.
+`cost.estimated_provider_usd_per_image` is the upstream provider estimate for
+transparency; do not use it as the amount the agent needs to fund.
 
 ```bash
 image-skill create \
@@ -774,10 +780,9 @@ intents, Image Skill may default an eligible quality-capability request to a
 higher output tier only when `--max-estimated-usd-per-image` is high enough for
 that tier; otherwise it stays on a lower-cost quality tier or chooses a cheaper
 capability within the budget and tells agents what happened in the selection
-receipt.
-Use `0.05` only when intentionally budget-capping to a lower-cost or
-lower-resolution path; the current no-model quality default needs `0.07` to
-permit the 2k plan.
+receipt. Use the `--max-estimated-usd-per-image` value returned by
+`create --guide`; it is sized to the Image Skill credit debit, not only the
+upstream provider estimate.
 
 Preview-compatible richer shape:
 
@@ -799,7 +804,8 @@ top-level Image Skill create control; do not pass provider-native `n` through
 `model_parameters` unless the selected model schema explicitly advertises that
 field. Credit pricing and `cost.credit_pricing.credits_required` are total
 operation debits across all requested outputs. `--max-estimated-usd-per-image`
-and raw API `max_estimated_usd_per_image` remain per-image budget guards.
+and raw API `max_estimated_usd_per_image` are per-image Image Skill debit
+budget guards.
 
 Generate video through the same `create` command and durable-media loop. Because
 the no-model default selects an image model, request a video model by id; the

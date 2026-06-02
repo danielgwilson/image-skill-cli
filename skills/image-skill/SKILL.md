@@ -320,7 +320,10 @@ Stripe-hosted Checkout, not in the Image Skill CLI.
 One Image Skill credit is `$0.01`. Creative operations debit model-priced
 credits, not a flat one-credit unit. Use `models show MODEL_ID --json` and the
 operation response `cost.credit_pricing` to see `credits_required`,
-`estimated_provider_cost_usd`, and pricing confidence.
+`estimated_provider_cost_usd`, Image Skill debit dollars, and pricing
+confidence. In `create --guide`, `cost.estimated_usd_per_image` is the
+estimated Image Skill debit for one output; `cost.estimated_provider_usd_per_image`
+is only the upstream provider estimate.
 
 ## Create An Image
 
@@ -385,7 +388,8 @@ Use `--output-count N` only after `models show MODEL_ID --json` confirms the
 selected create model advertises `max_outputs_per_request` greater than `1`.
 Image Skill treats output count as a top-level create control and scales
 `cost.credit_pricing.credits_required` across all requested outputs; the
-`max_estimated_usd_per_image` guard remains per image.
+`max_estimated_usd_per_image` guard remains per image and applies to the Image
+Skill debit the agent funds.
 
 For Kling element-capable create routes, use the same owned reference flags as
 edit:
