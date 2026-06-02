@@ -266,6 +266,18 @@ Minimum success data shape:
       "requires_browser": true,
       "default_pack_id": "starter-500",
       "purchase_endpoint": "/v1/credit-purchases/stripe-checkout-sessions"
+    },
+    {
+      "method_id": "stripe_x402.exact.usdc",
+      "status": "available",
+      "available": true,
+      "quoteable": true,
+      "purchasable": true,
+      "live_money": true,
+      "buyer_modes": ["agent_only", "hybrid"],
+      "requires_browser": false,
+      "default_pack_id": "starter-500",
+      "purchase_endpoint": "/v1/credit-purchases/stripe-x402-deposits"
     }
   ]
 }
@@ -285,10 +297,13 @@ curl -sS https://api.image-skill.com/v1/payment-methods
 
 ### `image-skill credits packs list`
 
-Lists the recommended Image Skill credit packs for Stripe Checkout. Packs are
-the default live-money buying UX because agents get obvious starter choices and
-Stripe Checkout avoids tiny card-fee traps. Exact custom quotes are still
-supported when an agent already knows the required credit budget.
+Lists the recommended Image Skill credit packs. Packs are the default
+live-money buying UX because agents get obvious starter choices and avoid tiny
+fee traps. Use the payment method catalog to choose the rail: browserless
+`stripe_x402.exact.usdc` when it is available for agent self-funding, or
+`stripe_checkout` when a human sponsor needs a Checkout handoff. Exact custom
+quotes are still supported when an agent already knows the required credit
+budget.
 
 ```bash
 image-skill credits packs list --json
@@ -327,8 +342,10 @@ curl -sS https://api.image-skill.com/v1/credit-packs
 
 ### `image-skill credits quote`
 
-Requests a bounded credit quote from the hosted service. Public top-ups use
-Stripe Checkout with `--payment-method stripe_checkout`. A quote never grants
+Requests a bounded credit quote from the hosted service. Public top-ups use the
+payment method returned by `credits methods --json`: `stripe_x402.exact.usdc`
+for browserless agent self-funding when it is available, or
+`stripe_checkout` for the human Checkout fallback. A quote never grants
 credits.
 One Image Skill credit is a stable user-facing value unit worth `$0.01`.
 Creative operations can consume more than one credit based on the selected
@@ -364,6 +381,17 @@ image-skill credits quote \
   --json
 ```
 
+For the browserless agent x402 rail, quote the exact method id returned by
+`credits methods --json`:
+
+```bash
+image-skill credits quote \
+  --pack starter-500 \
+  --payment-method stripe_x402.exact.usdc \
+  --idempotency-key agent-x402-quote-run-001 \
+  --json
+```
+
 For exact custom Stripe Checkout terms, request the provider and bounded credit
 amount explicitly:
 
@@ -393,22 +421,77 @@ Minimum success data:
 }
 ```
 
+For x402 quotes, `accepted_payment_method` is
+`"stripe_x402.exact.usdc"` and the response includes redacted
+`quote.x402` metadata for the agent-payable deposit flow.
+
 Hosted API equivalent:
 
 ```bash
 curl -sS https://api.image-skill.com/v1/credit-quotes \
   -H "authorization: Bearer $IMAGE_SKILL_TOKEN" \
   -H "content-type: application/json" \
-  -d '{"pack_id":"starter-500","payment_method":"stripe_checkout","idempotency_key":"stripe-pack-quote-run-001"}'
+  -d '{"pack_id":"starter-500","payment_method":"stripe_x402.exact.usdc","idempotency_key":"agent-x402-quote-run-001"}'
 ```
 
 ### `image-skill credits buy`
 
-Creates a payment action for a previously returned quote. Stripe Checkout is the
-first live-money provider. This creates a hosted Stripe Checkout Session and
-returns an `action_required` response with `checkout_handoff_url`; credits are
-granted only after verified Stripe webhook fulfillment succeeds. Session
-creation itself must not mutate credit balances.
+Creates a payment action for a previously returned quote. Choose the provider
+that matches the quote's `accepted_payment_method`.
+
+For a `stripe_x402.exact.usdc` quote, `--provider stripe_x402` creates a
+browserless agent-payable USDC deposit challenge. The response is live money
+when `live_money:true`; credits are granted only after verified settlement and
+webhook fulfillment succeeds. Deposit challenge creation itself must not mutate
+credit balances. Stay within the delegated cap and never pass wallet private
+keys, seed phrases, x402 payment headers, deposit client secrets, or provider
+receipts to Image Skill.
+
+```bash
+image-skill credits buy \
+  --provider stripe_x402 \
+  --quote-id quote_... \
+  --idempotency-key agent-x402-buy-run-001 \
+  --json
+```
+
+Minimum x402 action-required data:
+
+```json
+{
+  "state": "action_required",
+  "quote_id": "quote_...",
+  "payment_attempt_id": "payatt_...",
+  "provider": "stripe",
+  "accepted_payment_method": "stripe_x402.exact.usdc",
+  "credits": 500,
+  "amount_cents": 500,
+  "currency": "USD",
+  "live_money": true,
+  "stripe_x402": {
+    "method_id": "stripe_x402.exact.usdc",
+    "scheme": "exact",
+    "network": "base",
+    "token_currency": "usdc",
+    "deposit_address_present": true,
+    "redacted": {
+      "payment_intent_id": "[redacted-stripe-payment-intent]",
+      "deposit_address": "[redacted-stripe-crypto-deposit-address]",
+      "client_secret": "[redacted-stripe-client-secret]"
+    }
+  },
+  "next": {
+    "agent_action": "pay_stripe_crypto_deposit",
+    "suggested_commands": [
+      "image-skill credits status --payment-attempt-id payatt_... --json"
+    ]
+  }
+}
+```
+
+For a `stripe_checkout` quote, `--provider stripe` creates a hosted Stripe
+Checkout Session and returns an `action_required` response with
+`checkout_handoff_url`.
 
 Agents should present or open `checkout_handoff_url` for humans. It is a short
 Image Skill URL that redirects to Stripe Checkout and is safe to copy from
@@ -418,8 +501,7 @@ provide one. `checkout_url` is the raw Stripe compatibility fallback only; do
 not present it unless no handoff URL is available. Do not trim Stripe Checkout
 URLs: the long `#...` fragment is required by Stripe Checkout in the browser.
 Present any fallback Stripe URL in a fenced code block so terminal wrapping does
-not corrupt it.
-Stripe-hosted Checkout may also show a promotion-code field for
+not corrupt it. Stripe-hosted Checkout may also show a promotion-code field for
 operator-provided codes; agents should let the human enter those codes on
 Stripe, never collect promo codes, card details, or wallet credentials in the
 Image Skill CLI.
@@ -468,11 +550,20 @@ curl -sS https://api.image-skill.com/v1/credit-purchases/stripe-checkout-session
   -d '{"quote_id":"quote_...","idempotency_key":"stripe-buy-run-001"}'
 ```
 
+x402 hosted API equivalent:
+
+```bash
+curl -sS https://api.image-skill.com/v1/credit-purchases/stripe-x402-deposits \
+  -H "authorization: Bearer $IMAGE_SKILL_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"quote_id":"quote_...","idempotency_key":"agent-x402-buy-run-001"}'
+```
+
 ### `image-skill credits status`
 
-Shows the durable state of a quote, Stripe Checkout attempt, Checkout Session,
-or receipt. Use this after `credits buy` so agents do not have to infer payment
-state from quota deltas or activity text.
+Shows the durable state of a quote, x402 deposit attempt, Stripe Checkout
+attempt, Checkout Session, or receipt. Use this after `credits buy` so agents
+do not have to infer payment state from quota deltas or activity text.
 
 ```bash
 image-skill credits status \
@@ -526,10 +617,13 @@ curl -sS "https://api.image-skill.com/v1/credit-purchases/status?payment_attempt
 ```
 
 Do not pass card data, wallet secrets, provider receipts, Stripe secrets, MPP
-tokens, SPTs, live x402 payment headers, or any payment credential to credits
-commands. Stripe Checkout collects payment details only on Stripe-hosted pages.
-The public request fields are `credits`, `pack_id`, `payment_method`,
-`quote_id`, status reference IDs, and `idempotency_key`.
+tokens, SPTs, live x402 payment headers, deposit client secrets, wallet
+private keys, seed phrases, or any payment credential to credits commands.
+Stripe Checkout collects payment details only on Stripe-hosted pages; x402
+settlement is handled by the agent/wallet against the returned redacted deposit
+challenge, not by pasting credentials into Image Skill. The public request
+fields are `credits`, `pack_id`, `payment_method`, `quote_id`, status reference
+IDs, and `idempotency_key`.
 
 ### `image-skill models`
 
