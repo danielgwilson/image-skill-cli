@@ -6,6 +6,15 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.27 - 2026-06-02
+
+- Fix (activation): default hosted signup now reports saved auth as a positive
+  `data.auth_handoff.status: "saved_config_ready"` state, keeps `data.token`
+  null, and suppresses the generic hosted token-returned warning when the
+  public CLI saved the token instead of showing it. Fresh agents can rerun the
+  guide or continue with `whoami`, feedback, credits, create, or edit without
+  hunting for a raw token or running a separate `auth save`.
+
 ## 0.1.26 - 2026-06-02
 
 - Fix (activation): public CLI subcommand help flags now return command help
