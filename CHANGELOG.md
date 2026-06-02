@@ -4,7 +4,7 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
-## Unreleased
+## 0.1.28 - 2026-06-02
 
 - Feature (discoverability): publish intent-named public skill aliases
   (`ai-image-generation`, `image-edit`, `ai-video-generation`,
@@ -14,6 +14,16 @@ provenance; this file is the human- and agent-readable release map.
   receipts, and feedback loop as the canonical `image-skill` skill, giving
   skills.sh task searches literal skill names to index without fragmenting the
   product.
+- Fix (guide): `create --guide` now exposes `data.next_command_effect` and
+  `data.no_spend_next_command`. When the guide reaches `ready_to_create`, the
+  live create remains `data.next_command`, but it is explicitly labeled
+  `live_media_create_credit_debit` with provider-call, hosted-create,
+  credit-debit, and media-write flags. No-spend/evaluation agents can run the
+  top-level dry-run verification command instead of digging through escape
+  hatches or risking an accidental media job.
+- Docs: public CLI, LLM contract, canonical skill, and modality aliases now
+  teach the ready-to-create distinction between live media creation and
+  no-spend verification.
 
 ## 0.1.27 - 2026-06-02
 

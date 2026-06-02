@@ -128,9 +128,9 @@ should omit it.
 
 Use the no-spend guide first. It is the only required first command for a fresh
 agent. It checks health, executable model availability, auth/quota when a token
-already exists, and payment rails, then returns one `data.next_command`. Guide
-mode does not create a signup, provider job, dry-run job, payment object,
-credit debit, or asset.
+already exists, and payment rails, then returns one primary `data.next_command` plus
+machine-readable `data.next_command_effect`. Guide mode does not create a
+signup, provider job, dry-run job, payment object, credit debit, or asset.
 
 ```bash
 image-skill create --guide --prompt "a compact field camera on a stainless workbench"
@@ -149,8 +149,14 @@ checklist before the guide asks for them.
   `data.auth_handoff.rerun_guide.with_stdin`.
 - `quota_required`: follow the payment commands in
   `data.checks.payments.suggested_commands`, then rerun guide once.
-- `ready_to_create`: run `data.next_command` for the first bounded create. If
-  the guide authenticated from env or stdin, prefer
+- `ready_to_create`: `data.next_command` is a live media create. Its
+  `data.next_command_effect.label` is `live_media_create_credit_debit`, with
+  `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
+  Run it for the first bounded create when media spend is allowed. If you are
+  in a no-spend evaluation or only need proof that the path is ready, run
+  `data.no_spend_next_command` instead; it is the dry-run plan command with no
+  provider call, credit debit, or media write. If the guide authenticated from
+  env or stdin, prefer
   `data.auth_handoff.next_command.with_env` or
   `data.auth_handoff.next_command.with_stdin` so auth follows the create.
 

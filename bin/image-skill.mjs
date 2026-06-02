@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.27";
+const VERSION = "0.1.28";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1338,6 +1338,21 @@ async function createGuide(args) {
     commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
     authConfigWritable: authConfigWrite?.ok ?? true,
   });
+  const escapeHatches = createGuideEscapeHatches({
+    prompt: trimmedPrompt,
+    selected,
+    requestedProviderId,
+    requestedIntent,
+    budgetGuard,
+    apiBaseUrl: explicitApiBaseUrl(args),
+    commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
+  });
+  const nextCommandEffect = createGuideNextCommandEffect(stage, {
+    estimatedCredits,
+    estimatedDebitUsdPerImage,
+  });
+  const noSpendNextCommand =
+    stage === "ready_to_create" ? escapeHatches.dry_run : null;
   const afterNext =
     stage === "auth_required" || stage === "quota_required"
       ? renderGuideCommand(
@@ -1423,48 +1438,15 @@ async function createGuide(args) {
     },
     blocker,
     next_command: nextCommand,
+    next_command_effect: nextCommandEffect,
+    no_spend_next_command: noSpendNextCommand,
+    no_spend_next_command_label:
+      noSpendNextCommand === null
+        ? null
+        : "dry_run_plan_no_provider_call_no_credit_debit_no_media_write",
     after_next: afterNext,
     auth_handoff: authHandoff,
-    escape_hatches: {
-      doctor: renderGuidePrefixedCommand(
-        PUBLIC_NPX_COMMAND_PREFIX,
-        "doctor --json",
-      ),
-      model_inspection:
-        selected === null
-          ? renderGuidePrefixedCommand(
-              PUBLIC_NPX_COMMAND_PREFIX,
-              "models list --json",
-            )
-          : renderGuidePrefixedCommand(
-              PUBLIC_NPX_COMMAND_PREFIX,
-              `models show ${shellQuote(selected.id)} --json`,
-            ),
-      payment_methods: renderGuidePrefixedCommand(
-        PUBLIC_NPX_COMMAND_PREFIX,
-        "credits methods --json",
-      ),
-      quota: renderGuidePrefixedCommand(
-        PUBLIC_NPX_COMMAND_PREFIX,
-        "usage quota --json",
-      ),
-      dry_run:
-        selected === null || trimmedPrompt.length === 0
-          ? renderGuidePrefixedCommand(
-              PUBLIC_NPX_COMMAND_PREFIX,
-              "create --dry-run --prompt PROMPT --json",
-            )
-          : renderCreateCommand({
-              prompt: trimmedPrompt,
-              modelId: selected.id,
-              providerId: requestedProviderId,
-              intent: requestedIntent,
-              budgetGuard,
-              dryRun: true,
-              apiBaseUrl: explicitApiBaseUrl(args),
-              commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
-            }),
-    },
+    escape_hatches: escapeHatches,
     mutation: {
       provider_call: false,
       hosted_create: false,
@@ -1723,6 +1705,64 @@ function createGuideAuthHandoff(stage, input) {
   return null;
 }
 
+function createGuideNextCommandEffect(stage, input) {
+  const base = {
+    label: "read_only_or_no_media_setup",
+    no_spend: true,
+    provider_call: false,
+    hosted_create: false,
+    hosted_signup: false,
+    payment_object: false,
+    credit_debit: false,
+    media_write: false,
+    estimated_credits: null,
+    estimated_debit_usd_per_image: null,
+    warning: null,
+  };
+  if (stage === "auth_required") {
+    return {
+      ...base,
+      label: "hosted_signup_restricted_agent_identity",
+      hosted_signup: true,
+      warning:
+        "This signs up a restricted Image Skill agent identity but does not create media, call a provider, open payment, or debit credits.",
+    };
+  }
+  if (stage === "quota_required") {
+    return {
+      ...base,
+      label: "payment_or_quota_action",
+      no_spend: false,
+      payment_object: true,
+      warning:
+        "This may create or inspect a payment quote/attempt. Stay within the delegated cap, or use escape_hatches for read-only checks.",
+    };
+  }
+  if (stage === "ready_to_create") {
+    return {
+      label: "live_media_create_credit_debit",
+      no_spend: false,
+      provider_call: true,
+      hosted_create: true,
+      hosted_signup: false,
+      payment_object: false,
+      credit_debit: true,
+      media_write: true,
+      estimated_credits: input.estimatedCredits,
+      estimated_debit_usd_per_image: input.estimatedDebitUsdPerImage,
+      warning:
+        "data.next_command creates hosted media and can debit credits. For no-spend verification, run data.no_spend_next_command instead.",
+    };
+  }
+  if (stage === "prompt_required") {
+    return {
+      ...base,
+      label: "rerun_guide_with_prompt",
+    };
+  }
+  return base;
+}
+
 function createGuideNextCommand(stage, input) {
   if (stage === "prompt_required") {
     return renderGuideCommand("PROMPT", input.apiBaseUrl, input.commandPrefix);
@@ -1762,6 +1802,43 @@ function createGuideNextCommand(stage, input) {
     apiBaseUrl: input.apiBaseUrl,
     commandPrefix: input.commandPrefix,
   });
+}
+
+function createGuideEscapeHatches(input) {
+  return {
+    doctor: renderGuidePrefixedCommand(input.commandPrefix, "doctor --json"),
+    model_inspection:
+      input.selected === null
+        ? renderGuidePrefixedCommand(input.commandPrefix, "models list --json")
+        : renderGuidePrefixedCommand(
+            input.commandPrefix,
+            `models show ${shellQuote(input.selected.id)} --json`,
+          ),
+    payment_methods: renderGuidePrefixedCommand(
+      input.commandPrefix,
+      "credits methods --json",
+    ),
+    quota: renderGuidePrefixedCommand(
+      input.commandPrefix,
+      "usage quota --json",
+    ),
+    dry_run:
+      input.selected === null || input.prompt.length === 0
+        ? renderGuidePrefixedCommand(
+            input.commandPrefix,
+            "create --dry-run --prompt PROMPT --json",
+          )
+        : renderCreateCommand({
+            prompt: input.prompt,
+            modelId: input.selected.id,
+            providerId: input.requestedProviderId,
+            intent: input.requestedIntent,
+            budgetGuard: input.budgetGuard,
+            dryRun: true,
+            apiBaseUrl: input.apiBaseUrl,
+            commandPrefix: input.commandPrefix,
+          }),
+  };
 }
 
 function renderGuideCommand(prompt, apiBaseUrl, commandPrefix = "image-skill") {

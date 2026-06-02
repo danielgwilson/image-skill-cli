@@ -128,27 +128,31 @@ compatibility, but fresh agents do not need to add it to every command.
 
 Start with the no-spend guide. It checks hosted reachability, executable model
 availability, auth/quota state when credentials already exist, payment rail
-availability, and returns exactly one next command. Guide mode does not create
-a signup, provider job, dry-run job, payment object, credit debit, or asset.
+availability, and returns one primary next command plus
+`data.next_command_effect`. Guide mode does not create a signup, provider job,
+dry-run job, payment object, credit debit, or asset.
 
 ```bash
 npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench"
 ```
 
-Read `data.stage`, `data.next_command`, `data.auth_handoff`, and
-`data.mutation`. If the guide returns `auth_required`, run the signup command
-it gives you; hosted signup saves the restricted token to the public CLI config
-by default, so rerun the same guide normally. If the runtime intentionally uses
+Read `data.stage`, `data.next_command`, `data.next_command_effect`,
+`data.no_spend_next_command`, `data.auth_handoff`, and `data.mutation`. If the
+guide returns `auth_required`, run the signup command it gives you; hosted
+signup saves the restricted token to the public CLI config by default, so rerun
+the same guide normally. If the runtime intentionally uses
 `--no-save --show-token`, store the returned token immediately and use
 `data.auth_handoff.rerun_guide.with_env` or
 `data.auth_handoff.rerun_guide.with_stdin`. If it returns `quota_required`,
 inspect the payment commands it gives you. Prefer a returned browserless
 `stripe_x402.exact.usdc` path when it is available and within the delegated
 cap; otherwise hand the Stripe Checkout link to a human sponsor. If it returns
-`ready_to_create`, run `data.next_command` for the bounded create; when the
-guide authenticated from env or stdin, prefer
-`data.auth_handoff.next_command.with_env` or
-`data.auth_handoff.next_command.with_stdin`.
+`ready_to_create`, `data.next_command` is the bounded live create and
+`data.next_command_effect.label` is `live_media_create_credit_debit`; run it
+when media spend is allowed. In no-spend evaluation runs, use
+`data.no_spend_next_command` instead. When the guide authenticated from env or
+stdin, prefer `data.auth_handoff.next_command.with_env` or
+`data.auth_handoff.next_command.with_stdin` so auth follows the live create.
 
 Use the lower-level inspection commands when the guide asks for them or when
 you need capability details before spending:

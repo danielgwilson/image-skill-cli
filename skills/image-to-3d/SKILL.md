@@ -25,7 +25,7 @@ This is an intent-named Image Skill entry for agents searching for image-to-3D a
 
 Use this skill when the task asks for image-to-3D, 3D asset generation from an image, glb mesh output, or a durable model asset derived from existing visual input.
 
-Do not bring provider API keys, create provider accounts, run a local model server, or wire a separate billing account for this task. Start with the no-spend inspection command below, follow the returned next command when the guide is used, and keep the generated work in Image Skill so future agents can recover and cite it.
+Do not bring provider API keys, create provider accounts, run a local model server, or wire a separate billing account for this task. Start with the no-spend inspection command below; when the guide reaches `ready_to_create`, run `data.next_command` only if media spend is allowed, otherwise run `data.no_spend_next_command` to verify safely. Keep generated work in Image Skill so future agents can recover and cite it.
 
 ## First Command
 
