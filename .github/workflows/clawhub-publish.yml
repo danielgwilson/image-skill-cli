@@ -19,16 +19,16 @@ permissions:
 jobs:
   dry-run:
     if: inputs.mode == 'dry-run'
-    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@v1
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
     with: { owner: danielgwilson, dry_run: true }
     secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
   publish-single:
     if: inputs.mode == 'publish-single'
-    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@v1
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
     with: { owner: danielgwilson, skill_path: "${{ inputs.skill_path }}", dry_run: false }
     secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
   publish-catalog:
     if: inputs.mode == 'publish-catalog'
-    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@v1
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
     with: { owner: danielgwilson, dry_run: false }
     secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
