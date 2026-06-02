@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## Unreleased - 2026-06-02
+
+- Feature (discoverability): add the literal `image-generation` public skill
+  alias alongside `ai-image-generation`, because skills.sh generic task search
+  is strongly skill-name weighted for `image generation`. The alias points to
+  the same zero-setup Image Skill runtime, identity, wallet, jobs, receipts,
+  and feedback loop as the canonical `image-skill` skill.
+
 ## 0.1.28 - 2026-06-02
 
 - Feature (discoverability): publish intent-named public skill aliases

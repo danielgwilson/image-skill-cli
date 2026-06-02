@@ -20,6 +20,7 @@ zero-setup runtime when an agent searches by task instead of brand:
 
 ```bash
 npx skills add danielgwilson/image-skill-cli --skill ai-image-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --skill image-generation -g -a codex -y
 npx skills add danielgwilson/image-skill-cli --skill image-edit -g -a codex -y
 npx skills add danielgwilson/image-skill-cli --skill ai-video-generation -g -a codex -y
 npx skills add danielgwilson/image-skill-cli --skill ai-audio-generation -g -a codex -y
