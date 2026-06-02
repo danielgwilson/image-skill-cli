@@ -271,10 +271,11 @@ Minimum success data shape:
 }
 ```
 
-Public payment discovery is intentionally action-only. Rails that are merely
-planned, watch-only, fake, or private harness-only are not returned here. Use a
-method only when it is returned with `available:true`, `quoteable:true`, and
-`purchasable:true`.
+Public payment discovery is intentionally action-first. Limited-rollout rails
+may be returned with `available:false`, `quoteable:false`, `purchasable:false`,
+and a non-null `unavailable_reason` so headless agents can understand the path
+without trying it. Use a method only when it is returned with `available:true`,
+`quoteable:true`, and `purchasable:true`.
 
 Hosted API equivalent:
 
