@@ -4,6 +4,18 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.23 - 2026-06-02
+
+- Fix (guide payments): `create --guide` now distinguishes browserless,
+  agent-payable, and human-handoff payment rails instead of collapsing the
+  payment summary into a single browser-required flag. When the hosted catalog
+  exposes `stripe_x402.exact.usdc` as available and browserless, the guide marks
+  it as the preferred method and puts the x402 quote/buy/status commands before
+  the Stripe Checkout fallback.
+- Fix (quota recovery): when an authenticated agent has no remaining credits,
+  guide mode now points `data.next_command` at the preferred credit quote command
+  instead of the generic `credits methods` inspection command.
+
 ## 0.1.22 - 2026-06-02
 
 - Fix (guide): `create --guide` now reports `cost.estimated_usd_per_image` as
