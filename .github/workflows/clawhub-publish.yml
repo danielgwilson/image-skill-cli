@@ -1,0 +1,44 @@
+name: Publish image-skill to ClawHub
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: What to run.
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, publish-single, publish-catalog]
+      skill_path:
+        description: Skill folder for publish-single.
+        type: string
+        required: false
+        default: "skills/image-skill"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  dry-run:
+    if: inputs.mode == 'dry-run'
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    with: { owner: danielgwilson, dry_run: true }
+    secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
+
+  publish-single:
+    if: inputs.mode == 'publish-single'
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    with:
+      {
+        owner: danielgwilson,
+        skill_path: "${{ inputs.skill_path }}",
+        dry_run: false,
+      }
+    secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
+
+  publish-catalog:
+    if: inputs.mode == 'publish-catalog'
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    with: { owner: danielgwilson, dry_run: false }
+    secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
