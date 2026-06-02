@@ -118,11 +118,17 @@ a signup, provider job, dry-run job, payment object, credit debit, or asset.
 npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench"
 ```
 
-Read `data.stage`, `data.next_command`, and `data.mutation`. If the guide
-returns `auth_required`, run the signup command it gives you, then rerun the
-same guide. If it returns `quota_required`, inspect the payment commands it
-gives you and hand the Stripe link to a human sponsor. If it returns
-`ready_to_create`, run `data.next_command` for the bounded create.
+Read `data.stage`, `data.next_command`, `data.auth_handoff`, and
+`data.mutation`. If the guide returns `auth_required`, run the signup command
+it gives you, store the returned token, then rerun the same guide. If the
+runtime does not inject that token automatically, use
+`data.auth_handoff.rerun_guide.with_env` or
+`data.auth_handoff.rerun_guide.with_stdin`. If it returns `quota_required`,
+inspect the payment commands it gives you and hand the Stripe link to a human
+sponsor. If it returns `ready_to_create`, run `data.next_command` for the
+bounded create; when the guide authenticated from env or stdin, prefer
+`data.auth_handoff.next_command.with_env` or
+`data.auth_handoff.next_command.with_stdin`.
 
 Use the lower-level inspection commands when the guide asks for them or when
 you need capability details before spending:
@@ -201,6 +207,9 @@ hosted signup does not auto-save auth into the CLI config. `--save` is local-onl
 older instructions. Use `--show-token --no-save` when the runtime has a separate
 secret store and needs the raw token once. If you pass the token explicitly,
 prefer `--token-stdin` over `--token`.
+The guide returns `data.auth_handoff` with copy-safe env/stdin command
+templates so the token does not need to appear in prompts, logs, issue text, or
+feedback.
 
 In the preview contract, `--agent-contact` means an email-shaped durable
 contact inbox for the restricted agent identity, not a requirement to find an

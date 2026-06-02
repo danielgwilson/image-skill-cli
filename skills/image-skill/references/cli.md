@@ -139,10 +139,16 @@ auth or payment state changes. Do not run `doctor`, `models list`, `signup`,
 checklist before the guide asks for them.
 
 - `prompt_required`: rerun `data.next_command` with the real prompt.
-- `auth_required`: run `data.next_command`, then rerun guide once.
+- `auth_required`: run `data.next_command`, store the returned token, then
+  rerun guide once. If the runtime does not automatically inject that token,
+  use `data.auth_handoff.rerun_guide.with_env` or
+  `data.auth_handoff.rerun_guide.with_stdin`.
 - `quota_required`: follow the payment commands in
   `data.checks.payments.suggested_commands`, then rerun guide once.
-- `ready_to_create`: run `data.next_command` for the first bounded create.
+- `ready_to_create`: run `data.next_command` for the first bounded create. If
+  the guide authenticated from env or stdin, prefer
+  `data.auth_handoff.next_command.with_env` or
+  `data.auth_handoff.next_command.with_stdin` so auth follows the create.
 
 Manual escape hatches are not prerequisites. Use them only when
 `data.next_command` / `data.escape_hatches` asks, or when the task genuinely
@@ -161,6 +167,9 @@ image-skill create --dry-run --prompt "a compact field camera on a stainless wor
 Use `--show-token` for hosted signup only when the runtime can immediately store
 the raw token once. For later commands, prefer `IMAGE_SKILL_TOKEN` or
 `--token-stdin`; both keep tokens out of prompts and shell history.
+`create --guide` also returns `data.auth_handoff` with copy-safe env/stdin
+templates when auth is required or when the returned create command needs the
+same auth context.
 
 ### Local Config And Install
 

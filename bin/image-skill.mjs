@@ -942,6 +942,11 @@ async function createGuide(args) {
           PUBLIC_NPX_COMMAND_PREFIX,
         )
       : null;
+  const authHandoff = createGuideAuthHandoff(stage, {
+    tokenSource: token.source,
+    nextCommand,
+    afterNext,
+  });
   return success("image-skill create --guide", {
     schema: "image-skill.create-guide.v1",
     ready: stage === "ready_to_create",
@@ -1004,6 +1009,7 @@ async function createGuide(args) {
     blocker,
     next_command: nextCommand,
     after_next: afterNext,
+    auth_handoff: authHandoff,
     escape_hatches: {
       doctor: renderGuidePrefixedCommand(
         PUBLIC_NPX_COMMAND_PREFIX,
@@ -1172,6 +1178,47 @@ function createGuideBlocker(stage, input) {
   };
 }
 
+function createGuideAuthHandoff(stage, input) {
+  if (stage === "auth_required") {
+    return {
+      required: true,
+      token_source: "none",
+      secret_value_included: false,
+      accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
+      signup: {
+        returns_token_once: true,
+        public_cli_saves_config: false,
+        store_token_in: "agent_runtime_secret_store",
+      },
+      rerun_guide:
+        input.afterNext === null
+          ? null
+          : {
+              with_env: `IMAGE_SKILL_TOKEN="$IMAGE_SKILL_TOKEN" ${input.afterNext}`,
+              with_stdin: renderTokenStdinCommand(input.afterNext),
+            },
+      next_command: null,
+    };
+  }
+  if (stage === "ready_to_create") {
+    return {
+      required: true,
+      token_source: input.tokenSource,
+      secret_value_included: false,
+      accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
+      signup: null,
+      rerun_guide: null,
+      next_command: {
+        requires_auth: true,
+        reuse_current_auth_context: input.tokenSource,
+        with_env: `IMAGE_SKILL_TOKEN="$IMAGE_SKILL_TOKEN" ${input.nextCommand}`,
+        with_stdin: renderTokenStdinCommand(input.nextCommand),
+      },
+    };
+  }
+  return null;
+}
+
 function createGuideNextCommand(stage, input) {
   if (stage === "prompt_required") {
     return renderGuideCommand("PROMPT", input.apiBaseUrl, input.commandPrefix);
@@ -1218,6 +1265,10 @@ function renderGuideCommand(prompt, apiBaseUrl, commandPrefix = "image-skill") {
     ...(apiBaseUrl === null ? [] : ["--api-base-url", shellQuote(apiBaseUrl)]),
     "--json",
   ].join(" ");
+}
+
+function renderTokenStdinCommand(command) {
+  return `printf '%s\\n' "$IMAGE_SKILL_TOKEN" | ${command} --token-stdin`;
 }
 
 function renderCreateCommand(input) {
