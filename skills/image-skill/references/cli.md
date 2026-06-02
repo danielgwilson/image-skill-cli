@@ -600,18 +600,23 @@ curl -sS https://api.image-skill.com/v1/credit-purchases/stripe-x402-deposits \
 
 ### `image-skill credits status`
 
-Shows the durable state of a quote, x402 deposit attempt, Stripe Checkout
-attempt, Checkout Session, or receipt. Use this after `credits buy` so agents
-do not have to infer payment state from quota deltas or activity text.
+Without a payment reference, shows the current credit balance using the same
+quota data as `image-skill usage quota --json`. With a payment reference,
+shows the durable state of a quote, x402 deposit attempt, Stripe Checkout
+attempt, Checkout Session, or receipt. Use the referenced form after
+`credits buy` so agents do not have to infer payment state from quota deltas
+or activity text.
 
 ```bash
+image-skill credits status --json
 image-skill credits status \
   --payment-attempt-id payatt_... \
   --json
 ```
 
-Exactly one reference flag is required: `--quote-id`,
-`--payment-attempt-id`, `--checkout-session-id`, or `--receipt-id`.
+At most one reference flag is allowed: `--quote-id`,
+`--payment-attempt-id`, `--checkout-session-id`, or `--receipt-id`. Passing no
+reference returns the balance/quota state.
 
 Minimum action-required data:
 
@@ -676,6 +681,7 @@ image-skill models list --available --operation image.generate --json
 image-skill models list --available --operation image.edit --json
 image-skill models list --catalog-only --provider fal --json
 image-skill models show MODEL_ID --json
+image-skill models show default --json
 ```
 
 Hosted API equivalents:
@@ -692,8 +698,12 @@ seeds, masks, reference images, transparent backgrounds, arbitrary aspect
 ratios, image-size presets, output counts, resolution controls, safety
 controls, or provider-native options.
 
-`models list` is executable-first by default and returns `summary` with total,
-returned, available, executable, catalog-only, provider split,
+`models list` is executable-first by default and returns one
+`default: true` row when the default executable create model is included.
+`models show default --json` resolves to that model so first-run agents can
+inspect the recommended create surface without knowing a provider-specific
+model id. The list response also returns `summary` with total, returned,
+available, executable, catalog-only, provider split,
 `execution_availability`, first actionable model ids, recommended filter
 commands, and catalog-inclusion flags. Default list output excludes
 catalog-only rows so fresh agents see executable candidates first. Use
