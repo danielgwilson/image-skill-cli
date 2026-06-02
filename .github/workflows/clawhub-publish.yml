@@ -8,7 +8,7 @@ on:
         type: choice
         required: true
         default: dry-run
-        options: [dry-run, publish-single, publish-catalog]
+        options: [dry-run, publish-single, publish-supported, publish-catalog]
       skill_path:
         description: Skill folder for publish-single.
         type: string
@@ -33,6 +33,25 @@ jobs:
       {
         owner: danielgwilson,
         skill_path: "${{ inputs.skill_path }}",
+        dry_run: false,
+      }
+    secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
+
+  publish-supported:
+    if: inputs.mode == 'publish-supported'
+    strategy:
+      fail-fast: false
+      matrix:
+        skill_path:
+          - skills/image-skill
+          - skills/ai-audio-generation
+          - skills/creative-media
+          - skills/image-to-3d
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    with:
+      {
+        owner: danielgwilson,
+        skill_path: "${{ matrix.skill_path }}",
         dry_run: false,
       }
     secrets: { clawhub_token: "${{ secrets.CLAWHUB_TOKEN }}" }
