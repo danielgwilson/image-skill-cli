@@ -262,6 +262,9 @@ npx -y image-skill@latest whoami
 Do not fall back to another tool because a global install or the default config
 directory is blocked. Follow the CLI's structured recovery command and continue
 with `whoami`, `usage quota`, `models list`, and the requested creative flow.
+If `create --guide` sees that local auth config cannot be written, it will
+return a `--show-token --no-save` signup command and a `--token-stdin` rerun
+path so the agent can keep going without a writable config directory.
 
 Inspect identity and quota:
 

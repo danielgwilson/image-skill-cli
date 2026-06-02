@@ -90,6 +90,9 @@ config by default with `0600` permissions, so later hosted commands can
 authenticate without repeating signup. The raw token is returned only when
 `--show-token` is set, and only once. Use `--show-token --no-save` when a
 runtime intentionally wants to store the token somewhere else.
+`create --guide` checks whether the configured auth path is writable before it
+suggests a signup command; if not, it returns the `--show-token --no-save`
+fallback plus `--token-stdin` rerun guidance.
 
 Fresh sandboxes should prefer:
 

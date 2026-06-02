@@ -1025,6 +1025,8 @@ async function createGuide(args) {
     quota,
     estimatedCredits,
   });
+  const authConfigWrite =
+    stage === "auth_required" ? await probeConfigWritable() : null;
   const blocker = createGuideBlocker(stage, {
     requestedModelId,
     quota,
@@ -1039,6 +1041,7 @@ async function createGuide(args) {
     apiBaseUrl: explicitApiBaseUrl(args),
     paymentSummary,
     commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
+    authConfigWritable: authConfigWrite?.ok ?? true,
   });
   const afterNext =
     stage === "auth_required" || stage === "quota_required"
@@ -1052,6 +1055,7 @@ async function createGuide(args) {
     tokenSource: token.source,
     nextCommand,
     afterNext,
+    authConfigWrite,
   });
   return success("image-skill create --guide", {
     schema: "image-skill.create-guide.v1",
@@ -1070,6 +1074,13 @@ async function createGuide(args) {
         claim_state: quota?.envelope.data?.claim_state ?? null,
         token_status: quota?.envelope.data?.token_status ?? null,
         saved_config_path: configPath(),
+        config_write:
+          authConfigWrite === null
+            ? null
+            : publicConfigWriteStatus(
+                authConfigWrite,
+                "image-skill create --guide",
+              ),
       },
       models: {
         reachable: models.envelope.ok,
@@ -1369,6 +1380,7 @@ function createGuideBlocker(stage, input) {
 
 function createGuideAuthHandoff(stage, input) {
   if (stage === "auth_required") {
+    const authConfigWritable = input.authConfigWrite?.ok ?? true;
     return {
       required: true,
       token_source: "none",
@@ -1376,8 +1388,16 @@ function createGuideAuthHandoff(stage, input) {
       accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
       signup: {
         returns_token_once: true,
-        public_cli_saves_config: true,
-        store_token_in: "public_cli_config_by_default",
+        public_cli_saves_config: authConfigWritable,
+        store_token_in: authConfigWritable
+          ? "public_cli_config_by_default"
+          : "agent_runtime_secret_store",
+        config_path: configPath(),
+        config_writable: authConfigWritable,
+        recovery:
+          input.authConfigWrite?.ok === false
+            ? configWriteRecovery("image-skill create --guide")
+            : null,
       },
       rerun_guide:
         input.afterNext === null
@@ -1419,10 +1439,11 @@ function createGuideNextCommand(stage, input) {
     );
   }
   if (stage === "auth_required") {
-    return renderGuidePrefixedCommand(
-      input.commandPrefix,
-      "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --json",
-    );
+    const signupCommand =
+      input.authConfigWritable === false
+        ? "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --show-token --no-save --json"
+        : "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --json";
+    return renderGuidePrefixedCommand(input.commandPrefix, signupCommand);
   }
   if (stage === "quota_required") {
     return renderGuidePrefixedCommand(
@@ -3206,7 +3227,7 @@ async function saveConfig(value) {
   await chmod(path, 0o600);
 }
 
-async function assertConfigWritable(command) {
+async function probeConfigWritable() {
   const path = configPath();
   const probePath = `${path}.write-test-${process.pid}-${randomBytes(4).toString("hex")}`;
   try {
@@ -3214,32 +3235,87 @@ async function assertConfigWritable(command) {
     await writeFile(probePath, "", { mode: 0o600 });
     await chmod(probePath, 0o600);
     await rm(probePath, { force: true });
-    return { ok: true };
+    return { ok: true, path, parent_path: dirname(path) };
   } catch (error) {
     await rm(probePath, { force: true }).catch(() => {});
     return {
       ok: false,
-      result: configWriteFailure(command, error),
+      path,
+      parent_path: dirname(path),
+      error,
+      message: configWriteErrorMessage(error),
     };
   }
 }
 
+async function assertConfigWritable(command) {
+  const status = await probeConfigWritable();
+  if (status.ok) {
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    result: configWriteFailure(command, status.error),
+  };
+}
+
+function publicConfigWriteStatus(status, command) {
+  if (status.ok) {
+    return {
+      writable: true,
+      config_path: status.path,
+      parent_path: status.parent_path,
+      parent_directories_prepared: true,
+      error_message: null,
+      recovery: null,
+    };
+  }
+  return {
+    writable: false,
+    config_path: status.path,
+    parent_path: status.parent_path,
+    parent_directories_prepared: false,
+    error_message: status.message,
+    recovery: configWriteRecovery(command),
+  };
+}
+
+function configWriteErrorMessage(error) {
+  return error instanceof Error
+    ? error.message
+    : "public CLI could not write its local auth config";
+}
+
+function configWriteRecovery(command) {
+  const safeConfigPath = "$PWD/.image-skill/config.json";
+  const baseSignupCommand = `IMAGE_SKILL_CONFIG_PATH="${safeConfigPath}" ${SIGNUP_SUGGESTED_COMMAND}`;
+  if (command === "image-skill auth save") {
+    return {
+      config_path_env: "IMAGE_SKILL_CONFIG_PATH",
+      suggested_config_path: safeConfigPath,
+      suggested_command: `IMAGE_SKILL_CONFIG_PATH="${safeConfigPath}" image-skill auth save --json`,
+      docs_url: "https://image-skill.com/cli.md#local-config-and-install",
+    };
+  }
+  return {
+    config_path_env: "IMAGE_SKILL_CONFIG_PATH",
+    suggested_config_path: safeConfigPath,
+    suggested_command: baseSignupCommand,
+    fallback_command: `${SIGNUP_SUGGESTED_COMMAND} --show-token --no-save`,
+    fallback_auth_method: "--token-stdin",
+    docs_url: "https://image-skill.com/cli.md#local-config-and-install",
+  };
+}
+
 function configWriteFailure(command, error) {
-  const message =
-    error instanceof Error
-      ? error.message
-      : "public CLI could not write its local auth config";
+  const message = configWriteErrorMessage(error);
   return failure(
     command,
     9,
     "PUBLIC_CLI_CONFIG_WRITE_FAILED",
     `public CLI could not write auth config at ${configPath()}: ${message}`,
     true,
-    {
-      suggested_command:
-        'IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json" image-skill auth save --json',
-      docs_url: "https://image-skill.com/cli.md#local-config-and-install",
-    },
+    configWriteRecovery(command),
   );
 }
 

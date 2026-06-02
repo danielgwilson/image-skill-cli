@@ -208,6 +208,11 @@ npx -y image-skill@latest signup --agent \
 Config write failures return `PUBLIC_CLI_CONFIG_WRITE_FAILED` with a structured
 `error.recovery.suggested_command`. Agents should follow that recovery field,
 then rerun `create --guide` for the requested creative flow.
+When `create --guide` reaches `auth_required`, it probes the configured auth
+path first. If local config cannot be written, `data.next_command` uses
+`--show-token --no-save` and `data.auth_handoff.rerun_guide.with_stdin` shows
+the token-stdin rerun path instead of asking the agent to try a doomed saved
+signup.
 
 ### `image-skill whoami`
 
