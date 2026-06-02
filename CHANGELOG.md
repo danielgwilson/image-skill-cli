@@ -6,6 +6,19 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.25 - 2026-06-02
+
+- Fix (activation): `create --guide` now probes whether the public CLI auth
+  config path can actually be written before telling a fresh agent to run a
+  config-saving signup. If the default path is blocked, the guide returns the
+  browserless `signup --show-token --no-save --json` fallback plus
+  `--token-stdin` rerun/create templates, so read-only or workspace-scoped
+  runtimes can continue without losing the one-time hosted token.
+- Fix (recovery copy): hosted signup config-write recovery now points agents at
+  a fresh `signup --agent ... --show-token` command instead of the local-only
+  `auth save` command, keeping the suggested recovery path valid for the hosted
+  public CLI.
+
 ## 0.1.24 - 2026-06-02
 
 - Fix (activation): hosted `signup --agent` now saves the restricted token to
