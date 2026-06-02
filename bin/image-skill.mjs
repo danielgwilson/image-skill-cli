@@ -1171,26 +1171,69 @@ function createGuidePaymentSummary(data) {
   const methods = Array.isArray(data?.methods)
     ? data.methods.filter((method) => method.live_money)
     : [];
+  const availableMethods = methods.filter((method) => method.available);
+  const browserlessMethods = availableMethods.filter(
+    (method) => method.requires_browser === false,
+  );
+  const agentPayableMethods = browserlessMethods.filter((method) =>
+    (method.buyer_modes ?? []).some(
+      (mode) => mode === "agent_only" || mode === "hybrid",
+    ),
+  );
+  const humanHandoffMethods = availableMethods.filter(
+    (method) =>
+      method.requires_browser === true ||
+      (method.buyer_modes ?? []).some((mode) => mode === "human_only"),
+  );
+  const preferredMethod =
+    agentPayableMethods[0] ?? browserlessMethods[0] ?? availableMethods[0];
   return {
     checked: data !== null && typeof data === "object",
-    live_money_methods: methods
-      .filter((method) => method.available)
-      .map((method) => method.method_id),
-    requires_browser: methods.some((method) => method.requires_browser),
+    live_money_methods: availableMethods.map((method) => method.method_id),
+    requires_browser:
+      availableMethods.length > 0 &&
+      availableMethods.every((method) => method.requires_browser === true),
+    browserless_methods: browserlessMethods.map((method) => method.method_id),
+    agent_payable_methods: agentPayableMethods.map(
+      (method) => method.method_id,
+    ),
+    human_handoff_methods: humanHandoffMethods.map(
+      (method) => method.method_id,
+    ),
+    preferred_method: preferredMethod?.method_id ?? null,
     buyer_modes: [
       ...new Set(methods.flatMap((method) => method.buyer_modes ?? [])),
     ],
-    suggested_commands: [
-      "image-skill credits methods --json",
-      "image-skill credits packs list --json",
-      methods[0]?.recovery?.quote_command ??
-        "image-skill credits quote --pack starter-500 --payment-method stripe_checkout --idempotency-key KEY --json",
-      methods[0]?.recovery?.purchase_command ??
-        "image-skill credits buy --provider stripe --quote-id QUOTE_ID --idempotency-key KEY --json",
-      methods[0]?.recovery?.status_command ??
-        "image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json",
-    ],
+    suggested_commands: createGuidePaymentCommands(
+      preferredMethod,
+      availableMethods.filter((method) => method !== preferredMethod),
+    ),
   };
+}
+
+function createGuidePaymentCommands(preferredMethod, fallbackMethods) {
+  const commands = [
+    "image-skill credits methods --json",
+    "image-skill credits packs list --json",
+    preferredMethod?.recovery?.quote_command ??
+      "image-skill credits quote --pack starter-500 --payment-method stripe_x402.exact.usdc --idempotency-key KEY --json",
+    preferredMethod?.recovery?.purchase_command ??
+      "image-skill credits buy --provider stripe_x402 --quote-id QUOTE_ID --idempotency-key KEY --json",
+    preferredMethod?.recovery?.status_command ??
+      "image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json",
+  ];
+  for (const method of fallbackMethods) {
+    for (const command of [
+      method.recovery?.quote_command,
+      method.recovery?.purchase_command,
+      method.recovery?.status_command,
+    ]) {
+      if (typeof command === "string" && !commands.includes(command)) {
+        commands.push(command);
+      }
+    }
+  }
+  return commands;
 }
 
 function createGuideStage(input) {
@@ -1329,7 +1372,9 @@ function createGuideNextCommand(stage, input) {
   if (stage === "quota_required") {
     return renderGuidePrefixedCommand(
       input.commandPrefix,
-      stripImageSkillCommandPrefix(input.paymentSummary.suggested_commands[0]),
+      stripImageSkillCommandPrefix(
+        firstPaymentActionCommand(input.paymentSummary.suggested_commands),
+      ),
     );
   }
   return renderCreateCommand({
@@ -1360,6 +1405,16 @@ function renderGuideCommand(prompt, apiBaseUrl, commandPrefix = "image-skill") {
 
 function renderTokenStdinCommand(command) {
   return `printf '%s\\n' "$IMAGE_SKILL_TOKEN" | ${command} --token-stdin`;
+}
+
+function firstPaymentActionCommand(commands) {
+  return (
+    commands.find((command) => /\bcredits\s+quote\b/.test(command)) ??
+    commands.find((command) => /\bcredits\s+buy\b/.test(command)) ??
+    commands.find((command) => /\bcredits\s+methods\b/.test(command)) ??
+    commands[0] ??
+    "image-skill credits methods --json"
+  );
 }
 
 function renderCreateCommand(input) {
