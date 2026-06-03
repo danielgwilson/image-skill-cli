@@ -1144,13 +1144,14 @@ async function models(argv) {
       query.message,
     );
   }
-  return apiRequest({
+  const result = await apiRequest({
     command:
       subcommand === "list" ? "image-skill models list" : "image-skill models",
     method: "GET",
     apiBaseUrl: apiBase(args),
     path: query.path,
   });
+  return flagBool(args, "summary") ? withModelSummary(result) : result;
 }
 
 function modelListQuery(args) {
@@ -1181,6 +1182,133 @@ function modelListQuery(args) {
     ok: true,
     path: query.length === 0 ? "/v1/models" : `/v1/models?${query}`,
   };
+}
+
+function withModelSummary(result) {
+  const data = result.envelope.data;
+  if (!isRecord(data) || !Array.isArray(data.models)) {
+    return result;
+  }
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      data: {
+        ...data,
+        summary: {
+          ...(isRecord(data.summary) ? data.summary : {}),
+          result_shape: "compact_model_summary",
+          full_list_command: "image-skill models list --json",
+        },
+        models: data.models.map(modelSummaryRow),
+      },
+    },
+  };
+}
+
+function modelSummaryRow(model) {
+  return {
+    id: model.id,
+    display_name: model.display_name,
+    provider_id: model.provider_id,
+    mode: model.mode,
+    status: model.status,
+    availability_reason: model.availability_reason ?? null,
+    supports: Array.isArray(model.supports) ? [...model.supports] : [],
+    operations: Array.isArray(model.operations) ? [...model.operations] : [],
+    task_tags: modelSummaryTaskTags(model),
+    estimated_usd_per_image: model.economics?.estimated_usd_per_image ?? null,
+    credits_required: model.economics?.credit_pricing?.credits_required ?? null,
+    pricing_confidence:
+      model.economics?.credit_pricing?.pricing_confidence ?? null,
+    cost_known: model.economics?.cost_known ?? false,
+    budget_required_for_live:
+      model.economics?.budget_required_for_live ?? false,
+    max_outputs_per_request:
+      model.media?.output?.max_outputs_per_request ?? null,
+    max_resolution: model.media?.output?.max_resolution ?? null,
+    artifact_storage: model.execution?.artifact_storage ?? null,
+    model_execution_status: model.execution?.model_execution_status ?? null,
+    grants_required: Array.isArray(model.capability?.grants_required)
+      ? [...model.capability.grants_required]
+      : [],
+    show_command:
+      typeof model.id === "string"
+        ? `image-skill models show ${model.id} --json`
+        : "image-skill models show MODEL_ID --json",
+  };
+}
+
+function modelSummaryTaskTags(model) {
+  const tags = [];
+  const seen = new Set();
+  const add = (tag) => {
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      tags.push(tag);
+    }
+  };
+  for (const support of Array.isArray(model.supports) ? model.supports : []) {
+    add(support);
+  }
+  for (const operation of Array.isArray(model.operations)
+    ? model.operations
+    : []) {
+    add(operationTag(operation));
+  }
+  for (const intent of Array.isArray(model.capability?.intents)
+    ? model.capability.intents
+    : []) {
+    add(intent);
+  }
+  if (
+    model.operations?.includes("image.generate") &&
+    model.media?.input?.images?.required !== true &&
+    model.media?.input?.references?.required !== true
+  ) {
+    add("text-to-image");
+  }
+  if (model.media?.input?.images?.required === true) {
+    add("input-image");
+    add("image-to-image");
+  }
+  if (model.media?.input?.mask?.supported === true) {
+    add(model.media?.input?.mask?.required === true ? "mask-required" : "mask");
+  }
+  if (model.media?.input?.references?.supported === true) {
+    add("reference-image");
+    if ((model.media?.input?.references?.max ?? 0) > 1) {
+      add("multi-reference");
+    }
+  }
+  if (model.media?.output?.transparent_background === true) {
+    add("transparent-background");
+  }
+  if ((model.media?.output?.max_outputs_per_request ?? 0) > 1) {
+    add("multi-output");
+  }
+  if (
+    String(model.id ?? "").includes("video") ||
+    String(model.display_name ?? "")
+      .toLowerCase()
+      .includes("video")
+  ) {
+    add("video");
+  }
+  if (model.execution?.artifact_storage === "image_skill_owned") {
+    add("downloadable");
+  }
+  return tags;
+}
+
+function operationTag(operation) {
+  if (operation === "image.generate") return "generate";
+  if (operation === "image.edit") return "edit";
+  if (operation === "image.variation") return "variation";
+  if (operation === "image.upscale") return "upscale";
+  if (operation === "image.utility") return "utility";
+  if (operation === "image.vision") return "vision";
+  return "inspect";
 }
 
 function addQueryValue(params, name, value) {

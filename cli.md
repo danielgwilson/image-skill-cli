@@ -677,6 +677,7 @@ capability-preserving schema for one model.
 ```bash
 image-skill models --json
 image-skill models list --json
+image-skill models list --summary --json
 image-skill models list --available --operation image.generate --json
 image-skill models list --available --operation image.edit --json
 image-skill models list --catalog-only --provider fal --json
@@ -707,7 +708,11 @@ available, executable, catalog-only, provider split,
 `execution_availability`, first actionable model ids, recommended filter
 commands, and catalog-inclusion flags. Default list output excludes
 catalog-only rows so fresh agents see executable candidates first. Use
-`--available` for currently usable executable rows, `--operation
+`--summary` when you need a compact, sortable model menu: each row keeps the
+model id, flat `estimated_usd_per_image`, `credits_required`, lightweight
+`task_tags`, status, provider, max output count/resolution, storage, and
+`show_command`, while omitting full parameter schemas. Use `--available` for
+currently usable executable rows, `--operation
 image.generate` or `--operation image.edit` for the task, `--provider fal|xai|openai`
 to narrow by provider, and `--catalog-only` when you intentionally want
 source-backed rows that are inspectable but not runnable yet. Provider-level
