@@ -982,12 +982,17 @@ async function credits(argv) {
       );
     }
     const idempotency = optionalIdempotencyKey(args, "quote");
-    const paymentMethod =
-      flagString(args, "payment-method") ?? "stripe_checkout";
+    const paymentMethod = flagString(args, "payment-method");
     const PUBLIC_QUOTE_PAYMENT_METHODS = [
       "stripe_checkout",
       "stripe_x402.exact.usdc",
     ];
+    if (paymentMethod === null) {
+      return invalid(
+        "image-skill credits quote",
+        "credits quote requires --payment-method from credits methods --json; use stripe_x402.exact.usdc for an agent-settleable browserless rail or stripe_checkout for a human Checkout handoff",
+      );
+    }
     if (!PUBLIC_QUOTE_PAYMENT_METHODS.includes(paymentMethod)) {
       return invalid(
         "image-skill credits quote",

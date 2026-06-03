@@ -452,14 +452,17 @@ model's provider cost and Image Skill's margin policy; inspect
 debit before spending.
 
 ```bash
-image-skill credits quote --credits 10 --payment-method stripe_checkout --json
+image-skill credits quote --credits 10 --payment-method stripe_x402.exact.usdc --json
 ```
 
-For retry-stable automation, provide an explicit non-secret idempotency key:
+Always pass the payment method from `credits methods --json`; the public CLI
+does not infer one. For retry-stable automation, provide an explicit non-secret
+idempotency key:
 
 ```bash
 image-skill credits quote \
   --credits 10 \
+  --payment-method stripe_x402.exact.usdc \
   --idempotency-key quote-run-001 \
   --json
 ```
@@ -490,8 +493,9 @@ image-skill credits quote \
   --json
 ```
 
-For exact custom Stripe Checkout terms, request the provider and bounded credit
-amount explicitly:
+For exact custom terms, keep the same rail choice. Use
+`stripe_x402.exact.usdc` for an agent-settleable browserless rail, or use
+`stripe_checkout` only for a human Checkout fallback:
 
 ```bash
 image-skill credits quote \
