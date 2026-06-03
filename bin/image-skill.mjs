@@ -1503,6 +1503,11 @@ async function createGuide(args) {
     estimatedCredits,
     estimatedDebitUsdPerImage,
   });
+  const noSpendEvaluation = createGuideNoSpendEvaluation(stage, {
+    noSpendNextCommand,
+    noSpendNextCommandLabel,
+    noSpendNextCommandEffect,
+  });
   const selfFundNextCommand = stage === "quota_required" ? nextCommand : null;
   const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
     stage,
@@ -1609,6 +1614,7 @@ async function createGuide(args) {
     no_spend_next_command: noSpendNextCommand,
     no_spend_next_command_label: noSpendNextCommandLabel,
     no_spend_next_command_effect: noSpendNextCommandEffect,
+    no_spend_evaluation: noSpendEvaluation,
     recommended_no_spend_command: noSpendNextCommand,
     recommended_no_spend_command_label: noSpendNextCommandLabel,
     recommended_no_spend_command_effect: noSpendNextCommandEffect,
@@ -2208,6 +2214,39 @@ function createGuideNoSpendNextCommandEffect(stage, input) {
     estimated_debit_usd_per_image: input.estimatedDebitUsdPerImage,
     warning:
       "data.no_spend_next_command may create a recoverable planned job/activity receipt (job.planned), but it does not call a provider, debit credits, or create downloadable media.",
+  };
+}
+
+function createGuideNoSpendEvaluation(stage, input) {
+  if (stage !== "ready_to_create") {
+    return {
+      stop_here: false,
+      stop_stage: "ready_to_create",
+      stop_reason: null,
+      next_command_is_live_create: false,
+      live_create_command_field: null,
+      live_create_allowed_when: null,
+      recommended_command_field: null,
+      recommended_command: null,
+      recommended_command_label: null,
+      recommended_command_effect: null,
+      warning: null,
+    };
+  }
+  return {
+    stop_here: true,
+    stop_stage: "ready_to_create",
+    stop_reason:
+      "ready_to_create means data.next_command is a live media create; no-spend evaluators should stop before it unless media spend is allowed.",
+    next_command_is_live_create: true,
+    live_create_command_field: "next_command",
+    live_create_allowed_when: "media_spend_allowed",
+    recommended_command_field: "recommended_no_spend_command",
+    recommended_command: input.noSpendNextCommand,
+    recommended_command_label: input.noSpendNextCommandLabel,
+    recommended_command_effect: input.noSpendNextCommandEffect,
+    warning:
+      "For no-spend verification at ready_to_create, run data.recommended_no_spend_command instead of data.next_command.",
   };
 }
 

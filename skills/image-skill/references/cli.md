@@ -128,9 +128,10 @@ should omit it.
 
 Use the no-spend guide first. It is the only required first command for a fresh
 agent. It checks health, executable model availability, auth/quota when a token
-already exists, and payment rails, then returns one primary `data.next_command` plus
-machine-readable `data.next_command_effect`. Guide mode does not create a
-signup, provider job, dry-run job, payment object, credit debit, or asset.
+already exists, and payment rails, then returns one primary
+`data.next_command` plus machine-readable `data.next_command_effect` and
+`data.no_spend_evaluation`. Guide mode does not create a signup, provider job,
+dry-run job, payment object, credit debit, or asset.
 
 ```bash
 image-skill create --guide --prompt "a compact field camera on a stainless workbench"
@@ -162,9 +163,13 @@ checklist before the guide asks for them.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.next_command_effect.label` is `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
-  Run it for the first bounded create when media spend is allowed. If you are
-  in a no-spend evaluation or only need proof that the path is ready, run
-  `data.recommended_no_spend_command` instead; it aliases
+  `data.no_spend_evaluation.stop_here` is `true`,
+  `data.no_spend_evaluation.next_command_is_live_create` is `true`, and
+  `data.no_spend_evaluation.recommended_command_field` is
+  `recommended_no_spend_command`. Run `data.next_command` for the first bounded
+  create only when media spend is allowed. If you are in a no-spend evaluation
+  or only need proof that the path is ready, stop before `data.next_command` and
+  run `data.recommended_no_spend_command` instead; it aliases
   `data.no_spend_next_command` and is the dry-run plan command. Its
   `data.no_spend_next_command_effect.label` is
   `dry_run_planned_job_no_provider_call_no_credit_debit_no_media_write`, with
@@ -860,7 +865,8 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 ```
 
 `create --guide` returns `schema: image-skill.create-guide.v1`,
-`stage`, `next_command`, `recommended_no_spend_command`,
+`stage`, `next_command`, `no_spend_evaluation`,
+`recommended_no_spend_command`,
 `self_fund_next_command`, `self_fund_handoff`, `escape_hatches`, selected
 executable model and cost, auth/quota/payment blockers, and mutation flags. All
 mutation flags must be false in guide mode: no provider call, hosted create,
@@ -1058,7 +1064,8 @@ Authenticated hosted create dry-runs also create a recoverable planned job:
 emits `job.planned`. Planned receipts do not create downloadable media assets or
 usage debits. In the first-run guide, this exact no-spend command behavior is
 exposed as `data.no_spend_next_command_effect` and
-`data.recommended_no_spend_command_effect`.
+`data.recommended_no_spend_command_effect`; the evaluator stop policy is exposed
+as `data.no_spend_evaluation`.
 
 Minimum success data:
 
