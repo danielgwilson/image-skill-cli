@@ -105,8 +105,11 @@ authenticate without repeating signup. The raw token is returned only when
 `--show-token` is set, and only once. Use `--show-token --no-save` when a
 runtime intentionally wants to store the token somewhere else.
 `create --guide` checks whether the configured auth path is writable before it
-suggests a signup command; if not, it returns the `--show-token --no-save`
-fallback plus `--token-stdin` rerun guidance.
+suggests a signup command. If the configured path is blocked, the guide keeps
+saved config as the primary recovery by returning a signup command prefixed
+with `IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"`. The
+`--show-token --no-save` plus `--token-stdin` route remains structured fallback
+recovery for runtimes that intentionally avoid local config.
 
 Fresh sandboxes should prefer:
 
