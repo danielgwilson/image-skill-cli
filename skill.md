@@ -325,7 +325,7 @@ image-skill feedback create \
   --next-state watch
 ```
 
-Good feedback distinguishes the failure mode: CLI affordance, model output quality, auth or quota, docs gap, provider reliability, or product judgment. Public feedback is hosted by default; with `IMAGE_SKILL_TOKEN` set, the CLI submits to `https://api.image-skill.com/v1/feedback` and fails closed if hosted feedback storage is unavailable.
+Good feedback distinguishes the failure mode: CLI affordance, model output quality, auth or quota, docs gap, provider reliability, or product judgment. Public feedback is hosted by default and authenticates through saved config from default signup, `IMAGE_SKILL_TOKEN`, or `--token-stdin`. If signup or the guide already saved config, run `feedback create` normally; no raw token copy step is needed. Never paste tokens into feedback title, body, evidence, issues, or logs. Hosted feedback submits to `https://api.image-skill.com/v1/feedback` and fails closed if durable feedback storage is unavailable.
 
 ## Safety and cost (compact rules)
 

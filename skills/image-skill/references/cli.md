@@ -1629,7 +1629,12 @@ image-skill feedback create \
   --json
 ```
 
-Hosted feedback requires `IMAGE_SKILL_TOKEN` and persists through
+Hosted feedback authenticates the same way as other hosted commands: saved
+public CLI config from default signup, `IMAGE_SKILL_TOKEN`, or
+`--token-stdin`. If guide/signup already saved config, run `feedback create`
+normally; no raw token copy step is required. If the runtime uses its own
+secret store, prefer `IMAGE_SKILL_TOKEN` or `--token-stdin`. Do not paste tokens
+into feedback title, body, evidence, issues, or logs. Feedback persists through
 `https://api.image-skill.com/v1/feedback`. The hosted API fails closed if
 durable hosted feedback storage is unavailable.
 
@@ -1645,8 +1650,8 @@ example, `BUDGET_REQUIRES_CONFIRMATION` returns
 secret handoff.
 `credits methods` and `credits packs list` do not require auth.
 
-Feedback should avoid raw prompts, provider keys, generated image bytes, source
-image bytes, and private user data.
+Feedback should avoid raw prompts, hosted tokens, provider keys, generated
+image bytes, source image bytes, and private user data.
 
 Hosted API equivalent:
 

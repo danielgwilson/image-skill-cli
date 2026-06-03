@@ -11,20 +11,20 @@
     {
       "source_path": "docs/public-contract/skill.md",
       "public_paths": ["skill.md", "skills/image-skill/SKILL.md"],
-      "bytes": 22113,
-      "sha256": "f509dd0941c847dd33d9f4c34839cd316541a8517b0538e3b109e2bd54894d42"
+      "bytes": 22376,
+      "sha256": "ead2f488d22fee6ffb198a36a6431e85adfcaf6446c9a8b888263c7f0517bc60"
     },
     {
       "source_path": "docs/public-contract/cli.md",
       "public_paths": ["cli.md", "skills/image-skill/references/cli.md"],
-      "bytes": 68235,
-      "sha256": "6eea5dbc1b3a63f0bac8b1f063fe6317b4dcff1d5663a8b22d656b482cc79b5d"
+      "bytes": 68634,
+      "sha256": "1ac14f454f00490e618d94774c4e894f63390028fdd26e54454b666eaa5b1eb3"
     },
     {
       "source_path": "docs/public-contract/llms.txt",
       "public_paths": ["llms.txt", "skills/image-skill/references/llms.txt"],
-      "bytes": 33008,
-      "sha256": "d2383f4d7433504b63560eb2c867f3e685a2932557ff3380a34758f9203c6f09"
+      "bytes": 33270,
+      "sha256": "b26d757efd9af1a08f850c4d83451fbeae4336632823fac918dee18644fa7dc9"
     }
   ]
 }
