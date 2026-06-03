@@ -1082,18 +1082,21 @@ for concrete quality/size requests; GPT Image 2 edit still requires
 unknown-cost acceptance before execution, but records usage-priced provider cost
 after execution when OpenAI returns token usage. Provider-native controls remain
 visible for planning and fail closed until their capability schema marks them
-executable. Hosted
-`create --dry-run` validates `model_parameters` against the selected model,
-returns accepted keys/provenance and request-aware credit pricing for planning,
-and never executes provider controls or consumes credits.
+executable. Hosted `create --dry-run` validates `model_parameters` against the
+selected model, returns accepted keys/provenance and request-aware credit
+pricing for planning, and never executes provider controls or consumes credits.
+Hosted `edit --dry-run` validates the same owned input, mask/reference,
+prompt-policy, budget, and `model_parameters` checks as a live edit, then
+returns planned outputs without storage, provider, or billing side effects.
 For dry-run responses, `cost.credit_pricing.credits_required` is the planned
 live execution debit for the selected model. The actual debit for the dry run is
 `quota.consumed_credits: 0`.
-Authenticated hosted create dry-runs also create a recoverable planned job:
+Authenticated hosted dry-runs also create a recoverable planned job:
 `jobs show` returns `status: "planned"` with `plan_receipt`, and `activity`
 emits `job.planned`. Planned receipts do not create downloadable media assets or
-usage debits. In the first-run guide, this exact no-spend command behavior is
-exposed as `data.no_spend_next_command_effect` and
+usage debits, media writes, or provider execution. In the first-run guide, this
+exact no-spend command behavior is exposed as
+`data.no_spend_next_command_effect` and
 `data.recommended_no_spend_command_effect`; the evaluator stop policy is exposed
 as `data.no_spend_evaluation`.
 
@@ -1266,6 +1269,10 @@ If `--input` is a local path or external URL, the public CLI first normalizes it
 through the same upload resolver as `image-skill upload`, then sends only the
 resulting `asset_id` to `POST /v1/edit`. If `--input` is an Image Skill asset id
 or owned asset URL, edit uses that owned asset directly.
+Add `--dry-run` to plan the edit after owned-asset, prompt-policy,
+`model_parameters`, and budget validation. Dry-run edit responses return planned
+assets and `quota.consumed_credits: 0`, store a recoverable `job.planned`
+receipt, and do not call the provider, debit credits, or write media.
 For models with wired mask support, `--mask` follows the same upload/asset-id
 resolver and sends only `mask_asset_id`; never pass provider-native `mask_url`
 through `model_parameters`.
@@ -1333,6 +1340,10 @@ Direct `/v1/edit` callers use the same owned-asset contract:
   ]
 }
 ```
+
+Set `dry_run: true` on `/v1/edit` to get the same no-spend plan the CLI returns.
+The server still validates ownership, prompt policy, references, masks,
+`model_parameters`, and budget guards before returning the planned job.
 
 Create a 3D asset from an image through the same `edit` command and
 durable-media loop. Image-to-3D is promptless and image-conditioned, so it ships
@@ -1607,7 +1618,7 @@ below.
 | Event type                                 | Subject    | Operation   | Emitted when                                                       | Stable links                                                       |
 | ------------------------------------------ | ---------- | ----------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | `job.completed`                            | `job`      | create/edit | A hosted create or edit job reaches a terminal state.              | `job_id`, `asset_ids`, `usage_event_id`                            |
-| `job.planned`                              | `job`      | create      | An authenticated create dry-run stores a recoverable plan receipt. | `job_id`                                                           |
+| `job.planned`                              | `job`      | create/edit | An authenticated hosted dry-run stores a recoverable plan receipt. | `job_id`                                                           |
 | `asset.created`                            | `asset`    | create/edit | A hosted create or edit produces an output asset.                  | `job_id`, `asset_ids`, `usage_event_id`                            |
 | `asset.uploaded`                           | `asset`    | upload      | A public edit workflow uploads or imports input media.             | `job_id`, `asset_ids`, `usage_event_id`                            |
 | `usage.credit_consumed`                    | `usage`    | usage       | A creative operation records a preview-credit entry.               | `job_id`, `usage_event_id`                                         |
@@ -1626,7 +1637,7 @@ machine-readable lifecycle fields such as `state`, `reason`, `issue_urls`,
 `issue_numbers`, `mode`, and `github_mutation`. Agents should use it to learn
 whether submitted feedback was promoted, skipped, deduped, blocked, or already
 mirrored without reading private repository artifacts.
-`job.planned` includes `details.plan_receipt` for authenticated hosted create
+`job.planned` includes `details.plan_receipt` for authenticated hosted
 dry-runs. It is a recoverable planning receipt, not completed media work:
 planned outputs do not have durable asset IDs, download URLs, usage debits, or
 provider execution.
