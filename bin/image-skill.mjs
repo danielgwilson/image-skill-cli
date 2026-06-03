@@ -1511,6 +1511,10 @@ async function createGuide(args) {
     noSpendNextCommandLabel,
     noSpendNextCommandEffect,
   });
+  const guideWarning = createGuideWarning(stage, {
+    nextCommandEffect,
+    paymentSummary,
+  });
   const selfFundNextCommand = stage === "quota_required" ? nextCommand : null;
   const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
     stage,
@@ -1617,6 +1621,7 @@ async function createGuide(args) {
       pricing_confidence: pricing?.pricing_confidence ?? null,
     },
     blocker,
+    guide_warning: guideWarning,
     auth_ready: authReady,
     next_command: nextCommand,
     next_command_effect: nextCommandEffect,
@@ -2277,6 +2282,82 @@ function createGuideNoSpendEvaluation(stage, input) {
     recommended_command_effect: input.noSpendNextCommandEffect,
     warning:
       "For no-spend verification at ready_to_create, run data.recommended_no_spend_command instead of data.next_command.",
+  };
+}
+
+function createGuideWarning(stage, input) {
+  const effect = input.nextCommandEffect;
+  const base = {
+    stage,
+    no_spend_safe:
+      effect.no_spend &&
+      !effect.provider_call &&
+      !effect.payment_object &&
+      !effect.credit_debit &&
+      !effect.media_write,
+    live_money_action: false,
+    spend_required: false,
+    provider_call: effect.provider_call,
+    payment_object: effect.payment_object,
+    credit_debit: effect.credit_debit,
+    media_write: effect.media_write,
+    payment_top_up_path: null,
+  };
+
+  if (stage === "prompt_required") {
+    return {
+      ...base,
+      next_command_safety: "rerun_guide_no_spend",
+      recommended_command_field: "next_command",
+      warning:
+        "data.next_command reruns the free guide with a real prompt; it does not call a provider, open payment, debit credits, or create media.",
+    };
+  }
+  if (stage === "no_executable_model" || stage === "service_unreachable") {
+    return {
+      ...base,
+      next_command_safety: "read_only_inspection_no_spend",
+      recommended_command_field: "next_command",
+      warning:
+        "data.next_command is read-only inspection/recovery; it does not call a provider, open payment, debit credits, or create media.",
+    };
+  }
+  if (stage === "auth_required") {
+    return {
+      ...base,
+      next_command_safety: "hosted_signup_no_spend_setup",
+      recommended_command_field: "next_command",
+      warning:
+        "data.next_command is no-spend hosted signup/setup; it creates a restricted agent identity but does not call a provider, open payment, debit credits, or create media.",
+    };
+  }
+  if (stage === "quota_required") {
+    const paymentTopUpPath =
+      input.paymentSummary.preferred_method_summary?.top_up_path ?? null;
+    return {
+      ...base,
+      next_command_safety: "live_money_payment_action",
+      no_spend_safe: false,
+      live_money_action: true,
+      spend_required: true,
+      recommended_command_field: "escape_hatches",
+      payment_top_up_path: paymentTopUpPath,
+      warning:
+        paymentTopUpPath === "browserless_agent_self_fund"
+          ? "data.next_command starts the browserless live-money top-up path; stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only payment inspection."
+          : paymentTopUpPath === "human_payment_handoff"
+            ? "data.next_command starts a live-money payment handoff that needs human or browser completion; stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only inspection."
+            : "data.next_command starts payment or quota recovery; inspect data.checks.payments before attempting live money, or use data.escape_hatches.payment_methods for read-only inspection.",
+    };
+  }
+  return {
+    ...base,
+    next_command_safety: "live_media_create_credit_debit",
+    no_spend_safe: false,
+    spend_required: true,
+    recommended_command_field: "recommended_no_spend_command",
+    warning:
+      "data.next_command is a live media create that can call a provider, debit credits, and create media. Run it only when media spend is allowed; otherwise run data.recommended_no_spend_command.",
   };
 }
 

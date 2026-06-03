@@ -130,17 +130,19 @@ Use the no-spend guide first. It is the only required first command for a fresh
 agent. It checks health, executable model availability, auth/quota when a token
 already exists, and payment rails, then returns one primary
 `data.next_command` plus machine-readable `data.next_command_effect`,
-`data.auth_ready`, and `data.no_spend_evaluation`. Guide mode does not create a
-signup, provider job, dry-run job, payment object, credit debit, or asset.
+`data.guide_warning`, `data.auth_ready`, and `data.no_spend_evaluation`. Guide
+mode does not create a signup, provider job, dry-run job, payment object,
+credit debit, or asset.
 
 ```bash
 image-skill create --guide --prompt "a compact field camera on a stainless workbench"
 ```
 
-Read `data.stage`, run `data.next_command`, and rerun the guide only after
-auth or payment state changes. Do not run `doctor`, `models list`, `signup`,
-`whoami`, `usage quota`, `create --dry-run`, or payment commands as a setup
-checklist before the guide asks for them.
+Read `data.stage` and `data.guide_warning`, run `data.next_command` when
+`data.guide_warning.next_command_safety` is safe for the current spend policy,
+and rerun the guide only after auth or payment state changes. Do not run
+`doctor`, `models list`, `signup`, `whoami`, `usage quota`, `create --dry-run`,
+or payment commands as a setup checklist before the guide asks for them.
 
 - `prompt_required`: rerun `data.next_command` with the real prompt.
 - `auth_required`: run `data.next_command`, then rerun guide once. Hosted
@@ -148,7 +150,9 @@ checklist before the guide asks for them.
   `--no-save --show-token`, store the returned token and use
   `data.auth_handoff.rerun_guide.with_env` or
   `data.auth_handoff.rerun_guide.with_stdin`. In this stage,
-  `data.auth_ready.ready` is `false`.
+  `data.auth_ready.ready` is `false`, and
+  `data.guide_warning.next_command_safety` is
+  `hosted_signup_no_spend_setup`.
 - `quota_required`: run `data.self_fund_next_command` to start the top-up.
   It aliases `data.next_command` and is the first payment command, usually an
   x402 or Stripe quote. If the guide authenticated from env or stdin, prefer
@@ -156,7 +160,10 @@ checklist before the guide asks for them.
   `data.self_fund_handoff.auth.next_command.with_stdin` so auth follows the
   payment command. Then follow `data.self_fund_handoff.payment_commands.buy`
   and `status`, and rerun `data.self_fund_handoff.after_next` once credits are
-  granted. Read `data.checks.payments.preferred_method_summary.top_up_path`
+  granted. `data.guide_warning.next_command_safety` is
+  `live_money_payment_action`, and
+  `data.guide_warning.payment_top_up_path` summarizes the same path as
+  `data.checks.payments.preferred_method_summary.top_up_path`. Read that path
   before the quote: `browserless_agent_self_fund` means a wallet-equipped agent
   can complete the preferred live-money rail without a browser;
   `human_payment_handoff` means the agent can create the payment attempt but a
@@ -164,6 +171,11 @@ checklist before the guide asks for them.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.next_command_effect.label` is `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
+  `data.guide_warning.next_command_safety` is
+  `live_media_create_credit_debit`, `data.guide_warning.no_spend_safe` is
+  `false`, `data.guide_warning.spend_required` is `true`, and
+  `data.guide_warning.recommended_command_field` is
+  `recommended_no_spend_command`.
   `data.auth_ready.ready` is `true`,
   `data.auth_ready.next_command_requires_auth` is `true`, and
   `data.auth_ready.next_command_auth_ready` is `true`; the returned
@@ -871,12 +883,17 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 ```
 
 `create --guide` returns `schema: image-skill.create-guide.v1`,
-`stage`, `next_command`, `auth_ready`, `no_spend_evaluation`,
+`stage`, `next_command`, `guide_warning`, `auth_ready`, `no_spend_evaluation`,
 `recommended_no_spend_command`,
 `self_fund_next_command`, `self_fund_handoff`, `escape_hatches`, selected
 executable model and cost, auth/quota/payment blockers, and mutation flags. All
 mutation flags must be false in guide mode: no provider call, hosted create,
 signup, payment object, credit debit, or media write.
+For next-command safety, read `guide_warning.next_command_safety` before
+acting: `hosted_signup_no_spend_setup` is no-spend auth setup,
+`live_money_payment_action` is top-up/payment work, and
+`live_media_create_credit_debit` is a live create that can call a provider,
+debit credits, and write media.
 For payment state, read
 `checks.payments.preferred_method_summary.top_up_path` instead of inferring
 from several arrays. It is `browserless_agent_self_fund` when the preferred
