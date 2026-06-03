@@ -1,0 +1,30 @@
+{
+  "schema": "image-skill.public-contract-manifest.v1",
+  "generated_by": "scripts/public/export-public-cli.mjs",
+  "source_repo": "danielgwilson/image-skill",
+  "source_root": "docs/public-contract",
+  "public_repo": "danielgwilson/image-skill-cli",
+  "package_name": "image-skill",
+  "package_version": "0.1.28",
+  "note": "Generated from private upstream public contracts. Do not edit by hand.",
+  "files": [
+    {
+      "source_path": "docs/public-contract/skill.md",
+      "public_paths": ["skill.md", "skills/image-skill/SKILL.md"],
+      "bytes": 20645,
+      "sha256": "f5232ebc50edc25be5e1ad2fbae53a368b01e1dddf0080f95a7afaa6a5f8d72d"
+    },
+    {
+      "source_path": "docs/public-contract/cli.md",
+      "public_paths": ["cli.md", "skills/image-skill/references/cli.md"],
+      "bytes": 65217,
+      "sha256": "d8cbc0dc4733d72dcd62bf67934b3a042434d91d3891cf0b9b4e398aaee55de4"
+    },
+    {
+      "source_path": "docs/public-contract/llms.txt",
+      "public_paths": ["llms.txt", "skills/image-skill/references/llms.txt"],
+      "bytes": 31087,
+      "sha256": "6143620ab591da3fb4bb687d5117d98008fbfb5ade479c8514ad5e9971351da2"
+    }
+  ]
+}

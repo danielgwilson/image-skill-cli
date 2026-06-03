@@ -1,0 +1,37 @@
+name: Public Contract Drift
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - PUBLIC_CONTRACT_MANIFEST.json
+      - skill.md
+      - llms.txt
+      - cli.md
+      - skills/**
+      - package.json
+      - bin/image-skill.mjs
+      - .github/scripts/check-contract-drift.mjs
+      - .github/workflows/contract-drift.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-drift:
+    name: Verify mirrored public contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Check public contract manifest
+        run: node .github/scripts/check-contract-drift.mjs
