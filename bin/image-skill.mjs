@@ -1753,7 +1753,7 @@ function guideBudgetUsdForModel(model) {
 function createGuideImpliesVideo(input) {
   const searchable =
     `${input?.intent ?? ""} ${input?.prompt ?? ""}`.toLowerCase();
-  return /\b(?:video|clip|footage|animation|animated|cinematic|movie|mp4|b-roll|timelapse|time-lapse)\b/.test(
+  return /\b(?:video|clip|footage|animation|animated|mp4|b-roll|timelapse|time-lapse)\b/.test(
     searchable,
   );
 }
