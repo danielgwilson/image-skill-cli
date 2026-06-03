@@ -162,6 +162,8 @@ One Image Skill credit is `$0.01`. Operation debits are model-priced, not flat. 
 
 Credits are not granted until verified settlement or webhook fulfillment succeeds in either rail. Operator-provided promotion codes are entered on Stripe-hosted Checkout, not in the CLI. For exact bounded budgets, use `credits quote --credits CREDITS --payment-method stripe_checkout`.
 
+When `create --guide` reaches `quota_required`, read `data.checks.payments.preferred_method_summary.top_up_path` before quoting: `browserless_agent_self_fund` is the autonomous wallet path, while `human_payment_handoff` means a human/browser completion step is still required.
+
 Do not silently downgrade to the cheapest model to avoid payment when the user asked for quality or is willing to pay. Quote the needed credits and use the rail above.
 
 ## Models and capability-preserving parameters

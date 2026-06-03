@@ -1802,6 +1802,10 @@ function createGuidePaymentSummary(data) {
       (method) => method.method_id,
     ),
     preferred_method: preferredMethod?.method_id ?? null,
+    preferred_method_summary:
+      preferredMethod === undefined
+        ? null
+        : createGuidePreferredPaymentSummary(preferredMethod),
     buyer_modes: [
       ...new Set(methods.flatMap((method) => method.buyer_modes ?? [])),
     ],
@@ -1809,6 +1813,64 @@ function createGuidePaymentSummary(data) {
       preferredMethod,
       availableMethods.filter((method) => method !== preferredMethod),
     ),
+  };
+}
+
+function createGuidePreferredPaymentSummary(method) {
+  const buyerModes = Array.isArray(method.buyer_modes)
+    ? method.buyer_modes.filter((mode) => typeof mode === "string")
+    : [];
+  const liveMoney = method.live_money !== false;
+  const browserless = method.requires_browser === false;
+  const requiresBrowser = method.requires_browser === true;
+  const agentInitiated = method.agent_initiated === true;
+  const agentSettleable = method.agent_settleable === true;
+  const humanHandoffRequired =
+    requiresBrowser || buyerModes.includes("human_only");
+  const topUpPath =
+    agentSettleable && browserless
+      ? "browserless_agent_self_fund"
+      : humanHandoffRequired
+        ? "human_payment_handoff"
+        : "payment_method_inspection";
+  return {
+    method_id: method.method_id,
+    live_money: liveMoney,
+    requires_browser: requiresBrowser,
+    browserless,
+    agent_initiated: agentInitiated,
+    agent_settleable: agentSettleable,
+    human_handoff_required: humanHandoffRequired,
+    buyer_modes: buyerModes,
+    settlement_blocker:
+      typeof method.settlement_blocker === "string"
+        ? method.settlement_blocker
+        : null,
+    default_pack_id:
+      typeof method.default_pack_id === "string"
+        ? method.default_pack_id
+        : null,
+    min_amount_cents:
+      typeof method.limits?.min_amount_cents === "number"
+        ? method.limits.min_amount_cents
+        : null,
+    max_amount_cents:
+      typeof method.limits?.max_amount_cents === "number"
+        ? method.limits.max_amount_cents
+        : null,
+    top_up_path: topUpPath,
+    next_step:
+      topUpPath === "browserless_agent_self_fund"
+        ? "quote_buy_status_then_rerun_after_next"
+        : topUpPath === "human_payment_handoff"
+          ? "quote_buy_open_checkout_status_then_rerun_after_next"
+          : "inspect_credits_methods",
+    warning:
+      topUpPath === "browserless_agent_self_fund"
+        ? "Preferred rail is browserless live money that a wallet-equipped agent can initiate and settle inside delegated caps."
+        : topUpPath === "human_payment_handoff"
+          ? "Preferred rail starts a live-money payment handoff and requires human or browser completion before credits are granted."
+          : "Preferred payment rail needs inspection before an agent can choose the next top-up action.",
   };
 }
 

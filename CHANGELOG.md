@@ -26,6 +26,10 @@ provenance; this file is the human- and agent-readable release map.
 - Fix (LLM contract): the hosted signup API note now says raw `data.token` is
   returned only when `return_token` is true, while default public CLI signup
   saves config and intentionally reports `data.token: null`.
+- Fix (guide payments): `create --guide` now returns
+  `checks.payments.preferred_method_summary` so quota-blocked agents can read
+  one explicit `top_up_path` instead of inferring whether the preferred rail is
+  browserless agent self-fund or a human/browser payment handoff.
 
 ## 0.1.28 - 2026-06-02
 

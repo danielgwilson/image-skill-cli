@@ -154,7 +154,11 @@ checklist before the guide asks for them.
   `data.self_fund_handoff.auth.next_command.with_stdin` so auth follows the
   payment command. Then follow `data.self_fund_handoff.payment_commands.buy`
   and `status`, and rerun `data.self_fund_handoff.after_next` once credits are
-  granted.
+  granted. Read `data.checks.payments.preferred_method_summary.top_up_path`
+  before the quote: `browserless_agent_self_fund` means a wallet-equipped agent
+  can complete the preferred live-money rail without a browser;
+  `human_payment_handoff` means the agent can create the payment attempt but a
+  human/browser step must complete before credits are granted.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.next_command_effect.label` is `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
@@ -839,6 +843,12 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 executable model and cost, auth/quota/payment blockers, and mutation flags. All
 mutation flags must be false in guide mode: no provider call, hosted create,
 signup, payment object, credit debit, or media write.
+For payment state, read
+`checks.payments.preferred_method_summary.top_up_path` instead of inferring
+from several arrays. It is `browserless_agent_self_fund` when the preferred
+rail is live money, browserless, agent initiated, and agent settleable;
+`human_payment_handoff` when a human/browser completion step is required; and
+`payment_method_inspection` when the guide cannot classify a direct top-up path.
 In guide cost output, `cost.estimated_usd_per_image` is the estimated Image
 Skill debit in dollars for one output, matching
 `cost.estimated_debit_usd_per_image` and
