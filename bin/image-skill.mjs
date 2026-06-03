@@ -380,6 +380,7 @@ function commandHelpByKey(key) {
       docs_url: "https://image-skill.com/cli.md#image-skill-edit",
       required_flags: ["--input"],
       optional_flags: [
+        "--dry-run",
         "--prompt",
         "--model",
         "--mask",
@@ -1598,7 +1599,9 @@ async function createGuide(args) {
       selected === null
         ? null
         : {
-            operation: "create",
+            operation: createGuideSelectedModelRequiresInputImage(selected)
+              ? "edit"
+              : "create",
             model_id: selected.id,
             model_status: selected.status,
             model_execution_status: selected.execution.model_execution_status,
@@ -1611,7 +1614,9 @@ async function createGuide(args) {
                     trimmedPrompt,
                     requestedIntent,
                   )
-                : "requested executable create model",
+                : createGuideSelectedModelRequiresInputImage(selected)
+                  ? "requested executable image-to-3D model"
+                  : "requested executable create model",
           },
     cost: {
       estimated_credits: estimatedCredits,
@@ -1666,23 +1671,42 @@ function selectCreateGuideModel(
     model?.execution?.model_execution_status === "executable" &&
     Array.isArray(model?.supports) &&
     model.supports.includes("create");
+  const isExecutableImageTo3d = (model) =>
+    model?.status === "available" &&
+    model?.execution?.model_execution_status === "executable" &&
+    model?.modality === "3d" &&
+    Array.isArray(model?.supports) &&
+    model.supports.includes("variation") &&
+    createGuideSelectedModelRequiresInputImage(model);
+  const isExecutableGuideModel = (model) =>
+    isExecutableCreate(model) || isExecutableImageTo3d(model);
   if (requestedModelId !== null) {
     const requested = models.find((model) => model.id === requestedModelId);
-    return requested !== undefined && isExecutableCreate(requested)
+    return requested !== undefined && isExecutableGuideModel(requested)
       ? requested
       : null;
   }
   const candidates = models.filter(isExecutableCreate);
-  const capped =
-    maxEstimatedUsdPerImage === null
-      ? candidates
-      : candidates.filter((model) => {
-          const estimatedUsd = guideBudgetUsdForModel(model);
-          return (
-            estimatedUsd === null || estimatedUsd <= maxEstimatedUsdPerImage
-          );
-        });
-  const eligible = capped.length === 0 ? candidates : capped;
+  if (createGuideImplies3d({ prompt, intent })) {
+    const eligible3d = guideCandidatesWithinBudget({
+      candidates: models.filter(isExecutableImageTo3d),
+      maxEstimatedUsdPerImage,
+    });
+    const threeDimensional = eligible3d[0];
+    if (threeDimensional !== undefined) {
+      return threeDimensional;
+    }
+  }
+  const eligible = guideCandidatesWithinBudget({
+    candidates,
+    maxEstimatedUsdPerImage,
+  });
+  if (createGuideImpliesAudio({ prompt, intent })) {
+    const audio = eligible.find((model) => model?.modality === "audio");
+    if (audio !== undefined) {
+      return audio;
+    }
+  }
   if (createGuideImpliesVideo({ prompt, intent })) {
     const video = eligible.find((model) => model?.modality === "video");
     if (video !== undefined) {
@@ -1697,6 +1721,20 @@ function selectCreateGuideModel(
     }
   }
   return eligible[0] ?? null;
+}
+
+function guideCandidatesWithinBudget({
+  candidates,
+  maxEstimatedUsdPerImage = null,
+}) {
+  if (maxEstimatedUsdPerImage === null) {
+    return candidates;
+  }
+  const capped = candidates.filter((model) => {
+    const estimatedUsd = guideBudgetUsdForModel(model);
+    return estimatedUsd === null || estimatedUsd <= maxEstimatedUsdPerImage;
+  });
+  return capped.length === 0 ? candidates : capped;
 }
 
 function createGuideIntentClass(intent) {
@@ -1750,6 +1788,25 @@ function guideBudgetUsdForModel(model) {
   );
 }
 
+function createGuideImplies3d(input) {
+  const searchable =
+    `${input?.intent ?? ""} ${input?.prompt ?? ""}`.toLowerCase();
+  return /\b(?:glb|gltf|mesh|model\s+asset|asset\s+model|textured\s+model|image-to-3d|(?:3d|three-d)\s+(?:\w+\s+){0,3}(?:model|asset|mesh|object)|(?:model|asset|mesh|object)\s+(?:in|as)\s+(?:3d|three-d))\b/.test(
+    searchable,
+  );
+}
+
+function createGuideImpliesAudio(input) {
+  const searchable =
+    `${input?.intent ?? ""} ${input?.prompt ?? ""}`.toLowerCase();
+  if (/\bmusic\s+video\b/.test(searchable)) {
+    return false;
+  }
+  return /\b(?:audio|sound|music|soundtrack|wav|text-to-audio)\b/.test(
+    searchable,
+  );
+}
+
 function createGuideImpliesVideo(input) {
   const searchable =
     `${input?.intent ?? ""} ${input?.prompt ?? ""}`.toLowerCase();
@@ -1769,7 +1826,25 @@ function createGuideSuggestedAspectRatio(model) {
   return values.includes("16:9") ? "16:9" : (values[0] ?? null);
 }
 
+function createGuideSelectedModelRequiresInputImage(model) {
+  return (
+    model?.modality === "3d" && model?.media?.input?.images?.required === true
+  );
+}
+
 function createGuideSelectionReason(model, prompt, intent) {
+  if (
+    createGuideSelectedModelRequiresInputImage(model) &&
+    createGuideImplies3d({ prompt, intent })
+  ) {
+    return "3D intent matched executable image-to-3D model; provide one Image Skill-owned image_... input asset";
+  }
+  if (
+    model?.modality === "audio" &&
+    createGuideImpliesAudio({ prompt, intent })
+  ) {
+    return "audio intent matched executable audio create model";
+  }
   if (
     model?.modality === "video" &&
     createGuideImpliesVideo({ prompt, intent })
@@ -2383,6 +2458,16 @@ function createGuideNextCommand(stage, input) {
       ),
     );
   }
+  if (createGuideSelectedModelRequiresInputImage(input.selected)) {
+    return renderImageTo3dGuideCommand({
+      modelId: input.selected.id,
+      budgetGuard: input.budgetGuard,
+      dryRun: false,
+      idempotencyKey: `edit-guide-${Date.now()}-${randomBytes(4).toString("hex")}`,
+      apiBaseUrl: input.apiBaseUrl,
+      commandPrefix: input.commandPrefix,
+    });
+  }
   return renderCreateCommand({
     prompt: input.prompt,
     modelId: input.selected.id,
@@ -2424,17 +2509,25 @@ function createGuideEscapeHatches(input) {
             input.commandPrefix,
             "create --dry-run --prompt PROMPT --json",
           )
-        : renderCreateCommand({
-            prompt: input.prompt,
-            modelId: input.selected.id,
-            providerId: input.requestedProviderId,
-            intent: input.requestedIntent,
-            budgetGuard: input.budgetGuard,
-            aspectRatio: input.aspectRatio,
-            dryRun: true,
-            apiBaseUrl: input.apiBaseUrl,
-            commandPrefix: input.commandPrefix,
-          }),
+        : createGuideSelectedModelRequiresInputImage(input.selected)
+          ? renderImageTo3dGuideCommand({
+              modelId: input.selected.id,
+              budgetGuard: input.budgetGuard,
+              dryRun: true,
+              apiBaseUrl: input.apiBaseUrl,
+              commandPrefix: input.commandPrefix,
+            })
+          : renderCreateCommand({
+              prompt: input.prompt,
+              modelId: input.selected.id,
+              providerId: input.requestedProviderId,
+              intent: input.requestedIntent,
+              budgetGuard: input.budgetGuard,
+              aspectRatio: input.aspectRatio,
+              dryRun: true,
+              apiBaseUrl: input.apiBaseUrl,
+              commandPrefix: input.commandPrefix,
+            }),
   };
 }
 
@@ -2487,6 +2580,27 @@ function guidePaymentCommandByKind(commands, kind) {
         ? /\bcredits\s+buy\b/
         : /\bcredits\s+status\b/;
   return commands.find((command) => pattern.test(command)) ?? null;
+}
+
+function renderImageTo3dGuideCommand(input) {
+  return [
+    input.commandPrefix ?? "image-skill",
+    "edit",
+    ...(input.dryRun ? ["--dry-run"] : []),
+    "--input",
+    "image_...",
+    "--model",
+    shellQuote(input.modelId),
+    "--max-estimated-usd-per-image",
+    shellQuote(formatUsd(input.budgetGuard)),
+    ...(input.idempotencyKey === undefined || input.idempotencyKey === null
+      ? []
+      : ["--idempotency-key", shellQuote(input.idempotencyKey)]),
+    ...(input.apiBaseUrl === null
+      ? []
+      : ["--api-base-url", shellQuote(input.apiBaseUrl)]),
+    "--json",
+  ].join(" ");
 }
 
 function renderCreateCommand(input) {
@@ -2751,6 +2865,7 @@ async function edit(argv) {
       ...(modelParameters.value === null
         ? {}
         : { model_parameters: modelParameters.value }),
+      ...(flagBool(args, "dry-run") ? { dry_run: true } : {}),
       // Retry-safe dedupe (#1228): see create — same key dedupes a retry that
       // follows a transient 502 which already debited a credit.
       ...(flagString(args, "idempotency-key") === null
