@@ -303,8 +303,8 @@ function commandHelpByKey(key) {
       usage:
         "image-skill credits quote --pack PACK_ID --payment-method stripe_x402.exact.usdc --json",
       docs_url: "https://image-skill.com/cli.md#image-skill-credits",
-      required_flags: ["--pack or --credits"],
-      optional_flags: ["--payment-method", "--idempotency-key"],
+      required_flags: ["--pack or --credits", "--payment-method"],
+      optional_flags: ["--idempotency-key"],
     },
     "credits buy": {
       command: "image-skill credits buy help",
