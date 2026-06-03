@@ -234,10 +234,13 @@ Config write failures return `PUBLIC_CLI_CONFIG_WRITE_FAILED` with a structured
 `error.recovery.suggested_command`. Agents should follow that recovery field,
 then rerun `create --guide` for the requested creative flow.
 When `create --guide` reaches `auth_required`, it probes the configured auth
-path first. If local config cannot be written, `data.next_command` uses
-`--show-token --no-save` and `data.auth_handoff.rerun_guide.with_stdin` shows
-the token-stdin rerun path instead of asking the agent to try a doomed saved
-signup.
+path first. If local config cannot be written, `data.next_command` prefixes the
+normal saved-config signup with
+`IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"`, so the first recovery
+step still saves auth locally without exposing the one-time token.
+`--show-token --no-save` and `data.auth_handoff.rerun_guide.with_stdin` remain
+structured fallback paths for runtimes that intentionally use a separate secret
+store.
 
 ### `image-skill whoami`
 

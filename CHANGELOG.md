@@ -30,6 +30,13 @@ provenance; this file is the human- and agent-readable release map.
   `checks.payments.preferred_method_summary` so quota-blocked agents can read
   one explicit `top_up_path` instead of inferring whether the preferred rail is
   browserless agent self-fund or a human/browser payment handoff.
+- Fix (activation): when `create --guide` reaches `auth_required` and the
+  configured auth config path is blocked, `data.next_command` now prefixes the
+  normal saved-config signup with
+  `IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"` instead of making
+  the raw `--show-token --no-save` flow primary. The token-stdin/raw-token path
+  remains in structured recovery for runtimes that intentionally avoid local
+  config.
 
 ## 0.1.28 - 2026-06-02
 

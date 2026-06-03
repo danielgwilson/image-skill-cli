@@ -27,6 +27,7 @@ const DEFAULT_CONFIG_PATH = join(
   "image-skill",
   "config.json",
 );
+const LOCAL_WRITABLE_CONFIG_PATH = "$PWD/.image-skill/config.json";
 const SIGNUP_SUGGESTED_COMMAND =
   "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json";
 const SIGNUP_CONTACT_GUIDANCE =
@@ -1984,6 +1985,10 @@ function createGuideBlocker(stage, input) {
 function createGuideAuthHandoff(stage, input) {
   if (stage === "auth_required") {
     const authConfigWritable = input.authConfigWrite?.ok ?? true;
+    const recovery =
+      input.authConfigWrite?.ok === false
+        ? configWriteRecovery("image-skill create --guide")
+        : null;
     return {
       required: true,
       token_source: "none",
@@ -1991,16 +1996,21 @@ function createGuideAuthHandoff(stage, input) {
       accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
       signup: {
         returns_token_once: true,
-        public_cli_saves_config: authConfigWritable,
+        public_cli_saves_config: true,
         store_token_in: authConfigWritable
           ? "public_cli_config_by_default"
-          : "agent_runtime_secret_store",
+          : "public_cli_config_after_setting_IMAGE_SKILL_CONFIG_PATH",
         config_path: configPath(),
         config_writable: authConfigWritable,
-        recovery:
-          input.authConfigWrite?.ok === false
-            ? configWriteRecovery("image-skill create --guide")
-            : null,
+        preferred_save_config:
+          recovery === null
+            ? null
+            : {
+                config_path_env: recovery.config_path_env,
+                config_path: recovery.suggested_config_path,
+                command: input.nextCommand,
+              },
+        recovery,
       },
       rerun_guide:
         input.afterNext === null
@@ -2206,11 +2216,7 @@ function createGuideNextCommand(stage, input) {
     );
   }
   if (stage === "auth_required") {
-    const signupCommand =
-      input.authConfigWritable === false
-        ? "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --show-token --no-save --json"
-        : "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME --json";
-    return renderGuidePrefixedCommand(input.commandPrefix, signupCommand);
+    return renderGuideSignupCommand(input);
   }
   if (stage === "quota_required") {
     return renderGuidePrefixedCommand(
@@ -2285,6 +2291,23 @@ function renderGuideCommand(prompt, apiBaseUrl, commandPrefix = "image-skill") {
   ].join(" ");
 }
 
+function renderGuideSignupCommand(input) {
+  const signupCommand = [
+    "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME",
+    ...(input.apiBaseUrl === null
+      ? []
+      : ["--api-base-url", shellQuote(input.apiBaseUrl)]),
+    "--json",
+  ].join(" ");
+  const command = renderGuidePrefixedCommand(
+    input.commandPrefix,
+    signupCommand,
+  );
+  return input.authConfigWritable === false
+    ? renderWritableConfigCommand(command)
+    : command;
+}
+
 function renderTokenStdinCommand(command) {
   return `printf '%s\\n' "$IMAGE_SKILL_TOKEN" | ${command} --token-stdin`;
 }
@@ -2340,6 +2363,10 @@ function renderCreateCommand(input) {
 
 function renderGuidePrefixedCommand(commandPrefix, command) {
   return `${commandPrefix} ${stripImageSkillCommandPrefix(command)}`;
+}
+
+function renderWritableConfigCommand(command) {
+  return `IMAGE_SKILL_CONFIG_PATH="${LOCAL_WRITABLE_CONFIG_PATH}" ${command}`;
 }
 
 function stripImageSkillCommandPrefix(command) {
@@ -4106,19 +4133,22 @@ function configWriteErrorMessage(error) {
 }
 
 function configWriteRecovery(command) {
-  const safeConfigPath = "$PWD/.image-skill/config.json";
-  const baseSignupCommand = `IMAGE_SKILL_CONFIG_PATH="${safeConfigPath}" ${SIGNUP_SUGGESTED_COMMAND}`;
+  const baseSignupCommand = renderWritableConfigCommand(
+    SIGNUP_SUGGESTED_COMMAND,
+  );
   if (command === "image-skill auth save") {
     return {
       config_path_env: "IMAGE_SKILL_CONFIG_PATH",
-      suggested_config_path: safeConfigPath,
-      suggested_command: `IMAGE_SKILL_CONFIG_PATH="${safeConfigPath}" image-skill auth save --json`,
+      suggested_config_path: LOCAL_WRITABLE_CONFIG_PATH,
+      suggested_command: renderWritableConfigCommand(
+        "image-skill auth save --json",
+      ),
       docs_url: "https://image-skill.com/cli.md#local-config-and-install",
     };
   }
   return {
     config_path_env: "IMAGE_SKILL_CONFIG_PATH",
-    suggested_config_path: safeConfigPath,
+    suggested_config_path: LOCAL_WRITABLE_CONFIG_PATH,
     suggested_command: baseSignupCommand,
     fallback_command: `${SIGNUP_SUGGESTED_COMMAND} --show-token --no-save`,
     fallback_auth_method: "--token-stdin",
