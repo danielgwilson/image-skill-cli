@@ -496,7 +496,7 @@ async function doctor(argv) {
 async function trust(argv) {
   const args = parseArgs(argv);
   const unsupportedFlags = [...args.flags.keys()].filter(
-    (flag) => !["json", "api-base-url"].includes(flag),
+    (flag) => !["json", "api-base-url", "token", "token-stdin"].includes(flag),
   );
   if (args.positionals.length > 0 || unsupportedFlags.length > 0) {
     return invalid(
@@ -505,6 +505,13 @@ async function trust(argv) {
         ? `unsupported flags for trust: ${unsupportedFlags.map((flag) => `--${flag}`).join(", ")}`
         : "trust does not accept positional arguments",
     );
+  }
+  const tokenHandoff = await acceptNoAuthTokenHandoff(
+    args,
+    "image-skill trust",
+  );
+  if (tokenHandoff !== null) {
+    return tokenHandoff;
   }
 
   const checkedAt = new Date().toISOString();
