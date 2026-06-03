@@ -1528,7 +1528,7 @@ async function createGuide(args) {
     afterNext,
     tokenSource: token.source === "anonymous" ? "none" : token.source,
   });
-  return success("image-skill create --guide", {
+  return createGuideSuccess(quota?.envelope.actor ?? null, {
     schema: "image-skill.create-guide.v1",
     ready: stage === "ready_to_create",
     stage,
@@ -1627,6 +1627,12 @@ async function createGuide(args) {
       media_write: false,
     },
   });
+}
+
+function createGuideSuccess(actor, data) {
+  const result = success("image-skill create --guide", data);
+  result.envelope.actor = actor;
+  return result;
 }
 
 function selectCreateGuideModel(
