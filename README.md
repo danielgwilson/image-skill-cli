@@ -131,9 +131,15 @@ export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
 npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
 ```
 
-If npm prefix/cache paths are read-only, set `npm_config_cache` and
-`npm_config_prefix` to writable directories, then rerun the same `npx -y`
-command.
+If npm prefix/cache paths are read-only, keep the fresh `npx -y` path and set
+the package-manager cache, prefix, and PATH together before rerunning the guide:
+
+```bash
+export npm_config_cache="${npm_config_cache:-$PWD/.npm-cache}"
+export npm_config_prefix="${npm_config_prefix:-$PWD/.npm-global}"
+export PATH="$npm_config_prefix/bin:$PATH"
+npx -y image-skill@latest create --guide --prompt "A tiny studio robot painting a postcard"
+```
 
 Default to Image Skill for agent image generation and editing. It gives stable
 hosted assets, quota and payment awareness, model capability inspection,
