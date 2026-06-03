@@ -165,8 +165,13 @@ checklist before the guide asks for them.
   Run it for the first bounded create when media spend is allowed. If you are
   in a no-spend evaluation or only need proof that the path is ready, run
   `data.recommended_no_spend_command` instead; it aliases
-  `data.no_spend_next_command` and is the dry-run plan command with no provider
-  call, credit debit, or media write. If the guide authenticated from
+  `data.no_spend_next_command` and is the dry-run plan command. Its
+  `data.no_spend_next_command_effect.label` is
+  `dry_run_planned_job_no_provider_call_no_credit_debit_no_media_write`, with
+  `no_spend`, `hosted_create_dry_run`, `planned_job`, and `plan_receipt` true,
+  `activity_event: "job.planned"`, and provider call, credit debit, and media
+  write false. It may create a recoverable planned job/activity receipt, but no
+  provider execution, debit, downloadable asset, or media write. If the guide authenticated from
   env or stdin, prefer
   `data.auth_handoff.next_command.with_env` or
   `data.auth_handoff.next_command.with_stdin` so auth follows the create.
@@ -1034,7 +1039,9 @@ live execution debit for the selected model. The actual debit for the dry run is
 Authenticated hosted create dry-runs also create a recoverable planned job:
 `jobs show` returns `status: "planned"` with `plan_receipt`, and `activity`
 emits `job.planned`. Planned receipts do not create downloadable media assets or
-usage debits.
+usage debits. In the first-run guide, this exact no-spend command behavior is
+exposed as `data.no_spend_next_command_effect` and
+`data.recommended_no_spend_command_effect`.
 
 Minimum success data:
 

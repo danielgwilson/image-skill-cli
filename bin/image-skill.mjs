@@ -1498,6 +1498,10 @@ async function createGuide(args) {
     noSpendNextCommand === null
       ? null
       : "dry_run_plan_no_provider_call_no_credit_debit_no_media_write";
+  const noSpendNextCommandEffect = createGuideNoSpendNextCommandEffect(stage, {
+    estimatedCredits,
+    estimatedDebitUsdPerImage,
+  });
   const selfFundNextCommand = stage === "quota_required" ? nextCommand : null;
   const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
     stage,
@@ -1603,8 +1607,10 @@ async function createGuide(args) {
     next_command_effect: nextCommandEffect,
     no_spend_next_command: noSpendNextCommand,
     no_spend_next_command_label: noSpendNextCommandLabel,
+    no_spend_next_command_effect: noSpendNextCommandEffect,
     recommended_no_spend_command: noSpendNextCommand,
     recommended_no_spend_command_label: noSpendNextCommandLabel,
+    recommended_no_spend_command_effect: noSpendNextCommandEffect,
     self_fund_next_command: selfFundNextCommand,
     self_fund_next_command_label: selfFundNextCommandLabel,
     self_fund_handoff: selfFundHandoff,
@@ -2162,6 +2168,31 @@ function createGuideNextCommandEffect(stage, input) {
     };
   }
   return base;
+}
+
+function createGuideNoSpendNextCommandEffect(stage, input) {
+  if (stage !== "ready_to_create") {
+    return null;
+  }
+  return {
+    label:
+      "dry_run_planned_job_no_provider_call_no_credit_debit_no_media_write",
+    no_spend: true,
+    provider_call: false,
+    hosted_create: false,
+    hosted_create_dry_run: true,
+    hosted_signup: false,
+    payment_object: false,
+    credit_debit: false,
+    media_write: false,
+    planned_job: true,
+    plan_receipt: true,
+    activity_event: "job.planned",
+    estimated_credits: input.estimatedCredits,
+    estimated_debit_usd_per_image: input.estimatedDebitUsdPerImage,
+    warning:
+      "data.no_spend_next_command may create a recoverable planned job/activity receipt (job.planned), but it does not call a provider, debit credits, or create downloadable media.",
+  };
 }
 
 function createGuideNextCommand(stage, input) {
