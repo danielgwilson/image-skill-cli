@@ -1498,6 +1498,11 @@ async function createGuide(args) {
     noSpendNextCommand === null
       ? null
       : "dry_run_plan_no_provider_call_no_credit_debit_no_media_write";
+  const selfFundNextCommand = stage === "quota_required" ? nextCommand : null;
+  const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
+    stage,
+    paymentSummary,
+  );
   const afterNext =
     stage === "auth_required" || stage === "quota_required"
       ? renderGuideCommand(
@@ -1511,6 +1516,12 @@ async function createGuide(args) {
     nextCommand,
     afterNext,
     authConfigWrite,
+  });
+  const selfFundHandoff = createGuideSelfFundHandoff(stage, {
+    paymentSummary,
+    nextCommand,
+    afterNext,
+    tokenSource: token.source === "anonymous" ? "none" : token.source,
   });
   return success("image-skill create --guide", {
     schema: "image-skill.create-guide.v1",
@@ -1594,6 +1605,9 @@ async function createGuide(args) {
     no_spend_next_command_label: noSpendNextCommandLabel,
     recommended_no_spend_command: noSpendNextCommand,
     recommended_no_spend_command_label: noSpendNextCommandLabel,
+    self_fund_next_command: selfFundNextCommand,
+    self_fund_next_command_label: selfFundNextCommandLabel,
+    self_fund_handoff: selfFundHandoff,
     after_next: afterNext,
     auth_handoff: authHandoff,
     escape_hatches: escapeHatches,
@@ -1930,7 +1944,7 @@ function createGuideAuthHandoff(stage, input) {
       next_command: null,
     };
   }
-  if (stage === "ready_to_create") {
+  if (stage === "quota_required" || stage === "ready_to_create") {
     return {
       required: true,
       token_source: input.tokenSource,
@@ -1947,6 +1961,87 @@ function createGuideAuthHandoff(stage, input) {
     };
   }
   return null;
+}
+
+function createGuideSelfFundNextCommandLabel(stage, paymentSummary) {
+  if (stage !== "quota_required") {
+    return null;
+  }
+  const preferredMethod = paymentSummary.preferred_method;
+  if (
+    preferredMethod !== null &&
+    paymentSummary.browserless_methods.includes(preferredMethod) &&
+    paymentSummary.agent_settleable_methods.includes(preferredMethod)
+  ) {
+    return "browserless_agent_payable_quote";
+  }
+  if (
+    preferredMethod !== null &&
+    paymentSummary.human_handoff_methods.includes(preferredMethod)
+  ) {
+    return "human_handoff_payment_quote";
+  }
+  return "payment_or_quota_action";
+}
+
+function createGuideSelfFundHandoff(stage, input) {
+  if (stage !== "quota_required") {
+    return null;
+  }
+  const preferredMethod = input.paymentSummary.preferred_method;
+  const browserless =
+    preferredMethod !== null &&
+    input.paymentSummary.browserless_methods.includes(preferredMethod);
+  const agentInitiated =
+    preferredMethod !== null &&
+    input.paymentSummary.agent_initiated_methods.includes(preferredMethod);
+  const agentSettleable =
+    preferredMethod !== null &&
+    input.paymentSummary.agent_settleable_methods.includes(preferredMethod);
+  const humanHandoffRequired =
+    preferredMethod !== null &&
+    input.paymentSummary.human_handoff_methods.includes(preferredMethod);
+
+  return {
+    required: true,
+    preferred_method: preferredMethod,
+    live_money:
+      preferredMethod !== null &&
+      input.paymentSummary.live_money_methods.includes(preferredMethod),
+    browserless,
+    agent_initiated: agentInitiated,
+    agent_settleable: agentSettleable,
+    human_handoff_required: humanHandoffRequired,
+    payment_commands: {
+      quote: guidePaymentCommandByKind(
+        input.paymentSummary.suggested_commands,
+        "quote",
+      ),
+      buy: guidePaymentCommandByKind(
+        input.paymentSummary.suggested_commands,
+        "buy",
+      ),
+      status: guidePaymentCommandByKind(
+        input.paymentSummary.suggested_commands,
+        "status",
+      ),
+    },
+    after_next: input.afterNext,
+    auth: {
+      token_source: input.tokenSource,
+      secret_value_included: false,
+      accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
+      next_command: {
+        requires_auth: true,
+        reuse_current_auth_context: input.tokenSource,
+        with_env: `IMAGE_SKILL_TOKEN="$IMAGE_SKILL_TOKEN" ${input.nextCommand}`,
+        with_stdin: renderTokenStdinCommand(input.nextCommand),
+      },
+    },
+    warning: agentSettleable
+      ? "data.self_fund_next_command starts a browserless live-money quote. Preserve auth with data.self_fund_handoff.auth.next_command, then follow payment_commands.buy/status and rerun after_next."
+      : "data.self_fund_next_command starts a live-money payment handoff. Preserve auth with data.self_fund_handoff.auth.next_command, complete the payment, then rerun after_next.",
+  };
 }
 
 function createGuideNextCommandEffect(stage, input) {
@@ -2109,6 +2204,16 @@ function firstPaymentActionCommand(commands) {
     commands[0] ??
     "image-skill credits methods --json"
   );
+}
+
+function guidePaymentCommandByKind(commands, kind) {
+  const pattern =
+    kind === "quote"
+      ? /\bcredits\s+quote\b/
+      : kind === "buy"
+        ? /\bcredits\s+buy\b/
+        : /\bcredits\s+status\b/;
+  return commands.find((command) => pattern.test(command)) ?? null;
 }
 
 function renderCreateCommand(input) {

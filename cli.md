@@ -147,8 +147,14 @@ checklist before the guide asks for them.
   `--no-save --show-token`, store the returned token and use
   `data.auth_handoff.rerun_guide.with_env` or
   `data.auth_handoff.rerun_guide.with_stdin`.
-- `quota_required`: follow the payment commands in
-  `data.checks.payments.suggested_commands`, then rerun guide once.
+- `quota_required`: run `data.self_fund_next_command` to start the top-up.
+  It aliases `data.next_command` and is the first payment command, usually an
+  x402 or Stripe quote. If the guide authenticated from env or stdin, prefer
+  `data.self_fund_handoff.auth.next_command.with_env` or
+  `data.self_fund_handoff.auth.next_command.with_stdin` so auth follows the
+  payment command. Then follow `data.self_fund_handoff.payment_commands.buy`
+  and `status`, and rerun `data.self_fund_handoff.after_next` once credits are
+  granted.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.next_command_effect.label` is `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
@@ -828,10 +834,11 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 ```
 
 `create --guide` returns `schema: image-skill.create-guide.v1`,
-`stage`, `next_command`, `recommended_no_spend_command`, `escape_hatches`,
-selected executable model and cost, auth/quota/payment blockers, and mutation
-flags. All mutation flags must be false in guide mode: no provider call, hosted
-create, signup, payment object, credit debit, or media write.
+`stage`, `next_command`, `recommended_no_spend_command`,
+`self_fund_next_command`, `self_fund_handoff`, `escape_hatches`, selected
+executable model and cost, auth/quota/payment blockers, and mutation flags. All
+mutation flags must be false in guide mode: no provider call, hosted create,
+signup, payment object, credit debit, or media write.
 In guide cost output, `cost.estimated_usd_per_image` is the estimated Image
 Skill debit in dollars for one output, matching
 `cost.estimated_debit_usd_per_image` and

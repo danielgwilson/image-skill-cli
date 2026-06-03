@@ -39,7 +39,7 @@ JSON is the default. Do not add `--json` to examples.
 npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench"
 ```
 
-The guide is a free, zero-spend planning call. Given current auth, quota, and payment state, it returns one concrete `data.next_command` to run, plus `data.stage`, `data.next_command_effect`, `data.recommended_no_spend_command` (alias of `data.no_spend_next_command`), `data.auth_handoff`, and `data.mutation`. Run that next command. Repeat until `data.stage` is `ready_to_create`, then run the live create when media spend is allowed or `data.recommended_no_spend_command` for no-spend proof.
+The guide is a free, zero-spend planning call. Given current auth, quota, and payment state, it returns one concrete `data.next_command` to run, plus `data.stage`, `data.next_command_effect`, `data.recommended_no_spend_command` (alias of `data.no_spend_next_command`), `data.self_fund_next_command`, `data.self_fund_handoff`, `data.auth_handoff`, and `data.mutation`. Run that next command. Repeat until `data.stage` is `ready_to_create`, then run the live create when media spend is allowed or `data.recommended_no_spend_command` for no-spend proof.
 
 Minimum success envelope on a create or edit:
 

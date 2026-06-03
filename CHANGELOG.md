@@ -16,6 +16,10 @@ provenance; this file is the human- and agent-readable release map.
   catalog. Ready guides also foreground
   `data.recommended_no_spend_command` as the no-spend dry-run verification
   path while retaining `data.no_spend_next_command` as a compatibility alias.
+- Fix (self-fund): quota-blocked guides now expose
+  `data.self_fund_next_command` and `data.self_fund_handoff`, including
+  auth-preserving wrappers for env/stdin tokens and the quote/buy/status
+  commands for the preferred live-money rail.
 
 ## 0.1.28 - 2026-06-02
 
