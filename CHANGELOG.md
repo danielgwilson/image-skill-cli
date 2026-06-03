@@ -23,6 +23,9 @@ provenance; this file is the human- and agent-readable release map.
 - Fix (LLM contract): `llms.txt` now teaches quota recovery through
   `data.self_fund_next_command` and `data.self_fund_handoff` instead of the
   older generic payment-command list.
+- Fix (LLM contract): the hosted signup API note now says raw `data.token` is
+  returned only when `return_token` is true, while default public CLI signup
+  saves config and intentionally reports `data.token: null`.
 
 ## 0.1.28 - 2026-06-02
 

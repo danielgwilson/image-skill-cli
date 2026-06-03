@@ -23,8 +23,8 @@
     {
       "source_path": "docs/public-contract/llms.txt",
       "public_paths": ["llms.txt", "skills/image-skill/references/llms.txt"],
-      "bytes": 31523,
-      "sha256": "8e65257d0544e6015e0f07d60cff9c1875db158d708cbf5e120ed0eb5e95b340"
+      "bytes": 31729,
+      "sha256": "5b6ca53fdc3fd65bb7da72fd596bb447ea8c9bfd6fbf35a7c125f377f11255c4"
     }
   ]
 }
