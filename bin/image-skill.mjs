@@ -1176,6 +1176,7 @@ function modelListQuery(args) {
     params.set("catalog_only", "true");
   }
   addQueryValue(params, "operation", flagString(args, "operation"));
+  addQueryValue(params, "modality", flagString(args, "modality"));
   addQueryValue(params, "provider", flagString(args, "provider"));
   const query = params.toString();
   return {
@@ -1412,9 +1413,12 @@ async function createGuide(args) {
   const selected =
     models.envelope.ok && models.envelope.data?.models
       ? selectCreateGuideModel(models.envelope.data.models, requestedModelId, {
+          prompt: trimmedPrompt,
+          intent: requestedIntent,
           maxEstimatedUsdPerImage,
         })
       : null;
+  const selectedAspectRatio = createGuideSuggestedAspectRatio(selected);
   const pricing = selected?.economics?.credit_pricing ?? null;
   const estimatedCredits = pricing?.credits_required ?? null;
   const estimatedProviderUsdPerImage =
@@ -1461,6 +1465,7 @@ async function createGuide(args) {
     requestedProviderId,
     requestedIntent,
     budgetGuard,
+    aspectRatio: selectedAspectRatio,
     apiBaseUrl: explicitApiBaseUrl(args),
     paymentSummary,
     commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
@@ -1472,6 +1477,7 @@ async function createGuide(args) {
     requestedProviderId,
     requestedIntent,
     budgetGuard,
+    aspectRatio: selectedAspectRatio,
     apiBaseUrl: explicitApiBaseUrl(args),
     commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
   });
@@ -1551,9 +1557,15 @@ async function createGuide(args) {
             model_id: selected.id,
             model_status: selected.status,
             model_execution_status: selected.execution.model_execution_status,
+            modality: selected.modality ?? null,
+            suggested_aspect_ratio: selectedAspectRatio,
             reason:
               requestedModelId === null
-                ? "default executable create model for first image"
+                ? createGuideSelectionReason(
+                    selected,
+                    trimmedPrompt,
+                    requestedIntent,
+                  )
                 : "requested executable create model",
           },
     cost: {
@@ -1589,7 +1601,7 @@ async function createGuide(args) {
 function selectCreateGuideModel(
   models,
   requestedModelId,
-  { maxEstimatedUsdPerImage = null } = {},
+  { prompt = "", intent = undefined, maxEstimatedUsdPerImage = null } = {},
 ) {
   const isExecutableCreate = (model) =>
     model?.status === "available" &&
@@ -1603,14 +1615,23 @@ function selectCreateGuideModel(
       : null;
   }
   const candidates = models.filter(isExecutableCreate);
-  if (maxEstimatedUsdPerImage === null) {
-    return candidates[0] ?? null;
+  const capped =
+    maxEstimatedUsdPerImage === null
+      ? candidates
+      : candidates.filter((model) => {
+          const estimatedUsd = guideBudgetUsdForModel(model);
+          return (
+            estimatedUsd === null || estimatedUsd <= maxEstimatedUsdPerImage
+          );
+        });
+  const eligible = capped.length === 0 ? candidates : capped;
+  if (createGuideImpliesVideo({ prompt, intent })) {
+    const video = eligible.find((model) => model?.modality === "video");
+    if (video !== undefined) {
+      return video;
+    }
   }
-  const capped = candidates.filter((model) => {
-    const estimatedUsd = guideBudgetUsdForModel(model);
-    return estimatedUsd === null || estimatedUsd <= maxEstimatedUsdPerImage;
-  });
-  return (capped.length === 0 ? candidates : capped)[0] ?? null;
+  return eligible[0] ?? null;
 }
 
 function guideBudgetUsdForModel(model) {
@@ -1622,6 +1643,35 @@ function guideBudgetUsdForModel(model) {
     pricing?.fallback_provider_cost_usd ??
     null
   );
+}
+
+function createGuideImpliesVideo(input) {
+  const searchable =
+    `${input?.intent ?? ""} ${input?.prompt ?? ""}`.toLowerCase();
+  return /\b(?:video|clip|footage|animation|animated|cinematic|movie|mp4|b-roll|timelapse|time-lapse)\b/.test(
+    searchable,
+  );
+}
+
+function createGuideSuggestedAspectRatio(model) {
+  if (model?.modality !== "video") {
+    return null;
+  }
+  const values = model?.media?.input?.aspect_ratios?.values;
+  if (!Array.isArray(values)) {
+    return null;
+  }
+  return values.includes("16:9") ? "16:9" : (values[0] ?? null);
+}
+
+function createGuideSelectionReason(model, prompt, intent) {
+  if (
+    model?.modality === "video" &&
+    createGuideImpliesVideo({ prompt, intent })
+  ) {
+    return "video intent matched executable video create model";
+  }
+  return "default executable create model for first image";
 }
 
 function createGuidePaymentSummary(data) {
@@ -1922,6 +1972,7 @@ function createGuideNextCommand(stage, input) {
     providerId: input.requestedProviderId,
     intent: input.requestedIntent,
     budgetGuard: input.budgetGuard,
+    aspectRatio: input.aspectRatio,
     dryRun: false,
     // Retry-safe by default (#1228): bake a stable idempotency key into the
     // advertised create command so an agent that copies it and retries after a
@@ -1962,6 +2013,7 @@ function createGuideEscapeHatches(input) {
             providerId: input.requestedProviderId,
             intent: input.requestedIntent,
             budgetGuard: input.budgetGuard,
+            aspectRatio: input.aspectRatio,
             dryRun: true,
             apiBaseUrl: input.apiBaseUrl,
             commandPrefix: input.commandPrefix,
@@ -2007,6 +2059,9 @@ function renderCreateCommand(input) {
     shellQuote(input.prompt),
     "--intent",
     shellQuote(input.intent),
+    ...(input.aspectRatio === null || input.aspectRatio === undefined
+      ? []
+      : ["--aspect-ratio", shellQuote(input.aspectRatio)]),
     "--max-estimated-usd-per-image",
     shellQuote(formatUsd(input.budgetGuard)),
     ...(input.idempotencyKey === undefined || input.idempotencyKey === null

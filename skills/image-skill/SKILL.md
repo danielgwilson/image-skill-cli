@@ -66,12 +66,16 @@ durable owned URL, a recoverable job, a cost receipt, capability-preserving
 model parameters, and structured JSON, so the output is already work another
 agent can inspect, pay for, recover, reuse, or cite.
 
-Video runs through the same create call and durable-media loop. Because the
-no-model default stays an image model, ask for a video model by id — for
-example `image-skill create --model fal.ltx-video-13b-distilled --prompt "..."`
-— and you get back a durable owned `video_...` mp4 URL, a recoverable job, and a
-cost receipt just like an image. Use `image-skill models show
-fal.ltx-video-13b-distilled --json` to inspect its parameters and cost first.
+Video runs through the same create call and durable-media loop. For video
+intent, start with `image-skill create --guide --prompt "..." --json`; the guide
+can select `fal.ltx-video-13b-distilled`, suggest `--aspect-ratio 16:9`, and
+emit the next create command. Plain `create` without a model still defaults to
+an image model, so use the guide or pass the video model id directly. Discovery
+escape hatches are `image-skill models list --available --modality video
+--operation video.generate --json` and `image-skill models show
+fal.ltx-video-13b-distilled --json`. Successful video creates return a durable
+owned `video_...` mp4 URL, a recoverable job, and a cost receipt just like an
+image.
 
 Audio (music, sound) generation runs through the same create call and
 durable-media loop. Ask for an audio model by id — for example `image-skill
@@ -160,6 +164,7 @@ you need capability details before spending:
 ```bash
 npx -y image-skill@latest doctor
 npx -y image-skill@latest models list --available --operation image.generate
+npx -y image-skill@latest models list --available --modality video --operation video.generate
 npx -y image-skill@latest models show openai.gpt-image-2
 npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime codex --json
 npx -y image-skill@latest whoami
@@ -353,6 +358,7 @@ future providers:
 ```bash
 image-skill models list --available --operation image.generate --json
 image-skill models list --available --operation image.edit --json
+image-skill models list --available --modality video --operation video.generate --json
 image-skill models list --catalog-only --provider fal --json
 image-skill models show openai.gpt-image-2 --json
 image-skill models show openai.gpt-image-1.5 --json

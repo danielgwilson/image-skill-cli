@@ -680,6 +680,7 @@ image-skill models list --json
 image-skill models list --summary --json
 image-skill models list --available --operation image.generate --json
 image-skill models list --available --operation image.edit --json
+image-skill models list --available --modality video --operation video.generate --json
 image-skill models list --catalog-only --provider fal --json
 image-skill models show MODEL_ID --json
 image-skill models show default --json
@@ -689,6 +690,7 @@ Hosted API equivalents:
 
 ```bash
 curl -sS https://api.image-skill.com/v1/models
+curl -sS 'https://api.image-skill.com/v1/models?available=true&modality=video&operation=video.generate'
 curl -sS https://api.image-skill.com/v1/models/xai.grok-imagine-image
 ```
 
@@ -712,9 +714,10 @@ catalog-only rows so fresh agents see executable candidates first. Use
 model id, flat `estimated_usd_per_image`, `credits_required`, lightweight
 `task_tags`, status, provider, max output count/resolution, storage, and
 `show_command`, while omitting full parameter schemas. Use `--available` for
-currently usable executable rows, `--operation
-image.generate` or `--operation image.edit` for the task, `--provider fal|xai|openai`
-to narrow by provider, and `--catalog-only` when you intentionally want
+currently usable executable rows, `--modality image|video` for media type,
+`--operation image.generate`, `--operation image.edit`, or
+`--operation video.generate` for the task, `--provider fal|xai|openai` to
+narrow by provider, and `--catalog-only` when you intentionally want
 source-backed rows that are inspectable but not runnable yet. Provider-level
 availability is not the same thing as model executability; for runnable
 choices require both `status:"available"` and
@@ -861,9 +864,12 @@ operation debits across all requested outputs. `--max-estimated-usd-per-image`
 and raw API `max_estimated_usd_per_image` are per-image Image Skill debit
 budget guards.
 
-Generate video through the same `create` command and durable-media loop. Because
-the no-model default selects an image model, request a video model by id; the
-response returns a durable owned `video_...` mp4 asset URL, a `job_id`, and a
+Generate video through the same `create` command and durable-media loop. For
+video prompts, run `image-skill create --guide --prompt "..." --json`; the guide
+can select the executable video model, suggest `--aspect-ratio 16:9`, and emit
+the next create command. Plain `create` without a model still defaults to an
+image model, so use the guide or pass the video model id directly. The response
+returns a durable owned `video_...` mp4 asset URL, a `job_id`, and a
 `cost.credit_pricing` receipt just like an image create.
 
 ```bash
@@ -874,10 +880,12 @@ image-skill create \
   --json
 ```
 
-Inspect parameters, output media type, and cost first with `image-skill models
-show fal.ltx-video-13b-distilled --json`. Video runs synchronously through the
-same create call and can take longer than an image; the returned `assets[].url`
-is an owned `video/mp4`.
+Discover runnable video models with `image-skill models list --available
+--modality video --operation video.generate --json`. Inspect parameters, output
+media type, and cost first with `image-skill models show
+fal.ltx-video-13b-distilled --json`. Video runs synchronously through the same
+create call and can take longer than an image; the returned `assets[].url` is an
+owned `video/mp4`.
 
 Generate audio (music, sound) through the same `create` command and
 durable-media loop. Request an audio model by id; the response returns a durable
