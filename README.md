@@ -34,6 +34,19 @@ Or install straight from the hosted public contract for the always-latest build:
 npx skills add https://image-skill.com --skill image-skill -g -a codex -y
 ```
 
+If the Codex/global skill target is read-only or missing, keep the tracked slug
+install and put agent skill state in a writable workspace home before running
+any `npx skills add ... -a codex` command. The skills.sh Codex adapter writes
+to `$HOME/.agents`; `CODEX_HOME` keeps Codex profile state on the same writable
+path:
+
+```bash
+export HOME="$PWD/.agent-home"
+export CODEX_HOME="$HOME/.codex"
+mkdir -p "$HOME" "$CODEX_HOME"
+npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+```
+
 Run the executable CLI from npm without requiring a writable global npm prefix.
 Start with the no-spend guide. It is the only required first command for a
 fresh agent and returns the next command instead of making the agent memorize a

@@ -53,6 +53,19 @@ The canonical Image Skill entry remains available as:
 npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
 ```
 
+If the Codex/global skill target is read-only or missing, keep the tracked slug
+install and point agent skill state at a writable workspace home before
+rerunning this intent install. The skills.sh Codex adapter writes to
+`$HOME/.agents`; `CODEX_HOME` keeps Codex profile state on the same writable
+path:
+
+```bash
+export HOME="$PWD/.agent-home"
+export CODEX_HOME="$HOME/.codex"
+mkdir -p "$HOME" "$CODEX_HOME"
+npx skills add danielgwilson/image-skill-cli --skill ai-image-generation -g -a codex -y
+```
+
 ## Shared Contract
 
 All intent skills in this repo point to the same hosted contract:
