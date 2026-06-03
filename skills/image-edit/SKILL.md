@@ -30,13 +30,13 @@ Do not bring provider API keys, create provider accounts, run a local model serv
 ## First Command
 
 ```bash
-npx -y image-skill@latest models show openai.gpt-image-2-edit --json
+npm_config_update_notifier=false npx -y image-skill@latest models show openai.gpt-image-2-edit --json
 ```
 
 ## Main Runtime Command
 
 ```bash
-npx -y image-skill@latest edit --input image_... --model openai.gpt-image-2-edit --prompt "EDIT_PROMPT" --max-estimated-usd-per-image 0.07
+npm_config_update_notifier=false npx -y image-skill@latest edit --input image_... --model openai.gpt-image-2-edit --prompt "EDIT_PROMPT" --max-estimated-usd-per-image 0.07
 ```
 
 ## Install This Intent Skill

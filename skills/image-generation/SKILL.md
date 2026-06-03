@@ -30,13 +30,13 @@ Do not bring provider API keys, create provider accounts, run a local model serv
 ## First Command
 
 ```bash
-npx -y image-skill@latest create --guide --model openai.gpt-image-2 --prompt "a compact field camera on a stainless workbench"
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --model openai.gpt-image-2 --prompt "a compact field camera on a stainless workbench"
 ```
 
 ## Main Runtime Command
 
 ```bash
-npx -y image-skill@latest create --model openai.gpt-image-2 --prompt "PROMPT" --intent explore --max-estimated-usd-per-image 0.07
+npm_config_update_notifier=false npx -y image-skill@latest create --model openai.gpt-image-2 --prompt "PROMPT" --intent explore --max-estimated-usd-per-image 0.07
 ```
 
 ## Install This Intent Skill

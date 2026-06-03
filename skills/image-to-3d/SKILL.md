@@ -30,13 +30,13 @@ Do not bring provider API keys, create provider accounts, run a local model serv
 ## First Command
 
 ```bash
-npx -y image-skill@latest models show fal.trellis-image-to-3d --json
+npm_config_update_notifier=false npx -y image-skill@latest models show fal.trellis-image-to-3d --json
 ```
 
 ## Main Runtime Command
 
 ```bash
-npx -y image-skill@latest edit --input image_... --model fal.trellis-image-to-3d --max-estimated-usd-per-image 0.25 --json
+npm_config_update_notifier=false npx -y image-skill@latest edit --input image_... --model fal.trellis-image-to-3d --max-estimated-usd-per-image 0.25 --json
 ```
 
 ## Install This Intent Skill

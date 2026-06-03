@@ -226,7 +226,7 @@ same auth context.
 Prefer package execution in fresh agent sandboxes:
 
 ```bash
-npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
 ```
 
 Global install is optional, not the primary path. If `npm install -g image-skill`
@@ -237,7 +237,7 @@ package-manager paths instead of cloning private source:
 export npm_config_cache="${npm_config_cache:-$PWD/.npm-cache}"
 export npm_config_prefix="${npm_config_prefix:-$PWD/.npm-global}"
 export PATH="$npm_config_prefix/bin:$PATH"
-npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json
 ```
 
 For `npx skills add ... -g -a codex` installs, the writable target is Codex
@@ -260,7 +260,7 @@ runtime needs a writable compatibility config path, set
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npx -y image-skill@latest signup --agent \
+npm_config_update_notifier=false npx -y image-skill@latest signup --agent \
   --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \

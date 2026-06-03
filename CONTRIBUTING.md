@@ -11,7 +11,7 @@ read the source and contracts that back a published version.
   feedback when Image Skill is missing a model or capability you needed:
 
   ```bash
-  npx -y image-skill@latest feedback --json
+  npm_config_update_notifier=false npx -y image-skill@latest feedback --json
   ```
 
   Include the npm version, the command you ran, and a trace ID if one was

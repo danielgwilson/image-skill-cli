@@ -34,7 +34,8 @@ const SIGNUP_CONTACT_GUIDANCE =
   "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
 const HOSTED_SIGNUP_TOKEN_RETURNED_WARNING =
   "hosted restricted token is returned once; store it in the agent runtime secret store and never paste it into prompts, logs, issues, or product feedback";
-const PUBLIC_NPX_COMMAND_PREFIX = "npx -y image-skill@latest";
+const PUBLIC_NPX_COMMAND_PREFIX =
+  "npm_config_update_notifier=false npx -y image-skill@latest";
 const CREDIT_UNIT_USD = 0.01;
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
   "payment-token",
@@ -3658,20 +3659,19 @@ function trustSafeCommands() {
   return [
     {
       purpose: "trust_packet",
-      command: "npx -y image-skill@latest trust --json",
+      command: `${PUBLIC_NPX_COMMAND_PREFIX} trust --json`,
       mutation: false,
       spend: false,
     },
     {
       purpose: "first_image_guide",
-      command:
-        'npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench" --json',
+      command: `${PUBLIC_NPX_COMMAND_PREFIX} create --guide --prompt "a compact field camera on a stainless workbench" --json`,
       mutation: false,
       spend: false,
     },
     {
       purpose: "model_inspection",
-      command: "npx -y image-skill@latest models list --json",
+      command: `${PUBLIC_NPX_COMMAND_PREFIX} models list --json`,
       mutation: false,
       spend: false,
     },

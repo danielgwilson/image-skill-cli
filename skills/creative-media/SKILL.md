@@ -30,13 +30,13 @@ Do not bring provider API keys, create provider accounts, run a local model serv
 ## First Command
 
 ```bash
-npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench"
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --prompt "a compact field camera on a stainless workbench"
 ```
 
 ## Main Runtime Command
 
 ```bash
-npx -y image-skill@latest models list --available --json
+npm_config_update_notifier=false npx -y image-skill@latest models list --available --json
 ```
 
 ## Install This Intent Skill

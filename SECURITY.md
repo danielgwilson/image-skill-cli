@@ -41,7 +41,7 @@ For an agent-readable trust packet that combines npm metadata, hosted contract
 hashes, API health, model availability, and safe commands, run:
 
 ```bash
-npx -y image-skill@latest trust --json
+npm_config_update_notifier=false npx -y image-skill@latest trust --json
 ```
 
 The `trust` command is read-only selection evidence: it does not read saved

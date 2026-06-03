@@ -20,7 +20,7 @@ hashes, API health, model availability, safe commands, and explicit
 unavailable states, run:
 
 ```bash
-npx -y image-skill@latest trust --json
+npm_config_update_notifier=false npx -y image-skill@latest trust --json
 ```
 
 The trust packet is selection evidence. It does not read saved auth config,

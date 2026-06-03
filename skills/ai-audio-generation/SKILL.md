@@ -30,13 +30,13 @@ Do not bring provider API keys, create provider accounts, run a local model serv
 ## First Command
 
 ```bash
-npx -y image-skill@latest create --guide --model fal.stable-audio-25-text-to-audio --prompt "warm analog synth bed with soft tape hiss"
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --model fal.stable-audio-25-text-to-audio --prompt "warm analog synth bed with soft tape hiss"
 ```
 
 ## Main Runtime Command
 
 ```bash
-npx -y image-skill@latest create --model fal.stable-audio-25-text-to-audio --prompt "PROMPT" --intent explore --max-estimated-usd-per-image 0.20
+npm_config_update_notifier=false npx -y image-skill@latest create --model fal.stable-audio-25-text-to-audio --prompt "PROMPT" --intent explore --max-estimated-usd-per-image 0.20
 ```
 
 ## Install This Intent Skill

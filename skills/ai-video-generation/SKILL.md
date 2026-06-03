@@ -30,13 +30,13 @@ Do not bring provider API keys, create provider accounts, run a local model serv
 ## First Command
 
 ```bash
-npx -y image-skill@latest create --guide --model fal.ltx-video-13b-distilled --prompt "a ten second handheld product reveal"
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --model fal.ltx-video-13b-distilled --prompt "a ten second handheld product reveal"
 ```
 
 ## Main Runtime Command
 
 ```bash
-npx -y image-skill@latest create --model fal.ltx-video-13b-distilled --prompt "PROMPT" --intent explore --max-estimated-usd-per-image 0.25
+npm_config_update_notifier=false npx -y image-skill@latest create --model fal.ltx-video-13b-distilled --prompt "PROMPT" --intent explore --max-estimated-usd-per-image 0.25
 ```
 
 ## Install This Intent Skill
