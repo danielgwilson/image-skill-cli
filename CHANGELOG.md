@@ -20,6 +20,9 @@ provenance; this file is the human- and agent-readable release map.
   `data.self_fund_next_command` and `data.self_fund_handoff`, including
   auth-preserving wrappers for env/stdin tokens and the quote/buy/status
   commands for the preferred live-money rail.
+- Fix (LLM contract): `llms.txt` now teaches quota recovery through
+  `data.self_fund_next_command` and `data.self_fund_handoff` instead of the
+  older generic payment-command list.
 
 ## 0.1.28 - 2026-06-02
 
