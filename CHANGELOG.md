@@ -4,8 +4,12 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
-## Unreleased - 2026-06-02
+## 0.1.29 - 2026-06-03
 
+- Fix (self-fund): public `credits quote` now requires an explicit
+  `--payment-method`, and structured `credits quote --help --json` marks that
+  flag required instead of optional. Agents following the x402 quote/buy path
+  now see the same contract the command enforces.
 - Feature (discoverability): add the literal `image-generation` public skill
   alias alongside `ai-image-generation`, because skills.sh generic task search
   is strongly skill-name weighted for `image generation`. The alias points to
