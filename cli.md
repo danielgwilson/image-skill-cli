@@ -129,9 +129,9 @@ should omit it.
 Use the no-spend guide first. It is the only required first command for a fresh
 agent. It checks health, executable model availability, auth/quota when a token
 already exists, and payment rails, then returns one primary
-`data.next_command` plus machine-readable `data.next_command_effect` and
-`data.no_spend_evaluation`. Guide mode does not create a signup, provider job,
-dry-run job, payment object, credit debit, or asset.
+`data.next_command` plus machine-readable `data.next_command_effect`,
+`data.auth_ready`, and `data.no_spend_evaluation`. Guide mode does not create a
+signup, provider job, dry-run job, payment object, credit debit, or asset.
 
 ```bash
 image-skill create --guide --prompt "a compact field camera on a stainless workbench"
@@ -147,7 +147,8 @@ checklist before the guide asks for them.
   signup saves auth to config by default. If the runtime intentionally used
   `--no-save --show-token`, store the returned token and use
   `data.auth_handoff.rerun_guide.with_env` or
-  `data.auth_handoff.rerun_guide.with_stdin`.
+  `data.auth_handoff.rerun_guide.with_stdin`. In this stage,
+  `data.auth_ready.ready` is `false`.
 - `quota_required`: run `data.self_fund_next_command` to start the top-up.
   It aliases `data.next_command` and is the first payment command, usually an
   x402 or Stripe quote. If the guide authenticated from env or stdin, prefer
@@ -163,6 +164,11 @@ checklist before the guide asks for them.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.next_command_effect.label` is `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
+  `data.auth_ready.ready` is `true`,
+  `data.auth_ready.next_command_requires_auth` is `true`, and
+  `data.auth_ready.next_command_auth_ready` is `true`; the returned
+  `data.next_command` can reuse the current saved config, env token, or stdin
+  token context without exposing a raw token.
   `data.no_spend_evaluation.stop_here` is `true`,
   `data.no_spend_evaluation.next_command_is_live_create` is `true`, and
   `data.no_spend_evaluation.recommended_command_field` is
@@ -865,7 +871,7 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 ```
 
 `create --guide` returns `schema: image-skill.create-guide.v1`,
-`stage`, `next_command`, `no_spend_evaluation`,
+`stage`, `next_command`, `auth_ready`, `no_spend_evaluation`,
 `recommended_no_spend_command`,
 `self_fund_next_command`, `self_fund_handoff`, `escape_hatches`, selected
 executable model and cost, auth/quota/payment blockers, and mutation flags. All

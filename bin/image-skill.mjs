@@ -1450,6 +1450,9 @@ async function createGuide(args) {
           path: "/v1/quota",
           token: token.token,
         });
+  const authenticated = quota?.envelope.data?.authenticated === true;
+  const publicTokenSource =
+    token.source === "anonymous" ? "none" : token.source;
   const paymentSummary = createGuidePaymentSummary(payments.envelope.data);
   const stage = createGuideStage({
     prompt: trimmedPrompt,
@@ -1527,11 +1530,16 @@ async function createGuide(args) {
     afterNext,
     authConfigWrite,
   });
+  const authReady = createGuideAuthReady(stage, {
+    authenticated,
+    tokenSource: publicTokenSource,
+    savedConfigPath: configPath(),
+  });
   const selfFundHandoff = createGuideSelfFundHandoff(stage, {
     paymentSummary,
     nextCommand,
     afterNext,
-    tokenSource: token.source === "anonymous" ? "none" : token.source,
+    tokenSource: publicTokenSource,
   });
   return createGuideSuccess(quota?.envelope.actor ?? null, {
     schema: "image-skill.create-guide.v1",
@@ -1545,8 +1553,8 @@ async function createGuide(args) {
         error_code: health.envelope.error?.code ?? null,
       },
       auth: {
-        source: token.source === "anonymous" ? "none" : token.source,
-        authenticated: quota?.envelope.data?.authenticated === true,
+        source: publicTokenSource,
+        authenticated,
         claim_state: quota?.envelope.data?.claim_state ?? null,
         token_status: quota?.envelope.data?.token_status ?? null,
         saved_config_path: configPath(),
@@ -1609,6 +1617,7 @@ async function createGuide(args) {
       pricing_confidence: pricing?.pricing_confidence ?? null,
     },
     blocker,
+    auth_ready: authReady,
     next_command: nextCommand,
     next_command_effect: nextCommandEffect,
     no_spend_next_command: noSpendNextCommand,
@@ -2051,6 +2060,27 @@ function createGuideAuthHandoff(stage, input) {
     };
   }
   return null;
+}
+
+function createGuideAuthReady(stage, input) {
+  const nextCommandRequiresAuth =
+    stage === "quota_required" || stage === "ready_to_create";
+  const ready = input.authenticated;
+  return {
+    ready,
+    authenticated: input.authenticated,
+    source: input.tokenSource,
+    saved_config_path: input.savedConfigPath,
+    next_command_requires_auth: nextCommandRequiresAuth,
+    next_command_auth_ready: nextCommandRequiresAuth ? ready : null,
+    secret_value_included: false,
+    accepted_methods: ["config", "IMAGE_SKILL_TOKEN", "--token-stdin"],
+    warning: ready
+      ? "Current hosted auth is ready; data.next_command can reuse this auth context without exposing a raw token."
+      : stage === "auth_required"
+        ? "Auth is not ready yet; run data.next_command to create a restricted agent identity, then rerun the guide."
+        : null,
+  };
 }
 
 function createGuideSelfFundNextCommandLabel(stage, paymentSummary) {
