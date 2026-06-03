@@ -732,13 +732,14 @@ catalog-only rows so fresh agents see executable candidates first. Use
 model id, flat `estimated_usd_per_image`, `credits_required`, lightweight
 `task_tags`, status, provider, max output count/resolution, storage, and
 `show_command`, while omitting full parameter schemas. Use `--available` for
-currently usable executable rows, `--modality image|video` for media type,
-`--operation image.generate`, `--operation image.edit`, or
-`--operation video.generate` for the task, `--provider fal|xai|openai` to
-narrow by provider, and `--catalog-only` when you intentionally want
-source-backed rows that are inspectable but not runnable yet. Provider-level
-availability is not the same thing as model executability; for runnable
-choices require both `status:"available"` and
+currently usable executable rows, `--modality image|video|audio|3d` for media
+type, `--operation image.generate`, `--operation image.edit`,
+`--operation video.generate`, `--operation audio.generate`, or
+`--operation 3d.generate` for the task, `--provider fal|xai|openai` to narrow by
+provider, and `--catalog-only` when you intentionally want source-backed rows
+that are inspectable but not runnable yet. Provider-level availability is not
+the same thing as model executability; for runnable choices require both
+`status:"available"` and
 `execution.model_execution_status:"executable"`. If a reachable provider has no
 runnable model for the requested operation, `summary.execution_availability`
 says so directly and includes the fastest `--available --operation ...`
