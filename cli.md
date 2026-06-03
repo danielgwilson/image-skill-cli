@@ -160,7 +160,10 @@ or payment commands as a setup checklist before the guide asks for them.
   `data.self_fund_handoff.auth.next_command.with_stdin` so auth follows the
   payment command. Then follow `data.self_fund_handoff.payment_commands.buy`
   and `status`, and rerun `data.self_fund_handoff.after_next` once credits are
-  granted. `data.guide_warning.next_command_safety` is
+  granted. If `data.self_fund_handoff.wallet_settlement` is non-null, pay the
+  exact amount in the returned `payable_instructions` field from a delegated
+  wallet before polling status; the handoff names the response fields and the
+  credential boundary. `data.guide_warning.next_command_safety` is
   `live_money_payment_action`, and
   `data.guide_warning.payment_top_up_path` summarizes the same path as
   `data.checks.payments.preferred_method_summary.top_up_path`. Read that path
@@ -544,6 +547,10 @@ settlement and webhook fulfillment succeeds. Deposit challenge creation itself
 must not mutate credit balances. Stay within the delegated cap and never pass
 wallet private keys, seed phrases, x402 payment headers, deposit client
 secrets, card data, Stripe secrets, or provider receipts to Image Skill.
+When `create --guide` enters `quota_required` for this rail, it returns
+`data.self_fund_handoff.wallet_settlement` with the buy/status response fields
+to inspect: `data.stripe_x402.payable_instructions` after `credits buy`, or
+`data.payment_attempt.stripe_x402.payable_instructions` after `credits status`.
 
 ```bash
 image-skill credits buy \

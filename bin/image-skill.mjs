@@ -2202,6 +2202,10 @@ function createGuideSelfFundHandoff(stage, input) {
   const humanHandoffRequired =
     preferredMethod !== null &&
     input.paymentSummary.human_handoff_methods.includes(preferredMethod);
+  const statusCommand = guidePaymentCommandByKind(
+    input.paymentSummary.suggested_commands,
+    "status",
+  );
 
   return {
     required: true,
@@ -2222,11 +2226,14 @@ function createGuideSelfFundHandoff(stage, input) {
         input.paymentSummary.suggested_commands,
         "buy",
       ),
-      status: guidePaymentCommandByKind(
-        input.paymentSummary.suggested_commands,
-        "status",
-      ),
+      status: statusCommand,
     },
+    wallet_settlement: createGuideWalletSettlementHandoff({
+      preferredMethod,
+      browserless,
+      agentSettleable,
+      statusCommand,
+    }),
     after_next: input.afterNext,
     auth: {
       token_source: input.tokenSource,
@@ -2240,8 +2247,45 @@ function createGuideSelfFundHandoff(stage, input) {
       },
     },
     warning: agentSettleable
-      ? "data.self_fund_next_command starts a browserless live-money quote. Preserve auth with data.self_fund_handoff.auth.next_command, then follow payment_commands.buy/status and rerun after_next."
+      ? "data.self_fund_next_command starts a browserless live-money quote. Preserve auth with data.self_fund_handoff.auth.next_command, then follow payment_commands.buy, pay exactly what wallet_settlement points to, run payment_commands.status, and rerun after_next."
       : "data.self_fund_next_command starts a live-money payment handoff. Preserve auth with data.self_fund_handoff.auth.next_command, complete the payment, then rerun after_next.",
+  };
+}
+
+function createGuideWalletSettlementHandoff({
+  preferredMethod,
+  browserless,
+  agentSettleable,
+  statusCommand,
+}) {
+  if (
+    preferredMethod !== "stripe_x402.exact.usdc" ||
+    !browserless ||
+    !agentSettleable
+  ) {
+    return null;
+  }
+  return {
+    method_id: "stripe_x402.exact.usdc",
+    wallet_required: true,
+    browser_required: false,
+    network: "base",
+    token_currency: "usdc",
+    exact_amount_required: true,
+    secret_value_included: false,
+    payable_instructions_fields: {
+      buy_response: "data.stripe_x402.payable_instructions",
+      status_response: "data.payment_attempt.stripe_x402.payable_instructions",
+    },
+    amount_atomic_field: "token_amount_atomic",
+    destination_field: "deposit_address",
+    status_command_after_payment: statusCommand,
+    next_step:
+      "Run payment_commands.buy, pay payable_instructions.token_amount_atomic USDC atomic units to payable_instructions.deposit_address on Base from a delegated wallet, then run status_command_after_payment until credits are granted before rerunning after_next.",
+    credential_boundary:
+      "Never send wallet private keys, seed phrases, x402 authorization payloads, Stripe secrets, client secrets, card data, provider receipts, or raw wallet credentials to Image Skill.",
+    warning:
+      "This is live money. Pay exactly the returned Base/USDC amount to the returned deposit address and stay within the delegated cap.",
   };
 }
 
