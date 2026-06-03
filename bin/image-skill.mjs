@@ -1494,6 +1494,10 @@ async function createGuide(args) {
   });
   const noSpendNextCommand =
     stage === "ready_to_create" ? escapeHatches.dry_run : null;
+  const noSpendNextCommandLabel =
+    noSpendNextCommand === null
+      ? null
+      : "dry_run_plan_no_provider_call_no_credit_debit_no_media_write";
   const afterNext =
     stage === "auth_required" || stage === "quota_required"
       ? renderGuideCommand(
@@ -1587,10 +1591,9 @@ async function createGuide(args) {
     next_command: nextCommand,
     next_command_effect: nextCommandEffect,
     no_spend_next_command: noSpendNextCommand,
-    no_spend_next_command_label:
-      noSpendNextCommand === null
-        ? null
-        : "dry_run_plan_no_provider_call_no_credit_debit_no_media_write",
+    no_spend_next_command_label: noSpendNextCommandLabel,
+    recommended_no_spend_command: noSpendNextCommand,
+    recommended_no_spend_command_label: noSpendNextCommandLabel,
     after_next: afterNext,
     auth_handoff: authHandoff,
     escape_hatches: escapeHatches,
@@ -1638,7 +1641,54 @@ function selectCreateGuideModel(
       return video;
     }
   }
+  const intentClass = createGuideIntentClass(intent);
+  for (const modelId of preferredCreateGuideModelIds(intentClass)) {
+    const preferred = eligible.find((model) => model?.id === modelId);
+    if (preferred !== undefined) {
+      return preferred;
+    }
+  }
   return eligible[0] ?? null;
+}
+
+function createGuideIntentClass(intent) {
+  const normalized = String(intent ?? "")
+    .trim()
+    .toLowerCase();
+  if (["cheap", "budget", "draft", "test"].includes(normalized)) {
+    return "budget_draft";
+  }
+  if (
+    [
+      "final",
+      "finalize",
+      "hero",
+      "product",
+      "product-shot",
+      "campaign",
+      "publication",
+      "deliverable",
+    ].includes(normalized)
+  ) {
+    return "final";
+  }
+  return "general";
+}
+
+function preferredCreateGuideModelIds(intentClass) {
+  return intentClass === "budget_draft"
+    ? [
+        "fal.flux-dev",
+        "xai.grok-imagine-image-quality",
+        "xai.grok-imagine-image",
+        "openai.gpt-image-2",
+      ]
+    : [
+        "xai.grok-imagine-image-quality",
+        "fal.flux-dev",
+        "xai.grok-imagine-image",
+        "openai.gpt-image-2",
+      ];
 }
 
 function guideBudgetUsdForModel(model) {
@@ -1678,7 +1728,16 @@ function createGuideSelectionReason(model, prompt, intent) {
   ) {
     return "video intent matched executable video create model";
   }
-  return "default executable create model for first image";
+  if (
+    preferredCreateGuideModelIds(createGuideIntentClass(intent)).includes(
+      model?.id,
+    )
+  ) {
+    return createGuideIntentClass(intent) === "budget_draft"
+      ? "guide selected a draft/budget create model with high-definition defaults"
+      : "guide selected the strongest currently available quality-first create model for this intent";
+  }
+  return "guide selected the first available executable create model";
 }
 
 function createGuidePaymentSummary(data) {
@@ -1936,7 +1995,7 @@ function createGuideNextCommandEffect(stage, input) {
       estimated_credits: input.estimatedCredits,
       estimated_debit_usd_per_image: input.estimatedDebitUsdPerImage,
       warning:
-        "data.next_command creates hosted media and can debit credits. For no-spend verification, run data.no_spend_next_command instead.",
+        "data.next_command creates hosted media and can debit credits. For no-spend verification, run data.recommended_no_spend_command (same value as data.no_spend_next_command) instead.",
     };
   }
   if (stage === "prompt_required") {

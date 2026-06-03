@@ -154,8 +154,9 @@ checklist before the guide asks for them.
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
   Run it for the first bounded create when media spend is allowed. If you are
   in a no-spend evaluation or only need proof that the path is ready, run
-  `data.no_spend_next_command` instead; it is the dry-run plan command with no
-  provider call, credit debit, or media write. If the guide authenticated from
+  `data.recommended_no_spend_command` instead; it aliases
+  `data.no_spend_next_command` and is the dry-run plan command with no provider
+  call, credit debit, or media write. If the guide authenticated from
   env or stdin, prefer
   `data.auth_handoff.next_command.with_env` or
   `data.auth_handoff.next_command.with_stdin` so auth follows the create.
@@ -827,10 +828,10 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 ```
 
 `create --guide` returns `schema: image-skill.create-guide.v1`,
-`stage`, `next_command`, `escape_hatches`, selected executable model and cost,
-auth/quota/payment blockers, and mutation flags. All mutation flags must be
-false in guide mode: no provider call, hosted create, signup, payment object,
-credit debit, or media write.
+`stage`, `next_command`, `recommended_no_spend_command`, `escape_hatches`,
+selected executable model and cost, auth/quota/payment blockers, and mutation
+flags. All mutation flags must be false in guide mode: no provider call, hosted
+create, signup, payment object, credit debit, or media write.
 In guide cost output, `cost.estimated_usd_per_image` is the estimated Image
 Skill debit in dollars for one output, matching
 `cost.estimated_debit_usd_per_image` and

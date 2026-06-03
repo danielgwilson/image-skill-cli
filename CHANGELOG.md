@@ -11,6 +11,11 @@ provenance; this file is the human- and agent-readable release map.
   is strongly skill-name weighted for `image generation`. The alias points to
   the same zero-setup Image Skill runtime, identity, wallet, jobs, receipts,
   and feedback loop as the canonical `image-skill` skill.
+- Fix (guide): public `create --guide` now follows the hosted quality-first
+  image default instead of choosing the first executable create model in the
+  catalog. Ready guides also foreground
+  `data.recommended_no_spend_command` as the no-spend dry-run verification
+  path while retaining `data.no_spend_next_command` as a compatibility alias.
 
 ## 0.1.28 - 2026-06-02
 
