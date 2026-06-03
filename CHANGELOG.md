@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.30 - 2026-06-03
+
+- Fix (provenance): replace the stale version-stamped "Current Published
+  Package" evidence with live npm metadata commands so agents verify the
+  package they are actually running instead of trusting a doc that can age
+  between releases.
+- Fix (security): remove the hard-coded current attestation URL and keep the
+  registry attestation check parameterized by package version.
+
 ## 0.1.29 - 2026-06-03
 
 - Fix (self-fund): public `credits quote` now requires an explicit

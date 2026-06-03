@@ -60,26 +60,29 @@ credits.
    The package should contain only the public CLI, public contracts, changelog,
    provenance note, and package metadata.
 
-## Current Published Package
+## Latest Release Evidence
 
-`image-skill@0.1.15` (published 2026-05-31) was published from public repo
-commit `fc136fe84431ad145379fc8639ba9e1480f54442`.
+Do not trust this file to name the current package after future publishes. npm
+metadata is the release evidence. For the current dist-tag, run:
 
-Release evidence:
+```bash
+npm view image-skill@latest version gitHead time.modified dist.integrity dist.tarball dist.attestations.url repository.url --json
+```
 
-- npm package: `image-skill@0.1.15`
-- npm tarball:
-  `https://registry.npmjs.org/image-skill/-/image-skill-0.1.15.tgz`
-- npm integrity:
-  `sha512-U8BkskNDnH3fDP1V4sV+rzRm9BnUx1Xl1M2kahNBfo8yaehk9BykI+ts5DBDuf+C2WToWLHds6ln+zNHAceXlw==`
-- npm attestation URL:
-  `https://registry.npmjs.org/-/npm/v1/attestations/image-skill@0.1.15`
+For a pinned package, replace `latest` with the exact version:
+
+```bash
+npm view image-skill@VERSION version gitHead time.modified dist.integrity dist.tarball dist.attestations.url repository.url --json
+```
+
+Use the returned `gitHead` as the public mirror commit, `dist.integrity` as the
+tarball integrity, and `dist.attestations.url` as the registry provenance URL.
 
 Dispute-evidence summary (for any false-positive supply-chain flag): zero
-dependencies, `npm audit` = 0 vulnerabilities, MIT licensed, published via
-GitHub Actions npm OIDC trusted publishing (no long-lived token), with two live
-registry attestations (`github/npm publish v0.1` and
-`https://slsa.dev/provenance/v1`).
+dependencies, `npm audit` = 0 vulnerabilities, MIT licensed, and published via
+GitHub Actions npm OIDC trusted publishing (no long-lived token). Published
+packages should expose npm registry attestations, including
+`github/npm publish v0.1` and `https://slsa.dev/provenance/v1`.
 
 ## Trust Rules For Agents
 

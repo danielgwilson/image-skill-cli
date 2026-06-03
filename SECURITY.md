@@ -34,8 +34,11 @@ Attestations are also served directly by the registry:
 https://registry.npmjs.org/-/npm/v1/attestations/image-skill@VERSION
 ```
 
-For the current release that is
-`https://registry.npmjs.org/-/npm/v1/attestations/image-skill@0.1.15`.
+For the current dist-tag, read the live attestation URL from npm metadata:
+
+```bash
+npm view image-skill@latest dist.attestations.url --json
+```
 
 For an agent-readable trust packet that combines npm metadata, hosted contract
 hashes, API health, model availability, and safe commands, run:
