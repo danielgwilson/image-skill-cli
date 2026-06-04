@@ -4,6 +4,17 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.36 - 2026-06-04
+
+- Fix (guide): `create --guide --json` now marks templated follow-up commands
+  explicitly with `data.next_command_copy_runnable`,
+  `data.next_command_missing_inputs`, and
+  `data.next_command_effect.requires_placeholder_substitution`. Auth signup,
+  prompt recovery, payment handoff, and input-asset templates remain visible to
+  agents, but placeholder values such as `AGENT_OR_OPERATOR_INBOX`,
+  `AGENT_NAME`, `RUNTIME_NAME`, `QUOTE_ID`, and `PAYMENT_ATTEMPT_ID` are no
+  longer presented as if the command can be copied blindly.
+
 ## 0.1.35 - 2026-06-04
 
 - Fix (CLI aliases): natural modality-first commands now route into the
