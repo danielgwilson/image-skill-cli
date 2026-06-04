@@ -1400,7 +1400,8 @@ async function createGuide(args) {
   const trimmedPrompt = prompt.trim();
   const requestedModelId = flagString(args, "model");
   const requestedProviderId = flagString(args, "provider");
-  const requestedIntent = flagString(args, "intent") ?? "explore";
+  const requestedIntentFlag = flagString(args, "intent");
+  const requestedIntent = requestedIntentFlag ?? "explore";
   const maxEstimatedUsdPerImage = flagNumber(
     args,
     "max-estimated-usd-per-image",
@@ -1494,6 +1495,9 @@ async function createGuide(args) {
     selected,
     requestedProviderId,
     requestedIntent,
+    requestedIntentFlag,
+    requestedModelId,
+    maxEstimatedUsdPerImage,
     budgetGuard,
     aspectRatio: selectedAspectRatio,
     apiBaseUrl: explicitApiBaseUrl(args),
@@ -1506,6 +1510,9 @@ async function createGuide(args) {
     selected,
     requestedProviderId,
     requestedIntent,
+    requestedIntentFlag,
+    requestedModelId,
+    maxEstimatedUsdPerImage,
     budgetGuard,
     aspectRatio: selectedAspectRatio,
     apiBaseUrl: explicitApiBaseUrl(args),
@@ -1545,6 +1552,12 @@ async function createGuide(args) {
           trimmedPrompt,
           explicitApiBaseUrl(args),
           guideCommandPrefix,
+          {
+            modelId: requestedModelId,
+            providerId: requestedProviderId,
+            intent: requestedIntentFlag,
+            maxEstimatedUsdPerImage,
+          },
         )
       : null;
   const authHandoff = createGuideAuthHandoff(stage, {
@@ -2567,7 +2580,12 @@ function createGuideWarning(stage, input) {
 
 function createGuideNextCommand(stage, input) {
   if (stage === "prompt_required") {
-    return renderGuideCommand("PROMPT", input.apiBaseUrl, input.commandPrefix);
+    return renderGuideCommand("PROMPT", input.apiBaseUrl, input.commandPrefix, {
+      modelId: input.requestedModelId,
+      providerId: input.requestedProviderId,
+      intent: input.requestedIntentFlag,
+      maxEstimatedUsdPerImage: input.maxEstimatedUsdPerImage,
+    });
   }
   if (stage === "no_executable_model" || stage === "service_unreachable") {
     return renderGuidePrefixedCommand(
@@ -2657,11 +2675,38 @@ function createGuideEscapeHatches(input) {
   };
 }
 
-function renderGuideCommand(prompt, apiBaseUrl, commandPrefix = "image-skill") {
+function renderGuideCommand(
+  prompt,
+  apiBaseUrl,
+  commandPrefix = "image-skill",
+  options = {},
+) {
   return [
     commandPrefix,
     "create --guide --prompt",
     shellQuote(prompt),
+    ...(options.modelId === null ||
+    options.modelId === undefined ||
+    options.modelId === ""
+      ? []
+      : ["--model", shellQuote(options.modelId)]),
+    ...(options.providerId === null ||
+    options.providerId === undefined ||
+    options.providerId === ""
+      ? []
+      : ["--provider", shellQuote(options.providerId)]),
+    ...(options.intent === null ||
+    options.intent === undefined ||
+    options.intent === ""
+      ? []
+      : ["--intent", shellQuote(options.intent)]),
+    ...(options.maxEstimatedUsdPerImage === null ||
+    options.maxEstimatedUsdPerImage === undefined
+      ? []
+      : [
+          "--max-estimated-usd-per-image",
+          shellQuote(formatUsd(options.maxEstimatedUsdPerImage)),
+        ]),
     ...(apiBaseUrl === null ? [] : ["--api-base-url", shellQuote(apiBaseUrl)]),
     "--json",
   ].join(" ");

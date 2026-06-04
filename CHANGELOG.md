@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## Unreleased - 2026-06-04
+
+- Fix (guide): public `create --guide` replay commands now preserve explicit
+  `--model`, `--provider`, `--intent`, and
+  `--max-estimated-usd-per-image` context in `after_next`, auth rerun, and
+  self-fund handoff commands. Modality-specific aliases can send an agent
+  through signup or quota recovery without silently falling back to the default
+  image guide.
+
 ## 0.1.32 - 2026-06-04
 
 - Fix (payments): public `create --guide` payment suggestions and
