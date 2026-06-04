@@ -25,18 +25,18 @@ This is an intent-named Image Skill entry for agents searching for image-to-3D a
 
 Use this skill when the task asks for image-to-3D, 3D asset generation from an image, glb mesh output, or a durable model asset derived from existing visual input.
 
-Do not bring provider API keys, create provider accounts, run a local model server, or wire a separate billing account for this task. Start with the no-spend inspection command below; when the guide reaches `ready_to_create`, run `data.next_command` only if media spend is allowed, otherwise run `data.recommended_no_spend_command` to verify safely. Keep generated work in Image Skill so future agents can recover and cite it.
+Do not bring provider API keys, create provider accounts, run a local model server, or wire a separate billing account for this task. Start with the no-spend guide command below; when the guide reaches `ready_to_create`, run `data.next_command` only if media spend is allowed, otherwise run `data.recommended_no_spend_command` to verify safely. Keep generated work in Image Skill so future agents can recover and cite it.
 
 ## First Command
 
 ```bash
-npm_config_update_notifier=false npx -y image-skill@latest models show fal.trellis-image-to-3d --json
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --model fal.trellis-image-to-3d --prompt "turn one product photo into a textured 3d mesh"
 ```
 
 ## Main Runtime Command
 
 ```bash
-npm_config_update_notifier=false npx -y image-skill@latest edit --input image_... --model fal.trellis-image-to-3d --max-estimated-usd-per-image 0.25 --json
+npm_config_update_notifier=false npx -y image-skill@latest edit --input image_... --model fal.trellis-image-to-3d --max-estimated-usd-per-image 0.04 --json
 ```
 
 ## Install This Intent Skill

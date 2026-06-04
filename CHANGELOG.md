@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.34 - Pending
+
+- Fix (guide): `create --guide --model openai.gpt-image-2-edit` now returns an
+  edit-shaped next command with an input placeholder and prompt instead of
+  rejecting the requested edit model as non-create. The `image-edit` and
+  `image-to-3d` intent skills now start from the guide-first zero-setup path,
+  and their advertised live command caps match current model-priced credits.
+
 ## 0.1.33 - 2026-06-04
 
 - Fix (guide): public `create --guide` replay commands now preserve explicit

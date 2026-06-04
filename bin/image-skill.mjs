@@ -1646,7 +1646,9 @@ async function createGuide(args) {
                     requestedIntent,
                   )
                 : createGuideSelectedModelRequiresInputImage(selected)
-                  ? "requested executable image-to-3D model"
+                  ? selected.modality === "3d"
+                    ? "requested executable image-to-3D model"
+                    : "requested executable input-image edit model"
                   : "requested executable create model",
           },
     cost: {
@@ -1702,15 +1704,14 @@ function selectCreateGuideModel(
     model?.execution?.model_execution_status === "executable" &&
     Array.isArray(model?.supports) &&
     model.supports.includes("create");
-  const isExecutableImageTo3d = (model) =>
+  const isExecutableInputImageEdit = (model) =>
     model?.status === "available" &&
     model?.execution?.model_execution_status === "executable" &&
-    model?.modality === "3d" &&
     Array.isArray(model?.supports) &&
-    model.supports.includes("variation") &&
+    (model.supports.includes("edit") || model.supports.includes("variation")) &&
     createGuideSelectedModelRequiresInputImage(model);
   const isExecutableGuideModel = (model) =>
-    isExecutableCreate(model) || isExecutableImageTo3d(model);
+    isExecutableCreate(model) || isExecutableInputImageEdit(model);
   if (requestedModelId !== null) {
     const requested = models.find((model) => model.id === requestedModelId);
     return requested !== undefined && isExecutableGuideModel(requested)
@@ -1720,7 +1721,10 @@ function selectCreateGuideModel(
   const candidates = models.filter(isExecutableCreate);
   if (createGuideImplies3d({ prompt, intent })) {
     const eligible3d = guideCandidatesWithinBudget({
-      candidates: models.filter(isExecutableImageTo3d),
+      candidates: models.filter(
+        (model) =>
+          model?.modality === "3d" && isExecutableInputImageEdit(model),
+      ),
       maxEstimatedUsdPerImage,
     });
     const threeDimensional = eligible3d[0];
@@ -1859,7 +1863,9 @@ function createGuideSuggestedAspectRatio(model) {
 
 function createGuideSelectedModelRequiresInputImage(model) {
   return (
-    model?.modality === "3d" && model?.media?.input?.images?.required === true
+    model?.media?.input?.images?.required === true &&
+    Array.isArray(model?.supports) &&
+    (model.supports.includes("edit") || model.supports.includes("variation"))
   );
 }
 
@@ -2603,8 +2609,9 @@ function createGuideNextCommand(stage, input) {
     );
   }
   if (createGuideSelectedModelRequiresInputImage(input.selected)) {
-    return renderImageTo3dGuideCommand({
+    return renderInputImageGuideCommand({
       modelId: input.selected.id,
+      prompt: input.prompt,
       budgetGuard: input.budgetGuard,
       dryRun: false,
       idempotencyKey: `edit-guide-${Date.now()}-${randomBytes(4).toString("hex")}`,
@@ -2654,8 +2661,9 @@ function createGuideEscapeHatches(input) {
             "create --dry-run --prompt PROMPT --json",
           )
         : createGuideSelectedModelRequiresInputImage(input.selected)
-          ? renderImageTo3dGuideCommand({
+          ? renderInputImageGuideCommand({
               modelId: input.selected.id,
+              prompt: input.prompt,
               budgetGuard: input.budgetGuard,
               dryRun: true,
               apiBaseUrl: input.apiBaseUrl,
@@ -2751,7 +2759,8 @@ function guidePaymentCommandByKind(commands, kind, commandPrefix = null) {
   return renderGuidePrefixedCommand(commandPrefix, command);
 }
 
-function renderImageTo3dGuideCommand(input) {
+function renderInputImageGuideCommand(input) {
+  const promptless = PROMPTLESS_EDIT_MODEL_IDS.has(input.modelId);
   return [
     input.commandPrefix ?? "image-skill",
     "edit",
@@ -2760,6 +2769,7 @@ function renderImageTo3dGuideCommand(input) {
     "image_...",
     "--model",
     shellQuote(input.modelId),
+    ...(promptless ? [] : ["--prompt", shellQuote(input.prompt)]),
     "--max-estimated-usd-per-image",
     shellQuote(formatUsd(input.budgetGuard)),
     ...(input.idempotencyKey === undefined || input.idempotencyKey === null

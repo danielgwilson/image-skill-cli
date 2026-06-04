@@ -25,18 +25,18 @@ This is an intent-named Image Skill entry for agents searching for image editing
 
 Use this skill when the task asks to edit, vary, restyle, transform, or repair an existing image, including image-to-image work and model-specific edit parameters.
 
-Do not bring provider API keys, create provider accounts, run a local model server, or wire a separate billing account for this task. Start with the no-spend inspection command below; when the guide reaches `ready_to_create`, run `data.next_command` only if media spend is allowed, otherwise run `data.recommended_no_spend_command` to verify safely. Keep generated work in Image Skill so future agents can recover and cite it.
+Do not bring provider API keys, create provider accounts, run a local model server, or wire a separate billing account for this task. Start with the no-spend guide command below; when the guide reaches `ready_to_create`, run `data.next_command` only if media spend is allowed, otherwise run `data.recommended_no_spend_command` to verify safely. Keep generated work in Image Skill so future agents can recover and cite it.
 
 ## First Command
 
 ```bash
-npm_config_update_notifier=false npx -y image-skill@latest models show openai.gpt-image-2-edit --json
+npm_config_update_notifier=false npx -y image-skill@latest create --guide --model openai.gpt-image-2-edit --prompt "replace the background but keep the subject"
 ```
 
 ## Main Runtime Command
 
 ```bash
-npm_config_update_notifier=false npx -y image-skill@latest edit --input image_... --model openai.gpt-image-2-edit --prompt "EDIT_PROMPT" --max-estimated-usd-per-image 0.07
+npm_config_update_notifier=false npx -y image-skill@latest edit --input image_... --model openai.gpt-image-2-edit --prompt "EDIT_PROMPT" --max-estimated-usd-per-image 0.25 --json
 ```
 
 ## Install This Intent Skill
