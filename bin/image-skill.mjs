@@ -65,6 +65,70 @@ const PAYMENT_CREDENTIAL_FLAGS = new Set([
   "provider-key",
   "provider-receipt",
 ]);
+const GUIDE_NEXT_COMMAND_PLACEHOLDERS = [
+  {
+    placeholder: "AGENT_OR_OPERATOR_INBOX",
+    flag: "--agent-contact",
+    value_description:
+      "Email-shaped durable contact inbox for the restricted agent identity; use an agent-owned inbox when available, otherwise an operator, team, or sponsor inbox.",
+    effect_description: "email-shaped durable contact inbox",
+    example: "agent-inbox@example.com",
+  },
+  {
+    placeholder: "AGENT_NAME",
+    flag: "--agent-name",
+    value_description:
+      "Stable display name for this restricted agent identity.",
+    effect_description: "stable agent identity name",
+    example: "codex-image-worker",
+  },
+  {
+    placeholder: "RUNTIME_NAME",
+    flag: "--runtime",
+    value_description:
+      "Stable name for the agent runtime or substrate using Image Skill.",
+    effect_description: "agent/runtime substrate name",
+    example: "codex-cli",
+  },
+  {
+    placeholder: "PROMPT",
+    flag: "--prompt",
+    value_description: "The real creative prompt to plan or create.",
+    effect_description: "real creative prompt",
+    example: "a compact field camera on a stainless workbench",
+  },
+  {
+    placeholder: "KEY",
+    flag: "--idempotency-key",
+    value_description:
+      "Unique idempotency key for this payment or create attempt.",
+    effect_description: "unique idempotency key",
+    example: "agent-generated-idempotency-key",
+  },
+  {
+    placeholder: "QUOTE_ID",
+    flag: "--quote-id",
+    value_description: "Quote id returned by the preceding credits quote call.",
+    effect_description: "quote id from credits quote",
+    example: null,
+  },
+  {
+    placeholder: "PAYMENT_ATTEMPT_ID",
+    flag: "--payment-attempt-id",
+    value_description:
+      "Payment attempt id returned by the preceding credits buy call.",
+    effect_description: "payment attempt id from credits buy",
+    example: null,
+  },
+  {
+    placeholder: "image_...",
+    flag: "--input",
+    value_description:
+      "Image Skill input asset id, usually from upload, assets, jobs, or a previous create.",
+    effect_description: "Image Skill input asset id",
+    example: null,
+  },
+];
 
 const argv = normalizePublicArgv(process.argv.slice(2));
 const result = await main(argv);
@@ -1539,6 +1603,9 @@ async function createGuide(args) {
     commandPrefix: guideCommandPrefix,
     authConfigWritable: authConfigWrite?.ok ?? true,
   });
+  const nextCommandMissingInputs =
+    createGuideNextCommandMissingInputs(nextCommand);
+  const nextCommandCopyRunnable = nextCommandMissingInputs.length === 0;
   const escapeHatches = createGuideEscapeHatches({
     prompt: trimmedPrompt,
     selected,
@@ -1555,6 +1622,8 @@ async function createGuide(args) {
   const nextCommandEffect = createGuideNextCommandEffect(stage, {
     estimatedCredits,
     estimatedDebitUsdPerImage,
+    nextCommandCopyRunnable,
+    nextCommandMissingInputs,
   });
   const noSpendNextCommand =
     stage === "ready_to_create" ? escapeHatches.dry_run : null;
@@ -1574,6 +1643,7 @@ async function createGuide(args) {
   const guideWarning = createGuideWarning(stage, {
     nextCommandEffect,
     paymentSummary,
+    nextCommandCopyRunnable,
   });
   const selfFundNextCommand = stage === "quota_required" ? nextCommand : null;
   const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
@@ -1604,6 +1674,7 @@ async function createGuide(args) {
     authenticated,
     tokenSource: publicTokenSource,
     savedConfigPath: configPath(),
+    nextCommandCopyRunnable,
   });
   const selfFundHandoff = createGuideSelfFundHandoff(stage, {
     paymentSummary,
@@ -1697,6 +1768,8 @@ async function createGuide(args) {
     guide_warning: guideWarning,
     auth_ready: authReady,
     next_command: nextCommand,
+    next_command_copy_runnable: nextCommandCopyRunnable,
+    next_command_missing_inputs: nextCommandMissingInputs,
     next_command_effect: nextCommandEffect,
     no_spend_next_command: noSpendNextCommand,
     no_spend_next_command_label: noSpendNextCommandLabel,
@@ -2296,7 +2369,9 @@ function createGuideAuthReady(stage, input) {
     warning: ready
       ? "Current hosted auth is ready; data.next_command can reuse this auth context without exposing a raw token."
       : stage === "auth_required"
-        ? "Auth is not ready yet; run data.next_command to create a restricted agent identity, then rerun the guide."
+        ? input.nextCommandCopyRunnable
+          ? "Auth is not ready yet; run data.next_command to create a restricted agent identity, then rerun the guide."
+          : "Auth is not ready yet; fill data.next_command_missing_inputs before running the data.next_command signup template, then rerun the guide."
         : null,
   };
 }
@@ -2427,6 +2502,9 @@ function createGuideWalletSettlementHandoff({
 }
 
 function createGuideNextCommandEffect(stage, input) {
+  const placeholders = createGuideEffectPlaceholders(
+    input.nextCommandMissingInputs,
+  );
   const base = {
     label: "read_only_or_no_media_setup",
     no_spend: true,
@@ -2438,6 +2516,9 @@ function createGuideNextCommandEffect(stage, input) {
     media_write: false,
     estimated_credits: null,
     estimated_debit_usd_per_image: null,
+    copy_runnable: input.nextCommandCopyRunnable,
+    requires_placeholder_substitution: placeholders.length > 0,
+    placeholders,
     warning: null,
   };
   if (stage === "auth_required") {
@@ -2471,6 +2552,9 @@ function createGuideNextCommandEffect(stage, input) {
       media_write: true,
       estimated_credits: input.estimatedCredits,
       estimated_debit_usd_per_image: input.estimatedDebitUsdPerImage,
+      copy_runnable: input.nextCommandCopyRunnable,
+      requires_placeholder_substitution: placeholders.length > 0,
+      placeholders,
       warning:
         "data.next_command creates hosted media and can debit credits. For no-spend verification, run data.recommended_no_spend_command (same value as data.no_spend_next_command) instead.",
     };
@@ -2566,8 +2650,9 @@ function createGuideWarning(stage, input) {
       ...base,
       next_command_safety: "rerun_guide_no_spend",
       recommended_command_field: "next_command",
-      warning:
-        "data.next_command reruns the free guide with a real prompt; it does not call a provider, open payment, debit credits, or create media.",
+      warning: input.nextCommandCopyRunnable
+        ? "data.next_command reruns the free guide with a real prompt; it does not call a provider, open payment, debit credits, or create media."
+        : "data.next_command is a no-spend guide template; fill data.next_command_missing_inputs before running it. It does not call a provider, open payment, debit credits, or create media.",
     };
   }
   if (stage === "no_executable_model" || stage === "service_unreachable") {
@@ -2584,8 +2669,9 @@ function createGuideWarning(stage, input) {
       ...base,
       next_command_safety: "hosted_signup_no_spend_setup",
       recommended_command_field: "next_command",
-      warning:
-        "data.next_command is no-spend hosted signup/setup; it creates a restricted agent identity but does not call a provider, open payment, debit credits, or create media.",
+      warning: input.nextCommandCopyRunnable
+        ? "data.next_command is no-spend hosted signup/setup; it creates a restricted agent identity but does not call a provider, open payment, debit credits, or create media."
+        : "data.next_command is a no-spend hosted signup/setup template; fill data.next_command_missing_inputs before running it. It creates a restricted agent identity but does not call a provider, open payment, debit credits, or create media.",
     };
   }
   if (stage === "quota_required") {
@@ -2599,12 +2685,17 @@ function createGuideWarning(stage, input) {
       spend_required: true,
       recommended_command_field: "escape_hatches",
       payment_top_up_path: paymentTopUpPath,
-      warning:
-        paymentTopUpPath === "browserless_agent_self_fund"
+      warning: input.nextCommandCopyRunnable
+        ? paymentTopUpPath === "browserless_agent_self_fund"
           ? "data.next_command starts the browserless live-money top-up path; stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only payment inspection."
           : paymentTopUpPath === "human_payment_handoff"
             ? "data.next_command starts a live-money payment handoff that needs human or browser completion; stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only inspection."
-            : "data.next_command starts payment or quota recovery; inspect data.checks.payments before attempting live money, or use data.escape_hatches.payment_methods for read-only inspection.",
+            : "data.next_command starts payment or quota recovery; inspect data.checks.payments before attempting live money, or use data.escape_hatches.payment_methods for read-only inspection."
+        : paymentTopUpPath === "browserless_agent_self_fund"
+          ? "data.next_command is a browserless live-money top-up template; fill data.next_command_missing_inputs before running it, stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only payment inspection."
+          : paymentTopUpPath === "human_payment_handoff"
+            ? "data.next_command is a live-money payment handoff template; fill data.next_command_missing_inputs before running it, stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only inspection."
+            : "data.next_command is a live-money payment template; fill data.next_command_missing_inputs before running it, stay within the delegated cap, or use data.escape_hatches.payment_methods for read-only inspection.",
     };
   }
   return {
@@ -2616,6 +2707,40 @@ function createGuideWarning(stage, input) {
     warning:
       "data.next_command is a live media create that can call a provider, debit credits, and create media. Run it only when media spend is allowed; otherwise run data.recommended_no_spend_command.",
   };
+}
+
+function createGuideNextCommandMissingInputs(command) {
+  return GUIDE_NEXT_COMMAND_PLACEHOLDERS.filter((placeholder) =>
+    commandContainsTemplateToken(command, placeholder.placeholder),
+  ).map((placeholder) => ({
+    flag: placeholder.flag,
+    placeholder: placeholder.placeholder,
+    value_description: placeholder.value_description,
+    example: placeholder.example,
+  }));
+}
+
+function createGuideEffectPlaceholders(missingInputs) {
+  return missingInputs.map((input) => {
+    const placeholder = GUIDE_NEXT_COMMAND_PLACEHOLDERS.find(
+      (candidate) => candidate.placeholder === input.placeholder,
+    );
+    return {
+      token: input.placeholder,
+      description: placeholder?.effect_description ?? input.value_description,
+      required: true,
+    };
+  });
+}
+
+function commandContainsTemplateToken(command, token) {
+  return new RegExp(
+    `(^|[^A-Za-z0-9_])${escapeRegExp(token)}(?=$|[^A-Za-z0-9_])`,
+  ).test(command);
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function createGuideNextCommand(stage, input) {
