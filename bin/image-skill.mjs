@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.31";
+const VERSION = "0.1.32";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -918,12 +918,15 @@ async function credits(argv) {
     if (tokenHandoff !== null) {
       return tokenHandoff;
     }
-    return apiRequest({
-      command: "image-skill credits methods",
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: "/v1/payment-methods",
-    });
+    return withCopyRunnablePaymentMethodCommands(
+      await apiRequest({
+        command: "image-skill credits methods",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: "/v1/payment-methods",
+      }),
+      createGuideCommandPrefix(),
+    );
   }
   if (subcommand === "packs") {
     const [packsSubcommand, ...packsRest] = rest;
@@ -1460,7 +1463,6 @@ async function createGuide(args) {
   const authenticated = quota?.envelope.data?.authenticated === true;
   const publicTokenSource =
     token.source === "anonymous" ? "none" : token.source;
-  const paymentSummary = createGuidePaymentSummary(payments.envelope.data);
   const stage = createGuideStage({
     prompt: trimmedPrompt,
     health,
@@ -1478,6 +1480,10 @@ async function createGuide(args) {
         ? LOCAL_WRITABLE_CONFIG_PATH
         : configuredImageSkillConfigPath(),
   });
+  const paymentSummary = createGuidePaymentSummary(
+    payments.envelope.data,
+    guideCommandPrefix,
+  );
   const blocker = createGuideBlocker(stage, {
     requestedModelId,
     quota,
@@ -1875,7 +1881,7 @@ function createGuideSelectionReason(model, prompt, intent) {
   return "guide selected the first available executable create model";
 }
 
-function createGuidePaymentSummary(data) {
+function createGuidePaymentSummary(data, commandPrefix) {
   const methods = Array.isArray(data?.methods)
     ? data.methods.filter((method) => method.live_money)
     : [];
@@ -1933,6 +1939,7 @@ function createGuidePaymentSummary(data) {
     suggested_commands: createGuidePaymentCommands(
       preferredMethod,
       availableMethods.filter((method) => method !== preferredMethod),
+      commandPrefix,
     ),
   };
 }
@@ -1995,7 +2002,11 @@ function createGuidePreferredPaymentSummary(method) {
   };
 }
 
-function createGuidePaymentCommands(preferredMethod, fallbackMethods) {
+function createGuidePaymentCommands(
+  preferredMethod,
+  fallbackMethods,
+  commandPrefix,
+) {
   const commands = [
     "image-skill credits methods --json",
     "image-skill credits packs list --json",
@@ -2017,7 +2028,68 @@ function createGuidePaymentCommands(preferredMethod, fallbackMethods) {
       }
     }
   }
-  return commands;
+  return commands.map((command) =>
+    renderCopyRunnablePaymentCommand(commandPrefix, command),
+  );
+}
+
+function withCopyRunnablePaymentMethodCommands(result, commandPrefix) {
+  const data = result.envelope.data;
+  if (data === null || typeof data !== "object") {
+    return result;
+  }
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      data: paymentMethodCatalogWithCopyRunnableCommands(data, commandPrefix),
+    },
+  };
+}
+
+function paymentMethodCatalogWithCopyRunnableCommands(catalog, commandPrefix) {
+  return {
+    ...catalog,
+    methods: Array.isArray(catalog.methods)
+      ? catalog.methods.map((method) => ({
+          ...method,
+          recovery:
+            method.recovery === null || typeof method.recovery !== "object"
+              ? method.recovery
+              : {
+                  ...method.recovery,
+                  quote_command:
+                    typeof method.recovery.quote_command === "string"
+                      ? renderCopyRunnablePaymentCommand(
+                          commandPrefix,
+                          method.recovery.quote_command,
+                        )
+                      : method.recovery.quote_command,
+                  purchase_command:
+                    typeof method.recovery.purchase_command === "string"
+                      ? renderCopyRunnablePaymentCommand(
+                          commandPrefix,
+                          method.recovery.purchase_command,
+                        )
+                      : method.recovery.purchase_command,
+                  status_command:
+                    typeof method.recovery.status_command === "string"
+                      ? renderCopyRunnablePaymentCommand(
+                          commandPrefix,
+                          method.recovery.status_command,
+                        )
+                      : method.recovery.status_command,
+                },
+        }))
+      : catalog.methods,
+  };
+}
+
+function renderCopyRunnablePaymentCommand(commandPrefix, command) {
+  if (/\bnpx\s+(?:-y|--yes)\s+image-skill@latest\b/.test(command)) {
+    return command;
+  }
+  return renderGuidePrefixedCommand(commandPrefix, command);
 }
 
 function createGuideStage(input) {
@@ -2217,7 +2289,6 @@ function createGuideSelfFundHandoff(stage, input) {
   const statusCommand = guidePaymentCommandByKind(
     input.paymentSummary.suggested_commands,
     "status",
-    input.commandPrefix,
   );
 
   return {
@@ -2234,12 +2305,10 @@ function createGuideSelfFundHandoff(stage, input) {
       quote: guidePaymentCommandByKind(
         input.paymentSummary.suggested_commands,
         "quote",
-        input.commandPrefix,
       ),
       buy: guidePaymentCommandByKind(
         input.paymentSummary.suggested_commands,
         "buy",
-        input.commandPrefix,
       ),
       status: statusCommand,
     },
@@ -2510,11 +2579,9 @@ function createGuideNextCommand(stage, input) {
     return renderGuideSignupCommand(input);
   }
   if (stage === "quota_required") {
-    return renderGuidePrefixedCommand(
-      input.commandPrefix,
-      stripImageSkillCommandPrefix(
-        firstPaymentActionCommand(input.paymentSummary.suggested_commands),
-      ),
+    return (
+      firstPaymentActionCommand(input.paymentSummary.suggested_commands) ??
+      renderGuidePrefixedCommand(input.commandPrefix, "credits methods --json")
     );
   }
   if (createGuideSelectedModelRequiresInputImage(input.selected)) {

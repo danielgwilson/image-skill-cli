@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.32 - 2026-06-04
+
+- Fix (payments): public `create --guide` payment suggestions and
+  `credits methods` recovery commands now emit copy-runnable
+  `npx -y image-skill@latest` commands that preserve
+  `IMAGE_SKILL_CONFIG_PATH` when agents use a non-default config path. The
+  self-fund quote/buy/status path no longer drops auth context after a fresh
+  `npx` invocation.
+
 ## 0.1.31 - 2026-06-03
 
 - Fix (guide): public `create --guide` copyable commands now preserve
