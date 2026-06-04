@@ -4,7 +4,7 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
-## 0.1.34 - Pending
+## 0.1.34 - 2026-06-04
 
 - Fix (guide): `create --guide --model openai.gpt-image-2-edit` now returns an
   edit-shaped next command with an input placeholder and prompt instead of
