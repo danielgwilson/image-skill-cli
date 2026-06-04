@@ -329,7 +329,7 @@ function commandHelpByKey(key) {
     },
     "credits methods": {
       command: "image-skill credits methods help",
-      usage: "image-skill credits methods --json",
+      usage: "image-skill credits methods",
       docs_url: "https://image-skill.com/cli.md#image-skill-credits",
     },
     "credits packs": {
@@ -937,12 +937,6 @@ async function credits(argv) {
       (flag) =>
         !["json", "api-base-url", "token", "token-stdin"].includes(flag),
     );
-    if (!flagBool(args, "json")) {
-      return invalid(
-        "image-skill credits methods",
-        "credits methods requires --json",
-      );
-    }
     if (args.positionals.length > 0 || unknownFlags.length > 0) {
       return invalid(
         "image-skill credits methods",
@@ -1033,7 +1027,7 @@ async function credits(argv) {
     if (paymentMethod === null) {
       return invalid(
         "image-skill credits quote",
-        "credits quote requires --payment-method from credits methods --json; use stripe_x402.exact.usdc for an agent-settleable browserless rail or stripe_checkout for a human Checkout handoff",
+        "credits quote requires --payment-method from credits methods; use stripe_x402.exact.usdc for an agent-settleable browserless rail or stripe_checkout for a human Checkout handoff",
       );
     }
     if (!PUBLIC_QUOTE_PAYMENT_METHODS.includes(paymentMethod)) {
