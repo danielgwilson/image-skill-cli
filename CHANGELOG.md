@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.35 - 2026-06-04
+
+- Fix (CLI aliases): natural modality-first commands now route into the
+  guide-first public runtime. `image-skill image create`,
+  `image-skill video create`, `image-skill audio create`,
+  `image-skill 3d create`, and `image-skill image edit` normalize to the
+  existing `create` / `edit` flows instead of failing with
+  `PUBLIC_CLI_COMMAND_NOT_AVAILABLE`. Video, audio, and 3D aliases add the
+  matching intent hint unless the agent already supplied `--intent`.
+
 ## 0.1.34 - 2026-06-04
 
 - Fix (guide): `create --guide --model openai.gpt-image-2-edit` now returns an
