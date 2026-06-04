@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.30";
+const VERSION = "0.1.31";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1472,6 +1472,12 @@ async function createGuide(args) {
   });
   const authConfigWrite =
     stage === "auth_required" ? await probeConfigWritable() : null;
+  const guideCommandPrefix = createGuideCommandPrefix({
+    configPath:
+      authConfigWrite?.ok === false
+        ? LOCAL_WRITABLE_CONFIG_PATH
+        : configuredImageSkillConfigPath(),
+  });
   const blocker = createGuideBlocker(stage, {
     requestedModelId,
     quota,
@@ -1486,7 +1492,7 @@ async function createGuide(args) {
     aspectRatio: selectedAspectRatio,
     apiBaseUrl: explicitApiBaseUrl(args),
     paymentSummary,
-    commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
+    commandPrefix: guideCommandPrefix,
     authConfigWritable: authConfigWrite?.ok ?? true,
   });
   const escapeHatches = createGuideEscapeHatches({
@@ -1497,7 +1503,7 @@ async function createGuide(args) {
     budgetGuard,
     aspectRatio: selectedAspectRatio,
     apiBaseUrl: explicitApiBaseUrl(args),
-    commandPrefix: PUBLIC_NPX_COMMAND_PREFIX,
+    commandPrefix: guideCommandPrefix,
   });
   const nextCommandEffect = createGuideNextCommandEffect(stage, {
     estimatedCredits,
@@ -1532,7 +1538,7 @@ async function createGuide(args) {
       ? renderGuideCommand(
           trimmedPrompt,
           explicitApiBaseUrl(args),
-          PUBLIC_NPX_COMMAND_PREFIX,
+          guideCommandPrefix,
         )
       : null;
   const authHandoff = createGuideAuthHandoff(stage, {
@@ -1551,6 +1557,7 @@ async function createGuide(args) {
     nextCommand,
     afterNext,
     tokenSource: publicTokenSource,
+    commandPrefix: guideCommandPrefix,
   });
   return createGuideSuccess(quota?.envelope.actor ?? null, {
     schema: "image-skill.create-guide.v1",
@@ -2210,6 +2217,7 @@ function createGuideSelfFundHandoff(stage, input) {
   const statusCommand = guidePaymentCommandByKind(
     input.paymentSummary.suggested_commands,
     "status",
+    input.commandPrefix,
   );
 
   return {
@@ -2226,10 +2234,12 @@ function createGuideSelfFundHandoff(stage, input) {
       quote: guidePaymentCommandByKind(
         input.paymentSummary.suggested_commands,
         "quote",
+        input.commandPrefix,
       ),
       buy: guidePaymentCommandByKind(
         input.paymentSummary.suggested_commands,
         "buy",
+        input.commandPrefix,
       ),
       status: statusCommand,
     },
@@ -2598,13 +2608,7 @@ function renderGuideSignupCommand(input) {
       : ["--api-base-url", shellQuote(input.apiBaseUrl)]),
     "--json",
   ].join(" ");
-  const command = renderGuidePrefixedCommand(
-    input.commandPrefix,
-    signupCommand,
-  );
-  return input.authConfigWritable === false
-    ? renderWritableConfigCommand(command)
-    : command;
+  return renderGuidePrefixedCommand(input.commandPrefix, signupCommand);
 }
 
 function renderTokenStdinCommand(command) {
@@ -2621,14 +2625,18 @@ function firstPaymentActionCommand(commands) {
   );
 }
 
-function guidePaymentCommandByKind(commands, kind) {
+function guidePaymentCommandByKind(commands, kind, commandPrefix = null) {
   const pattern =
     kind === "quote"
       ? /\bcredits\s+quote\b/
       : kind === "buy"
         ? /\bcredits\s+buy\b/
         : /\bcredits\s+status\b/;
-  return commands.find((command) => pattern.test(command)) ?? null;
+  const command = commands.find((candidate) => pattern.test(candidate)) ?? null;
+  if (command === null || commandPrefix === null) {
+    return command;
+  }
+  return renderGuidePrefixedCommand(commandPrefix, command);
 }
 
 function renderImageTo3dGuideCommand(input) {
@@ -2683,6 +2691,43 @@ function renderCreateCommand(input) {
 
 function renderGuidePrefixedCommand(commandPrefix, command) {
   return `${commandPrefix} ${stripImageSkillCommandPrefix(command)}`;
+}
+
+function createGuideCommandPrefix(input = {}) {
+  const configPath =
+    input.configPath === undefined
+      ? configuredImageSkillConfigPath()
+      : input.configPath;
+  return renderShellEnvPrefixedCommand(
+    {
+      npm_config_update_notifier: "false",
+      ...(configPath === null ? {} : { IMAGE_SKILL_CONFIG_PATH: configPath }),
+    },
+    "npx -y image-skill@latest",
+  );
+}
+
+function configuredImageSkillConfigPath() {
+  const configPath = process.env.IMAGE_SKILL_CONFIG_PATH;
+  return typeof configPath === "string" && configPath.length > 0
+    ? configPath
+    : null;
+}
+
+function renderShellEnvPrefixedCommand(env, command) {
+  const assignments = Object.entries(env).map(
+    ([name, value]) => `${name}=${shellEnvAssignmentValue(name, value)}`,
+  );
+  return assignments.length === 0
+    ? command
+    : `${assignments.join(" ")} ${command}`;
+}
+
+function shellEnvAssignmentValue(name, value) {
+  if (name.startsWith("npm_config_") && /^(?:true|false|\d+)$/.test(value)) {
+    return value;
+  }
+  return shellQuote(value);
 }
 
 function renderWritableConfigCommand(command) {

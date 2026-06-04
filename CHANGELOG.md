@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.31 - 2026-06-03
+
+- Fix (guide): public `create --guide` copyable commands now preserve
+  `IMAGE_SKILL_CONFIG_PATH` when an agent uses a non-default config path, and
+  blocked-config recovery commands switch to the local writable fallback in the
+  emitted `npx image-skill@latest` command. Auth signup, rerun, escape hatch,
+  ready dry-run/create, and self-fund quote/buy/status commands all keep the
+  same config context so fresh tool processes do not silently lose auth.
+
 ## 0.1.30 - 2026-06-03
 
 - Fix (provenance): replace the stale version-stamped "Current Published
