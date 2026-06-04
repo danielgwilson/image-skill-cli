@@ -4,7 +4,7 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
-## Unreleased - 2026-06-04
+## 0.1.33 - 2026-06-04
 
 - Fix (guide): public `create --guide` replay commands now preserve explicit
   `--model`, `--provider`, `--intent`, and
