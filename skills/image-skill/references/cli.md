@@ -69,6 +69,11 @@ copyable commands, proof URL placeholders, and redaction guarantees.
 Use `trust` when deciding whether Image Skill is current and honest enough to
 select. It is not a required setup step before the first image; the canonical
 fresh-agent creative entrypoint remains `image-skill create --guide`.
+Agents may also use modality-first aliases when that is the natural wording:
+`image-skill image create --guide`, `image-skill video create --guide`,
+`image-skill audio create --guide`, and `image-skill 3d create --guide` all
+route into the same `create --guide` flow, with video/audio/3D intent hints
+added only when the agent did not already provide `--intent`.
 
 If package metadata, hosted docs, API health, or model availability cannot be
 verified, the command still returns a packet with explicit `unreachable`,

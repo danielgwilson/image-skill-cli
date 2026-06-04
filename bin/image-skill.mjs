@@ -37,6 +37,14 @@ const HOSTED_SIGNUP_TOKEN_RETURNED_WARNING =
 const PUBLIC_NPX_COMMAND_PREFIX =
   "npm_config_update_notifier=false npx -y image-skill@latest";
 const CREDIT_UNIT_USD = 0.01;
+const MODALITY_COMMAND_ALIASES = new Map([
+  ["image", { command: "create", intent: null }],
+  ["video", { command: "create", intent: "video" }],
+  ["audio", { command: "create", intent: "audio" }],
+  ["3d", { command: "create", intent: "image-to-3d" }],
+  ["image-to-3d", { command: "create", intent: "image-to-3d" }],
+  ["three-d", { command: "create", intent: "image-to-3d" }],
+]);
 const PAYMENT_CREDENTIAL_FLAGS = new Set([
   "payment-token",
   "payment-secret",
@@ -58,7 +66,7 @@ const PAYMENT_CREDENTIAL_FLAGS = new Set([
   "provider-receipt",
 ]);
 
-const argv = process.argv.slice(2);
+const argv = normalizePublicArgv(process.argv.slice(2));
 const result = await main(argv);
 process.stdout.write(`${JSON.stringify(result.envelope, null, 2)}\n`);
 process.exitCode = result.exitCode;
@@ -71,7 +79,7 @@ async function main(rawArgv) {
   }
 
   if (command === "help") {
-    return publicCliHelp(helpTarget(rest));
+    return publicCliHelp(helpTarget(normalizePublicArgv(rest)));
   }
 
   if (hasHelpFlag(rest)) {
@@ -160,10 +168,37 @@ function hasHelpFlag(argv) {
   return argv.includes("--help") || argv.includes("-h");
 }
 
+function normalizePublicArgv(argv) {
+  const [maybeModality, maybeSubcommand, ...rest] = argv;
+  if (maybeModality === undefined || maybeSubcommand === undefined) {
+    return argv;
+  }
+
+  const alias = MODALITY_COMMAND_ALIASES.get(maybeModality);
+  if (alias === undefined) {
+    return argv;
+  }
+
+  if (maybeSubcommand === "create") {
+    if (
+      alias.intent !== null &&
+      !rest.some((arg) => arg === "--intent" || arg.startsWith("--intent="))
+    ) {
+      return [alias.command, "--intent", alias.intent, ...rest];
+    }
+    return [alias.command, ...rest];
+  }
+
+  if (maybeModality === "image" && maybeSubcommand === "edit") {
+    return ["edit", ...rest];
+  }
+
+  return argv;
+}
+
 function helpTarget(argv) {
-  return argv.filter(
-    (arg) => arg !== "--help" && arg !== "-h" && arg !== "--json",
-  );
+  return parseArgs(argv.filter((arg) => arg !== "--help" && arg !== "-h"))
+    .positionals;
 }
 
 function helpKey(path) {
@@ -198,9 +233,14 @@ function commandHelpByKey(key) {
         "models list",
         "models show",
         "create --guide",
+        "image create --guide",
+        "video create --guide",
+        "audio create --guide",
+        "3d create --guide",
         "capabilities list",
         "capabilities show",
         "create",
+        "image edit",
         "upload",
         "edit",
         "assets show",
