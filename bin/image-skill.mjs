@@ -437,6 +437,16 @@ function commandHelpByKey(key) {
       usage:
         "image-skill models list --available --operation image.generate --json",
       docs_url: "https://image-skill.com/cli.md#image-skill-models",
+      optional_flags: [
+        "--available",
+        "--executable",
+        "--catalog-only",
+        "--operation",
+        "--modality",
+        "--provider",
+        "--summary",
+        "--details",
+      ],
     },
     "models show": {
       command: "image-skill models show help",
@@ -1273,13 +1283,21 @@ async function models(argv) {
     apiBaseUrl: apiBase(args),
     path: query.path,
   });
-  return flagBool(args, "summary") ? withModelSummary(result) : result;
+  return flagBool(args, "details") ? result : withModelSummary(result);
 }
 
 function modelListQuery(args) {
   const available = flagBool(args, "available");
   const executable = flagBool(args, "executable");
   const catalogOnly = flagBool(args, "catalog-only");
+  const summary = flagBool(args, "summary");
+  const details = flagBool(args, "details");
+  if (summary && details) {
+    return {
+      ok: false,
+      message: "models list --summary cannot be combined with --details",
+    };
+  }
   if (catalogOnly && (available || executable)) {
     return {
       ok: false,
@@ -1297,6 +1315,9 @@ function modelListQuery(args) {
   if (catalogOnly) {
     params.set("catalog_only", "true");
   }
+  if (details) {
+    params.set("details", "true");
+  }
   addQueryValue(params, "operation", flagString(args, "operation"));
   addQueryValue(params, "modality", flagString(args, "modality"));
   addQueryValue(params, "provider", flagString(args, "provider"));
@@ -1312,6 +1333,9 @@ function withModelSummary(result) {
   if (!isRecord(data) || !Array.isArray(data.models)) {
     return result;
   }
+  if (data.summary?.result_shape === "compact_model_summary") {
+    return result;
+  }
   return {
     ...result,
     envelope: {
@@ -1321,7 +1345,7 @@ function withModelSummary(result) {
         summary: {
           ...(isRecord(data.summary) ? data.summary : {}),
           result_shape: "compact_model_summary",
-          full_list_command: "image-skill models list --json",
+          full_list_command: "image-skill models list --details --json",
         },
         models: data.models.map(modelSummaryRow),
       },
@@ -1332,11 +1356,13 @@ function withModelSummary(result) {
 function modelSummaryRow(model) {
   return {
     id: model.id,
+    default: model.default === true,
     display_name: model.display_name,
     provider_id: model.provider_id,
     mode: model.mode,
     status: model.status,
     availability_reason: model.availability_reason ?? null,
+    modality: model.modality ?? "image",
     supports: Array.isArray(model.supports) ? [...model.supports] : [],
     operations: Array.isArray(model.operations) ? [...model.operations] : [],
     task_tags: modelSummaryTaskTags(model),

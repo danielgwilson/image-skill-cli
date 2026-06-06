@@ -195,6 +195,8 @@ image-skill models list --available --modality video --operation video.generate
 image-skill models show openai.gpt-image-2
 ```
 
+`models list` is the compact, summary-first action menu. Use `models show MODEL_ID` for one model's full capability schema, or `models list --details` only when you intentionally need every model's full schema at once.
+
 `--available` filters to runnable rows (`status:"available"` and `execution.model_execution_status:"executable"`). Do not treat provider-level `status:"available"` as runnable. `--catalog-only` exposes research rows that are not runnable yet; inspect them, do not pass them to create or edit.
 
 Pass model-specific controls through validated JSON, not invented top-level flags:

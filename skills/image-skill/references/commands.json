@@ -340,7 +340,17 @@
       "help": {
         "command": "image-skill models list help",
         "usage": "image-skill models list --available --operation image.generate --json",
-        "docs_url": "https://image-skill.com/cli.md#image-skill-models"
+        "docs_url": "https://image-skill.com/cli.md#image-skill-models",
+        "optional_flags": [
+          "--available",
+          "--executable",
+          "--catalog-only",
+          "--operation",
+          "--modality",
+          "--provider",
+          "--summary",
+          "--details"
+        ]
       }
     },
     {

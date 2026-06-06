@@ -774,7 +774,7 @@ capability-preserving schema for one model.
 ```bash
 image-skill models --json
 image-skill models list --json
-image-skill models list --summary --json
+image-skill models list --details --json
 image-skill models list --available --operation image.generate --json
 image-skill models list --available --operation image.edit --json
 image-skill models list --available --modality video --operation video.generate --json
@@ -805,20 +805,23 @@ inspect the recommended create surface without knowing a provider-specific
 model id. The list response also returns `summary` with total, returned,
 available, executable, catalog-only, provider split,
 `execution_availability`, first actionable model ids, recommended filter
-commands, and catalog-inclusion flags. Default list output excludes
-catalog-only rows so fresh agents see executable candidates first. Use
-`--summary` when you need a compact, sortable model menu: each row keeps the
-model id, flat `estimated_usd_per_image`, `credits_required`, lightweight
-`task_tags`, status, provider, max output count/resolution, storage, and
-`show_command`, while omitting full parameter schemas. Use `--available` for
-currently usable executable rows, `--modality image|video|audio|3d` for media
-type, `--operation image.generate`, `--operation image.edit`,
-`--operation video.generate`, `--operation audio.generate`, or
-`--operation 3d.generate` for the task, `--provider fal|xai|openai` to narrow by
-provider, and `--catalog-only` when you intentionally want source-backed rows
-that are inspectable but not runnable yet. Provider-level availability is not
-the same thing as model executability; for runnable choices require both
-`status:"available"` and
+commands, and catalog-inclusion flags. Default list output is a compact,
+sortable model menu and excludes catalog-only rows so fresh agents see
+executable candidates first. Each row keeps the model id, flat
+`estimated_usd_per_image`, `credits_required`, lightweight `task_tags`, status,
+provider, max output count/resolution, storage, and `show_command`, while
+omitting full parameter schemas. Use `models show MODEL_ID --json` for one
+model's full capability schema, or `models list --details --json` only when you
+intentionally need the full list with capability schemas for compatibility or
+offline analysis. `--summary` is still accepted as a compatibility alias for the
+default compact list. Use `--available` for currently usable executable rows,
+`--modality image|video|audio|3d` for media type, `--operation
+image.generate`, `--operation image.edit`, `--operation video.generate`,
+`--operation audio.generate`, or `--operation 3d.generate` for the task,
+`--provider fal|xai|openai` to narrow by provider, and `--catalog-only` when you
+intentionally want source-backed rows that are inspectable but not runnable yet.
+Provider-level availability is not the same thing as model executability; for
+runnable choices require both `status:"available"` and
 `execution.model_execution_status:"executable"`. If a reachable provider has no
 runnable model for the requested operation, `summary.execution_availability`
 says so directly and includes the fastest `--available --operation ...`
