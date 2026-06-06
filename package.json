@@ -23,6 +23,7 @@
     "skill.md",
     "llms.txt",
     "cli.md",
+    "commands.json",
     "skills"
   ],
   "engines": {

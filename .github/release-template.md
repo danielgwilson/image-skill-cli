@@ -14,6 +14,7 @@
 - Skill: `https://image-skill.com/skill.md`
 - LLM contract: `https://image-skill.com/llms.txt`
 - CLI contract: `https://image-skill.com/cli.md`
+- Command manifest: `https://image-skill.com/commands.json`
 - Hosted API health: `https://api.image-skill.com/healthz`
 
 ## What Changed

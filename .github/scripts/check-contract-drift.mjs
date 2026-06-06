@@ -20,6 +20,13 @@ const requiredContracts = [
     source_path: "docs/public-contract/llms.txt",
     public_paths: ["llms.txt", "skills/image-skill/references/llms.txt"],
   },
+  {
+    source_path: "docs/public-contract/commands.json",
+    public_paths: [
+      "commands.json",
+      "skills/image-skill/references/commands.json",
+    ],
+  },
 ];
 
 const problems = [];

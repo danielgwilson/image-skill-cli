@@ -10,6 +10,7 @@ on:
       - skill.md
       - llms.txt
       - cli.md
+      - commands.json
       - skills/**
       - package.json
       - bin/image-skill.mjs

@@ -25,6 +25,15 @@
       "public_paths": ["llms.txt", "skills/image-skill/references/llms.txt"],
       "bytes": 35103,
       "sha256": "8b0793774d3dfbb6b7f5669320dd8f3fda3f167ade7a2d1467998d5e3bbe13f2"
+    },
+    {
+      "source_path": "docs/public-contract/commands.json",
+      "public_paths": [
+        "commands.json",
+        "skills/image-skill/references/commands.json"
+      ],
+      "bytes": 15185,
+      "sha256": "b39e850f2b449cd561b1a2884c61d2a6cc789c7154a35173c4876262a423fd17"
     }
   ]
 }
