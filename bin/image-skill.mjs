@@ -276,24 +276,26 @@ function helpKey(path) {
 function commandHelpByKey(key) {
   return {
     "": {
-      command: "image-skill help",
+      command: "help",
       usage:
-        "image-skill <doctor|trust|signup|auth|whoami|usage|quota|credits|models|capabilities|create|upload|edit|assets|jobs|activity|feedback> --json",
+        "image-skill <doctor|trust|signup|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
       docs_url: "https://image-skill.com/cli.md",
       commands: [
         "doctor",
         "trust",
         "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME",
-        "auth status",
-        "auth save",
-        "auth logout",
         "whoami",
         "usage quota",
+        "quota",
         "credits methods",
-        "credits packs list",
         "credits quote",
+        "credits packs list",
         "credits buy",
         "credits status",
+        "capabilities",
+        "capabilities list",
+        "capabilities show",
+        "models",
         "models list",
         "models show",
         "create --guide",
@@ -301,8 +303,7 @@ function commandHelpByKey(key) {
         "video create --guide",
         "audio create --guide",
         "3d create --guide",
-        "capabilities list",
-        "capabilities show",
+        "create --dry-run",
         "create",
         "image edit",
         "upload",
@@ -469,6 +470,9 @@ function commandHelpByKey(key) {
         "--model",
         "--aspect-ratio",
         "--output-count",
+        "--element-frontal",
+        "--element-reference",
+        "--reference-image",
         "--model-parameters-json",
         "--idempotency-key",
       ],
@@ -489,6 +493,8 @@ function commandHelpByKey(key) {
         "--model",
         "--mask",
         "--element-reference",
+        "--element-frontal",
+        "--reference-image",
         "--model-parameters-json",
         "--idempotency-key",
       ],
@@ -1232,13 +1238,13 @@ async function models(argv) {
     subcommand === "list" || subcommand === "show" ? rest : argv,
   );
   if (subcommand === "show") {
-    const modelId = args.positionals[0];
-    if (modelId === undefined) {
+    if (args.positionals.length !== 1) {
       return invalid(
         "image-skill models show",
-        "models show requires MODEL_ID",
+        "models show requires exactly one MODEL_ID",
       );
     }
+    const modelId = args.positionals[0];
     return apiRequest({
       command: "image-skill models show",
       method: "GET",

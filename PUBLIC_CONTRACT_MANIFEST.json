@@ -32,8 +32,8 @@
         "commands.json",
         "skills/image-skill/references/commands.json"
       ],
-      "bytes": 15185,
-      "sha256": "b39e850f2b449cd561b1a2884c61d2a6cc789c7154a35173c4876262a423fd17"
+      "bytes": 15378,
+      "sha256": "d37536d1a77fb0cf703f93031b8472fddfd1739bf9b0d50bf1c3a20a68eaa7da"
     }
   ]
 }

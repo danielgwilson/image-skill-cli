@@ -210,7 +210,7 @@
           "--agent-name",
           "--runtime"
         ],
-        "optional_flags": ["--show-token", "--token-stdin"]
+        "optional_flags": ["--show-token", "--no-save", "--token-stdin"]
       }
     },
     {
@@ -363,6 +363,9 @@
           "--model",
           "--aspect-ratio",
           "--output-count",
+          "--element-frontal",
+          "--element-reference",
+          "--reference-image",
           "--model-parameters-json",
           "--idempotency-key"
         ]
@@ -384,10 +387,13 @@
         "docs_url": "https://image-skill.com/cli.md#image-skill-edit",
         "required_flags": ["--input"],
         "optional_flags": [
+          "--dry-run",
           "--prompt",
           "--model",
           "--mask",
           "--element-reference",
+          "--element-frontal",
+          "--reference-image",
           "--model-parameters-json",
           "--idempotency-key"
         ]
