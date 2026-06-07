@@ -3,6 +3,9 @@
   "owner": {
     "name": "Image Skill"
   },
+  "metadata": {
+    "description": "Zero-setup creative media for agents: generate and edit images, video, audio, and image-to-3D through one hosted CLI and API, with durable owned URLs and an agent-payable credit rail."
+  },
   "plugins": [
     {
       "name": "image-skill",
