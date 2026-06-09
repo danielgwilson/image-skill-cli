@@ -4,6 +4,23 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.37 - 2026-06-09
+
+- Fix (recovery): a live `create`/`edit` now leaves a recovery handle _before_
+  the blocking request. Every live (non-dry-run) call carries an idempotency
+  key even when you did not pass `--idempotency-key`, emits an `in_flight`
+  notice with that key to stderr, and writes a durable breadcrumb at
+  `<config-dir>/in-flight/<key>.json`. If the command is interrupted (for
+  example you kill a create that hangs on a long provider wait after the credit
+  was already reserved), re-run it with the surfaced key: the hosted API
+  replays the original job (returning the asset you already paid for) or
+  releases the reserved credit — never a double charge. The stdout JSON
+  envelope is unchanged. Fixes the "create debited credits but no live job or
+  asset surfaced" report (#1789).
+- Fix (recovery): the proxy-killed non-JSON 5xx retry recovery now echoes the
+  same idempotency key the charged request used, so the advertised retry
+  genuinely dedupes instead of minting a non-matching key (#1228 follow-up).
+
 ## 0.1.36 - 2026-06-04
 
 - Fix (guide): `create --guide --json` now marks templated follow-up commands
