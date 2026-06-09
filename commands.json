@@ -28,6 +28,14 @@
       "spend": false
     },
     {
+      "id": "claim",
+      "docs_anchor": "image-skill-claim-request",
+      "surface": "hosted_cli",
+      "mutation": true,
+      "spend": false,
+      "subcommands": ["request"]
+    },
+    {
       "id": "whoami",
       "docs_anchor": "image-skill-whoami",
       "surface": "hosted_cli",
@@ -140,12 +148,13 @@
       "key": "",
       "help": {
         "command": "help",
-        "usage": "image-skill <doctor|trust|signup|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
+        "usage": "image-skill <doctor|trust|signup|claim|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
         "docs_url": "https://image-skill.com/cli.md",
         "commands": [
           "doctor",
           "trust",
-          "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME",
+          "signup --agent --agent-name NAME --runtime RUNTIME",
+          "claim request --contact INBOX",
           "whoami",
           "usage quota",
           "quota",
@@ -202,15 +211,34 @@
       "key": "signup",
       "help": {
         "command": "image-skill signup help",
-        "usage": "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json",
+        "usage": "image-skill signup --agent --agent-name NAME --runtime RUNTIME --json",
         "docs_url": "https://image-skill.com/cli.md#image-skill-signup-agent",
-        "required_flags": [
-          "--agent",
+        "required_flags": ["--agent", "--agent-name", "--runtime"],
+        "optional_flags": [
           "--agent-contact",
-          "--agent-name",
-          "--runtime"
-        ],
-        "optional_flags": ["--show-token", "--no-save", "--token-stdin"]
+          "--show-token",
+          "--no-save",
+          "--token-stdin"
+        ]
+      }
+    },
+    {
+      "key": "claim",
+      "help": {
+        "command": "image-skill claim help",
+        "usage": "image-skill claim request --contact AGENT_OR_OPERATOR_INBOX --json",
+        "docs_url": "https://image-skill.com/cli.md#image-skill-claim-request",
+        "subcommands": ["request"]
+      }
+    },
+    {
+      "key": "claim request",
+      "help": {
+        "command": "image-skill claim request help",
+        "usage": "image-skill claim request --contact AGENT_OR_OPERATOR_INBOX --json",
+        "docs_url": "https://image-skill.com/cli.md#image-skill-claim-request",
+        "required_flags": ["--contact"],
+        "optional_flags": ["--token-stdin"]
       }
     },
     {

@@ -128,8 +128,13 @@ Fresh sandboxes should prefer:
 
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
-npm_config_update_notifier=false npx -y image-skill@latest signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name creative-agent --runtime openclaw --json
+npm_config_update_notifier=false npx -y image-skill@latest signup --agent --agent-name creative-agent --runtime openclaw --json
 ```
+
+Signup is anonymous by default. `--agent-contact` stays optional for attaching
+an email-shaped durable contact inbox at signup; otherwise attach one later
+with `image-skill claim request --contact INBOX --json` when funding or
+durability makes it worth having.
 
 If npm prefix/cache paths are read-only, keep the fresh `npx -y` path and set
 the package-manager cache, prefix, and PATH together before rerunning the guide:

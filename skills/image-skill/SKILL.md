@@ -118,18 +118,17 @@ edit        many assets  x     video     -> image-skill create --model fal.ltx-v
 
 ## First real run
 
-Hosted signup saves a restricted token to the public CLI config by default. The token is created by Image Skill and is not a user-supplied provider credential. The raw token is only returned once and only with `--show-token`; pass `--no-save --show-token` when the runtime has its own secret store.
+Hosted signup saves a restricted token to the public CLI config by default. The token is created by Image Skill and is not a user-supplied provider credential. The raw token is only returned once and only with `--show-token`; pass `--no-save --show-token` when the runtime has its own secret store. Signup is anonymous by default: no contact inbox is required.
 
 ```bash
 image-skill signup --agent \
-  --agent-contact AGENT_OR_OPERATOR_INBOX \
   --agent-name AGENT_NAME \
   --runtime RUNTIME_NAME
 image-skill whoami
 image-skill usage quota
 ```
 
-`--agent-contact` means an email-shaped durable contact inbox for the restricted agent identity, not a requirement to find a specific human. Use an agent-owned inbox when available, otherwise an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. `example.invalid` is only appropriate in documented harness or proof runs. `--human-email` remains an accepted compatibility alias.
+`--agent-contact` is optional at signup. It means an email-shaped durable contact inbox for the restricted agent identity, not a requirement to find a specific human. Attach one later with `image-skill claim request --contact INBOX --json` when funding or durability makes it worth having (billing, abuse, and recovery notices). Use an agent-owned inbox when available, otherwise an operator, team, or sponsor inbox. Never invent an inbox or borrow an unrelated human email just to fill the flag — omit it instead. `example.invalid` is only appropriate in documented harness or proof runs. `--human-email` remains an accepted compatibility alias. Anonymous signups mint a fresh agent identity on every call; rely on the saved config to reuse the identity you already have.
 
 If the runtime supports stdin secret handoff, prefer `--token-stdin` over `--token` for `whoami`, `usage quota`, `create`, and `feedback create`. The guide returns `data.auth_handoff` with copy-safe env and stdin command templates so the token never lands in prompts, logs, or feedback.
 

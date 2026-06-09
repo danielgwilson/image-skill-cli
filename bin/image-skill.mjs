@@ -29,9 +29,11 @@ const DEFAULT_CONFIG_PATH = join(
 );
 const LOCAL_WRITABLE_CONFIG_PATH = "$PWD/.image-skill/config.json";
 const SIGNUP_SUGGESTED_COMMAND =
-  "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json";
+  "image-skill signup --agent --agent-name NAME --runtime RUNTIME --json";
 const SIGNUP_CONTACT_GUIDANCE =
-  "Preview signup currently requires an email-shaped durable contact inbox, not an individual human email. Use an agent-owned inbox when available; otherwise use an operator, team, or sponsor inbox that can receive future claim, billing, or abuse notices. Do not block waiting for a person, invent a person, or use a throwaway inbox. --human-email remains a compatibility alias.";
+  "Signup is anonymous by default: no contact inbox is required to get a restricted token. --agent-contact stays optional for attaching an email-shaped durable contact inbox at signup; otherwise attach one later with `image-skill claim request --contact INBOX --json` when funding or durability makes it worth having. Never invent an inbox or borrow an unrelated human email just to fill the flag. --human-email remains a compatibility alias.";
+const CLAIM_REQUEST_SUGGESTED_COMMAND =
+  "image-skill claim request --contact AGENT_OR_OPERATOR_INBOX --json";
 const HOSTED_SIGNUP_TOKEN_RETURNED_WARNING =
   "hosted restricted token is returned once; store it in the agent runtime secret store and never paste it into prompts, logs, issues, or product feedback";
 const PUBLIC_NPX_COMMAND_PREFIX =
@@ -70,7 +72,7 @@ const GUIDE_NEXT_COMMAND_PLACEHOLDERS = [
     placeholder: "AGENT_OR_OPERATOR_INBOX",
     flag: "--agent-contact",
     value_description:
-      "Email-shaped durable contact inbox for the restricted agent identity; use an agent-owned inbox when available, otherwise an operator, team, or sponsor inbox.",
+      "Optional email-shaped durable contact inbox; signup is anonymous by default and `claim request --contact` attaches one later. Use an agent-owned inbox when available, otherwise an operator, team, or sponsor inbox.",
     effect_description: "email-shaped durable contact inbox",
     example: "agent-inbox@example.com",
   },
@@ -166,6 +168,8 @@ async function main(rawArgv) {
         return await trust(rest);
       case "signup":
         return await signup(rest);
+      case "claim":
+        return await claim(rest);
       case "auth":
         return await auth(rest);
       case "whoami":
@@ -278,12 +282,13 @@ function commandHelpByKey(key) {
     "": {
       command: "help",
       usage:
-        "image-skill <doctor|trust|signup|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
+        "image-skill <doctor|trust|signup|claim|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
       docs_url: "https://image-skill.com/cli.md",
       commands: [
         "doctor",
         "trust",
-        "signup --agent --agent-contact --agent-name NAME --runtime RUNTIME",
+        "signup --agent --agent-name NAME --runtime RUNTIME",
+        "claim request --contact INBOX",
         "whoami",
         "usage quota",
         "quota",
@@ -334,15 +339,30 @@ function commandHelpByKey(key) {
     signup: {
       command: "image-skill signup help",
       usage:
-        "image-skill signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name NAME --runtime RUNTIME --json",
+        "image-skill signup --agent --agent-name NAME --runtime RUNTIME --json",
       docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
-      required_flags: [
-        "--agent",
+      required_flags: ["--agent", "--agent-name", "--runtime"],
+      optional_flags: [
         "--agent-contact",
-        "--agent-name",
-        "--runtime",
+        "--show-token",
+        "--no-save",
+        "--token-stdin",
       ],
-      optional_flags: ["--show-token", "--no-save", "--token-stdin"],
+    },
+    claim: {
+      command: "image-skill claim help",
+      usage:
+        "image-skill claim request --contact AGENT_OR_OPERATOR_INBOX --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-claim-request",
+      subcommands: ["request"],
+    },
+    "claim request": {
+      command: "image-skill claim request help",
+      usage:
+        "image-skill claim request --contact AGENT_OR_OPERATOR_INBOX --json",
+      docs_url: "https://image-skill.com/cli.md#image-skill-claim-request",
+      required_flags: ["--contact"],
+      optional_flags: ["--token-stdin"],
     },
     auth: {
       command: "image-skill auth help",
@@ -739,21 +759,26 @@ async function signup(argv) {
       contact.message,
       false,
       {
-        required_flags: ["--agent-contact", "--agent-name", "--runtime"],
+        required_flags: ["--agent-name", "--runtime"],
+        optional_flags: ["--agent-contact"],
         suggested_command: SIGNUP_SUGGESTED_COMMAND,
         docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
       },
     );
   }
-  if (contact.value === null || agentName === null || runtime === null) {
+  // Anonymous signup is the default (decision 0030): only name + runtime are
+  // required. A contact stays optional here and attachable later via
+  // `claim request --contact INBOX`.
+  if (agentName === null || runtime === null) {
     return failure(
       "image-skill signup",
       2,
       "INVALID_ARGUMENTS",
-      `signup requires --agent-contact, --agent-name, and --runtime. ${SIGNUP_CONTACT_GUIDANCE}`,
+      `signup requires --agent-name and --runtime. ${SIGNUP_CONTACT_GUIDANCE}`,
       false,
       {
-        required_flags: ["--agent-contact", "--agent-name", "--runtime"],
+        required_flags: ["--agent-name", "--runtime"],
+        optional_flags: ["--agent-contact"],
         accepted_aliases: {
           "--human-email": "--agent-contact",
         },
@@ -784,7 +809,7 @@ async function signup(argv) {
     apiBaseUrl: apiBase(args),
     path: "/v1/agent-signups",
     body: {
-      agent_contact: contact.value,
+      ...(contact.value === null ? {} : { agent_contact: contact.value }),
       agent_name: agentName,
       runtime,
       return_token: shouldSave || showToken,
@@ -870,6 +895,55 @@ async function signup(argv) {
   return result;
 }
 
+// Claim request (decision 0030): attach an email-shaped durable contact to the
+// authenticated agent after an (often anonymous) signup — the on-demand
+// identity upgrade for funding notices and durability. claim_state stays
+// unclaimed; attaching a contact is not inbox-ownership verification.
+async function claim(argv) {
+  const [subcommand, ...rest] = argv;
+  if (subcommand !== "request") {
+    return failure(
+      "image-skill claim",
+      2,
+      "INVALID_ARGUMENTS",
+      "claim requires the request subcommand",
+      false,
+      {
+        suggested_command: CLAIM_REQUEST_SUGGESTED_COMMAND,
+        docs_url: "https://image-skill.com/cli.md#image-skill-claim-request",
+      },
+    );
+  }
+  const args = parseArgs(rest);
+  const contact = flagString(args, "contact");
+  if (contact === null || contact.trim().length === 0) {
+    return failure(
+      "image-skill claim request",
+      2,
+      "INVALID_ARGUMENTS",
+      "claim request requires --contact, an email-shaped durable contact inbox (agent-owned when available, otherwise an operator, team, or sponsor inbox)",
+      false,
+      {
+        required_flags: ["--contact"],
+        suggested_command: CLAIM_REQUEST_SUGGESTED_COMMAND,
+        docs_url: "https://image-skill.com/cli.md#image-skill-claim-request",
+      },
+    );
+  }
+  const token = await resolveToken(args);
+  if (!token.ok) {
+    return token.result;
+  }
+  return apiRequest({
+    command: "image-skill claim request",
+    method: "POST",
+    apiBaseUrl: apiBase(args),
+    path: "/v1/agent-claims",
+    token: token.token,
+    body: { contact: contact.trim().toLowerCase() },
+  });
+}
+
 function rewriteSignupContactFailure(result) {
   const error = result.envelope.error;
   if (
@@ -882,7 +956,7 @@ function rewriteSignupContactFailure(result) {
         "human_email is a legacy alias for agent_contact and must be an email-shaped durable contact inbox")
   ) {
     error.message =
-      "preview signup currently requires --agent-contact to be an email-shaped durable contact inbox; it does not need to belong to an individual human";
+      "--agent-contact, when provided, must be an email-shaped durable contact inbox; signup itself is anonymous by default, so omit the flag entirely if no durable inbox exists";
     error.recovery = {
       ...(error.recovery ?? {}),
       suggested_command: SIGNUP_SUGGESTED_COMMAND,
@@ -2912,8 +2986,11 @@ function renderGuideCommand(
 }
 
 function renderGuideSignupCommand(input) {
+  // Anonymous signup (decision 0030): no contact placeholder in the handoff —
+  // the agent still substitutes its own name/runtime, but no longer has to
+  // find (or invent) an inbox before it can authenticate.
   const signupCommand = [
-    "signup --agent --agent-contact AGENT_OR_OPERATOR_INBOX --agent-name AGENT_NAME --runtime RUNTIME_NAME",
+    "signup --agent --agent-name AGENT_NAME --runtime RUNTIME_NAME",
     ...(input.apiBaseUrl === null
       ? []
       : ["--api-base-url", shellQuote(input.apiBaseUrl)]),

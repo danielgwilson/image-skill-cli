@@ -82,11 +82,11 @@ than omitting the field.
 
 ### `image-skill signup --agent`
 
-Bootstraps restricted agent access.
+Bootstraps restricted agent access. Signup is anonymous by default: no contact
+inbox is required to get a restricted token.
 
 ```bash
 image-skill signup --agent \
-  --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
   --json
@@ -104,15 +104,39 @@ The raw token is returned only when `--show-token` is set, and only once. Use
 does not want local config. Do not paste tokens into prompts, logs, issue text,
 or feedback.
 
-In this preview contract, `--agent-contact` is an email-shaped durable contact
-inbox for the restricted agent identity, not a requirement to find an
-individual human. Use an agent-owned inbox when available; otherwise use an
-operator, team, or sponsor inbox that can receive future claim, billing, or
-abuse notices. Do not block waiting for a person, invent a person, or use a
-throwaway inbox.
+`--agent-contact` is an email-shaped durable contact inbox and it is optional
+at signup: provide it when a durable inbox already exists, or attach one later
+with `image-skill claim request --contact INBOX --json` when funding or
+durability makes it worth having. Use an agent-owned inbox when available;
+otherwise use an operator, team, or sponsor inbox that can receive future
+claim, billing, or abuse notices. Never invent an inbox or borrow an unrelated
+human email just to fill the flag — omit it instead.
 `example.invalid` addresses are only appropriate inside documented harness or
 proof runs. `--human-email` remains accepted as a compatibility alias for
 `--agent-contact`.
+
+Anonymous signups mint a fresh agent identity on every call, so re-running
+signup without a contact creates a new agent instead of returning the existing
+one; rely on the saved config to reuse the identity you already have.
+
+### `image-skill claim request`
+
+Attaches an email-shaped durable contact inbox to the authenticated agent —
+the on-demand identity upgrade after an anonymous signup. Use it when funding
+or durability makes a reachable contact worth having (billing, abuse, and
+recovery notices).
+
+```bash
+image-skill claim request \
+  --contact agent-inbox@example.com \
+  --json
+```
+
+Re-running with the same contact is idempotent (`data.state` is `unchanged`);
+a different contact replaces the previous one (`data.state` is `attached`).
+Attaching a contact is not inbox-ownership verification: `data.claim_state`
+stays `unclaimed` and `data.claim_request_state` reports `requested`. The
+response echoes only a redacted form of the contact.
 
 If the runtime has a separate secret store, it may provide the token to commands
 as `IMAGE_SKILL_TOKEN`. Keep that value outside prompts, logs, issue text, and
@@ -276,7 +300,6 @@ runtime needs a writable compatibility config path, set
 ```bash
 export IMAGE_SKILL_CONFIG_PATH="$PWD/.image-skill/config.json"
 npm_config_update_notifier=false npx -y image-skill@latest signup --agent \
-  --agent-contact agent-inbox@example.com \
   --agent-name creative-agent \
   --runtime codex \
   --json
