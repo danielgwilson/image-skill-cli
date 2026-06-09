@@ -3126,7 +3126,21 @@ async function create(argv) {
   if (!references.ok) {
     return references.result;
   }
-  return apiRequest({
+  // A live (non-dry-run, authenticated) create is the only branch that spends
+  // credits. Give it a recovery handle BEFORE the blocking request (#1789).
+  const isLiveSpend = !flagBool(args, "dry-run") && token.token !== null;
+  const idempotencyKey = isLiveSpend
+    ? liveSpendIdempotencyKey(args, "create")
+    : flagString(args, "idempotency-key");
+  const inFlight = isLiveSpend
+    ? await recordInFlightSpend({
+        command: "image-skill create",
+        operation: "create",
+        idempotencyKey,
+        argv,
+      })
+    : null;
+  const result = await apiRequest({
     command: "image-skill create",
     method: "POST",
     apiBaseUrl: apiBase(args),
@@ -3161,15 +3175,15 @@ async function create(argv) {
       ...(modelParameters.value === null
         ? {}
         : { model_parameters: modelParameters.value }),
-      // Retry-safe dedupe (#1228): when provided, a retry with the same key does
-      // not double-charge after a transient 502 that already debited a credit.
-      ...(flagString(args, "idempotency-key") === null
-        ? {}
-        : { idempotency_key: flagString(args, "idempotency-key") }),
+      // Retry-safe dedupe (#1228/#1789): a live create always carries a key so a
+      // retry (or an interrupted-then-recovered run) dedupes to one charge.
+      ...(idempotencyKey === null ? {} : { idempotency_key: idempotencyKey }),
       dry_run: flagBool(args, "dry-run"),
       accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
     },
   });
+  await clearInFlightSpend(inFlight);
+  return result;
 }
 
 async function upload(argv) {
@@ -3240,7 +3254,21 @@ async function edit(argv) {
   if (!modelParameters.ok) {
     return modelParameters.result;
   }
-  return apiRequest({
+  // A live (non-dry-run) edit spends credits; give it a recovery handle BEFORE
+  // the blocking request (#1789). Edit always carries a token.
+  const isLiveSpend = !flagBool(args, "dry-run");
+  const idempotencyKey = isLiveSpend
+    ? liveSpendIdempotencyKey(args, "edit")
+    : flagString(args, "idempotency-key");
+  const inFlight = isLiveSpend
+    ? await recordInFlightSpend({
+        command: "image-skill edit",
+        operation: "edit",
+        idempotencyKey,
+        argv,
+      })
+    : null;
+  const result = await apiRequest({
     command: "image-skill edit",
     method: "POST",
     apiBaseUrl: apiBase(args),
@@ -3273,14 +3301,14 @@ async function edit(argv) {
         ? {}
         : { model_parameters: modelParameters.value }),
       ...(flagBool(args, "dry-run") ? { dry_run: true } : {}),
-      // Retry-safe dedupe (#1228): see create — same key dedupes a retry that
-      // follows a transient 502 which already debited a credit.
-      ...(flagString(args, "idempotency-key") === null
-        ? {}
-        : { idempotency_key: flagString(args, "idempotency-key") }),
+      // Retry-safe dedupe (#1228/#1789): a live edit always carries a key so a
+      // retry (or an interrupted-then-recovered run) dedupes to one charge.
+      ...(idempotencyKey === null ? {} : { idempotency_key: idempotencyKey }),
       accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
     },
   });
+  await clearInFlightSpend(inFlight);
+  return result;
 }
 
 async function assets(argv) {
@@ -4354,6 +4382,102 @@ async function fetchPublicText(url, options = {}) {
         retryable: true,
       },
     };
+  }
+}
+
+// --- In-flight live-spend recovery breadcrumb (#1789) -----------------------
+// A live create/edit is one synchronous request that can block for the full
+// provider duration (often minutes). If the agent kills the process during that
+// wait, the hosted API may have already reserved a credit, yet the agent is left
+// with no job id, no trace, and no recovery handle — an orphaned debit it cannot
+// see or reconcile (the reservation only auto-releases on a 15-minute TTL).
+//
+// We close that loop on the client, BEFORE the blocking request: every live
+// spend carries an idempotency key, and we hand the agent that key (stderr) plus
+// a durable local breadcrumb. On interruption the agent re-runs the same command
+// with the same key; the hosted API replays the original job (returning the
+// asset already paid for) or releases the reserved credit — never a double
+// charge. See https://image-skill.com/cli.md#image-skill-create.
+
+function liveSpendIdempotencyKey(args, operation) {
+  const explicit = flagString(args, "idempotency-key");
+  if (explicit !== null) {
+    return explicit;
+  }
+  return `${operation}-${Date.now()}-${randomBytes(6).toString("hex")}`;
+}
+
+function inFlightSpendDir() {
+  return join(dirname(configPath()), "in-flight");
+}
+
+function recoverCommandFor(operation, idempotencyKey) {
+  return `image-skill ${operation} --idempotency-key ${idempotencyKey} <same arguments> --json`;
+}
+
+async function recordInFlightSpend(input) {
+  const { command, operation, idempotencyKey, argv } = input;
+  const recoverCommand = recoverCommandFor(operation, idempotencyKey);
+  const note =
+    "live spend may already be reserved. If this command is interrupted before it returns a result, re-run it with the idempotency_key above; the hosted API replays the original job or releases the reserved credit and never double-charges.";
+  // Persist the durable breadcrumb FIRST, then announce — so by the time the
+  // agent sees the stderr handle, the on-disk copy already exists (an operator
+  // or a later session can find an orphaned spend even when the transcript is
+  // gone).
+  const dir = inFlightSpendDir();
+  const path = join(dir, `${idempotencyKey}.json`);
+  let recordedPath = null;
+  try {
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      path,
+      `${JSON.stringify(
+        {
+          schema: "image-skill.in-flight-spend.v1",
+          command,
+          operation,
+          idempotency_key: idempotencyKey,
+          recover_command: recoverCommand,
+          argv,
+          started_at: new Date().toISOString(),
+        },
+        null,
+        2,
+      )}\n`,
+      { mode: 0o600 },
+    );
+    recordedPath = path;
+  } catch {
+    // The stderr notice below is the primary handle; a filesystem failure must
+    // not block the create/edit.
+  }
+  // stderr only — the stdout JSON envelope contract is unchanged. Even a killed
+  // process leaves this line in the agent's captured transcript.
+  try {
+    process.stderr.write(
+      `${JSON.stringify({
+        in_flight: {
+          command,
+          idempotency_key: idempotencyKey,
+          recover_command: recoverCommand,
+          note,
+        },
+      })}\n`,
+    );
+  } catch {
+    // diagnostics are best-effort; never block the spend on a write failure.
+  }
+  return recordedPath;
+}
+
+async function clearInFlightSpend(path) {
+  if (path === null || path === undefined) {
+    return;
+  }
+  try {
+    await rm(path, { force: true });
+  } catch {
+    // best-effort cleanup; a leftover breadcrumb is harmless.
   }
 }
 
