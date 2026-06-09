@@ -4,6 +4,29 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.38 - 2026-06-09
+
+- Feature (auth): **signup is anonymous by default** — `signup --agent
+--agent-name NAME --runtime RUNTIME` succeeds with no contact inbox.
+  `--agent-contact` stays optional with unchanged semantics when provided
+  (`--human-email` remains a compatibility alias). The guide's auth handoff no
+  longer asks for an inbox placeholder. Anonymous signups mint a fresh agent
+  identity on every call; reuse the saved config instead of re-running signup.
+- Feature (auth): new **`claim request --contact INBOX --json`** attaches an
+  email-shaped durable contact inbox to the authenticated agent after signup —
+  the on-demand identity upgrade for billing, abuse, and recovery notices
+  (`POST /v1/agent-claims`). Re-sending the same contact is idempotent
+  (`data.state` is `unchanged`). Attaching a contact is not inbox-ownership
+  verification: `data.claim_state` stays `unclaimed` and whoami/quota report
+  `claim_request_state: "requested"`.
+- Fix (recovery): the in-flight spend breadcrumb now survives **retryable**
+  failures (network reset, proxy 5xx — the maybe-already-debited cases it
+  exists for) and is removed only on success or a non-retryable rejection. A
+  network-level failure on a live create/edit now echoes the request's
+  `idempotency_key` in `error.recovery` so the advertised retry dedupes to one
+  charge. The breadcrumb filename is sanitized so an unusual
+  `--idempotency-key` value can never escape the `in-flight/` directory.
+
 ## 0.1.37 - 2026-06-09
 
 - Fix (recovery): a live `create`/`edit` now leaves a recovery handle _before_

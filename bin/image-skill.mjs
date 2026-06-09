@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.37";
+const VERSION = "0.1.38";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -3259,7 +3259,7 @@ async function create(argv) {
       accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
     },
   });
-  await clearInFlightSpend(inFlight);
+  await clearInFlightSpendForResult(inFlight, result);
   return result;
 }
 
@@ -3384,7 +3384,7 @@ async function edit(argv) {
       accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
     },
   });
-  await clearInFlightSpend(inFlight);
+  await clearInFlightSpendForResult(inFlight, result);
   return result;
 }
 
@@ -4492,6 +4492,16 @@ function recoverCommandFor(operation, idempotencyKey) {
   return `image-skill ${operation} --idempotency-key ${idempotencyKey} <same arguments> --json`;
 }
 
+// The breadcrumb filename derives from the (possibly agent-supplied)
+// idempotency key; keep it to a safe charset so a hostile or accidental key
+// like "../config" can never escape the in-flight directory or collide with
+// the CLI's own config file.
+function inFlightSpendFileName(idempotencyKey) {
+  const safe = String(idempotencyKey).replace(/[^A-Za-z0-9._-]/g, "_");
+  const trimmed = safe.replace(/^\.+/, "").slice(0, 120);
+  return `${trimmed.length === 0 ? "key" : trimmed}.json`;
+}
+
 async function recordInFlightSpend(input) {
   const { command, operation, idempotencyKey, argv } = input;
   const recoverCommand = recoverCommandFor(operation, idempotencyKey);
@@ -4502,7 +4512,7 @@ async function recordInFlightSpend(input) {
   // or a later session can find an orphaned spend even when the transcript is
   // gone).
   const dir = inFlightSpendDir();
-  const path = join(dir, `${idempotencyKey}.json`);
+  const path = join(dir, inFlightSpendFileName(idempotencyKey));
   let recordedPath = null;
   try {
     await mkdir(dir, { recursive: true });
@@ -4558,6 +4568,26 @@ async function clearInFlightSpend(path) {
   }
 }
 
+// Clear the breadcrumb only when the spend's fate is KNOWN: a success, or a
+// non-retryable failure (4xx — the server rejected it without charging). A
+// retryable failure (network reset, proxy 5xx) is exactly the
+// maybe-already-debited case the breadcrumb exists for, so it must survive
+// for a later session or operator to find.
+async function clearInFlightSpendForResult(path, result) {
+  if (path === null || path === undefined) {
+    return;
+  }
+  const envelope = result?.envelope;
+  const retryableFailure =
+    envelope !== undefined &&
+    envelope.ok !== true &&
+    envelope.error?.retryable === true;
+  if (retryableFailure) {
+    return;
+  }
+  await clearInFlightSpend(path);
+}
+
 async function apiRequest(input) {
   const url = new URL(input.path, ensureTrailingSlash(input.apiBaseUrl));
   try {
@@ -4589,17 +4619,32 @@ async function apiRequest(input) {
       envelope,
     };
   } catch (error) {
+    // Money integrity (#1789 review): a network failure can land AFTER the
+    // request was sent — a live create/edit may already have reserved a
+    // credit. Echo the request's idempotency key in-band so the recovery
+    // re-run dedupes to one charge instead of pointing at doctor alone.
+    const recovery =
+      isCreateOrEditCommand(input.command) &&
+      input.body !== undefined &&
+      typeof input.body.idempotency_key === "string"
+        ? {
+            suggested_command: `${input.command} --idempotency-key ${input.body.idempotency_key} --json`,
+            idempotency_key: input.body.idempotency_key,
+            docs_url: "https://image-skill.com/cli.md",
+            retry_after_seconds: 30,
+          }
+        : {
+            suggested_command: "image-skill doctor --json",
+            docs_url: "https://image-skill.com/cli.md",
+            retry_after_seconds: 30,
+          };
     return failure(
       input.command,
       7,
       "HOSTED_API_REQUEST_FAILED",
       error instanceof Error ? error.message : "hosted API request failed",
       true,
-      {
-        suggested_command: "image-skill doctor --json",
-        docs_url: "https://image-skill.com/cli.md",
-        retry_after_seconds: 30,
-      },
+      recovery,
     );
   }
 }
