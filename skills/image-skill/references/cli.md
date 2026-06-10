@@ -119,6 +119,13 @@ Anonymous signups mint a fresh agent identity on every call, so re-running
 signup without a contact creates a new agent instead of returning the existing
 one; rely on the saved config to reuse the identity you already have.
 
+`--discovery-source SLUG` (or the `IMAGE_SKILL_DISCOVERY_SOURCE` environment
+variable; the flag wins) optionally records where you discovered Image Skill —
+a short channel slug such as `clawhub`, `skills-sh`, or `npm` (lowercase
+letters/digits plus `.`/`_`/`-`, max 64 chars). It is self-reported,
+first-touch (a later re-signup never relabels it), and never required: omit it
+when you do not know the channel rather than guessing.
+
 ### `image-skill claim request`
 
 Attaches an email-shaped durable contact inbox to the authenticated agent —

@@ -760,7 +760,7 @@ async function signup(argv) {
       false,
       {
         required_flags: ["--agent-name", "--runtime"],
-        optional_flags: ["--agent-contact"],
+        optional_flags: ["--agent-contact", "--discovery-source"],
         suggested_command: SIGNUP_SUGGESTED_COMMAND,
         docs_url: "https://image-skill.com/cli.md#image-skill-signup-agent",
       },
@@ -778,7 +778,7 @@ async function signup(argv) {
       false,
       {
         required_flags: ["--agent-name", "--runtime"],
-        optional_flags: ["--agent-contact"],
+        optional_flags: ["--agent-contact", "--discovery-source"],
         accepted_aliases: {
           "--human-email": "--agent-contact",
         },
@@ -803,6 +803,13 @@ async function signup(argv) {
       return configReady.result;
     }
   }
+  // Discovery-source attribution (#1814): self-reported channel slug from
+  // --discovery-source or IMAGE_SKILL_DISCOVERY_SOURCE (flag wins). Omitted
+  // entirely when absent — never guessed, never required.
+  const discoverySource =
+    flagString(args, "discovery-source")?.trim() ||
+    process.env.IMAGE_SKILL_DISCOVERY_SOURCE?.trim() ||
+    null;
   const result = await apiRequest({
     command: "image-skill signup",
     method: "POST",
@@ -813,6 +820,9 @@ async function signup(argv) {
       agent_name: agentName,
       runtime,
       return_token: shouldSave || showToken,
+      ...(discoverySource === null || discoverySource === ""
+        ? {}
+        : { discovery_source: discoverySource }),
     },
   });
   result.envelope.command = "image-skill signup";

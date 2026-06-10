@@ -17,8 +17,8 @@
     {
       "source_path": "docs/public-contract/cli.md",
       "public_paths": ["cli.md", "skills/image-skill/references/cli.md"],
-      "bytes": 73843,
-      "sha256": "35dc263abec710a5b0f636b50910147c78e76bfa15be4d96b0bf9182d457f5e7"
+      "bytes": 74278,
+      "sha256": "3c393cc0bc3feb04ab19a6014e30f0db07e3f1d318ab7eb1dcea6b7d2cf8dc80"
     },
     {
       "source_path": "docs/public-contract/llms.txt",
