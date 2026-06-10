@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.39 - 2026-06-10
+
+- Feature (growth): **`signup --discovery-source SLUG`** (or the
+  `IMAGE_SKILL_DISCOVERY_SOURCE` environment variable; the flag wins)
+  optionally records the channel where the agent discovered Image Skill — a
+  short slug such as `clawhub`, `skills-sh`, or `npm` (lowercase
+  letters/digits plus `.`/`_`/`-`, max 64 chars). Self-reported and
+  first-touch: the first signup that names a channel wins, and a later
+  re-signup never relabels it. Never required — omit it rather than guessing.
+
 ## 0.1.38 - 2026-06-09
 
 - Feature (auth): **signup is anonymous by default** — `signup --agent
