@@ -3098,13 +3098,26 @@ function createGuideCommandPrefix(input = {}) {
     input.configPath === undefined
       ? configuredImageSkillConfigPath()
       : input.configPath;
+  // Discovery-source attribution (#1814) must survive the guide handoff into
+  // the fresh-process replay commands, or the slug dies before signup.
+  const discoverySource = configuredDiscoverySource();
   return renderShellEnvPrefixedCommand(
     {
       npm_config_update_notifier: "false",
       ...(configPath === null ? {} : { IMAGE_SKILL_CONFIG_PATH: configPath }),
+      ...(discoverySource === null
+        ? {}
+        : { IMAGE_SKILL_DISCOVERY_SOURCE: discoverySource }),
     },
     "npx -y image-skill@latest",
   );
+}
+
+function configuredDiscoverySource() {
+  const value = process.env.IMAGE_SKILL_DISCOVERY_SOURCE;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function configuredImageSkillConfigPath() {
