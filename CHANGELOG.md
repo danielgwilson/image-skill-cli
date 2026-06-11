@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.40 - 2026-06-11
+
+- Fix (growth): the `IMAGE_SKILL_DISCOVERY_SOURCE` attribution slug now
+  survives the guide handoff — guide-emitted fresh-process replay commands
+  (including the signup `next_command`) carry the env assignment in their
+  shell prefix, the same fresh-process-env treatment as
+  `IMAGE_SKILL_CONFIG_PATH`. Without this, a slug provided at
+  `create --guide` was lost before signup, so channel attribution read zero
+  by construction.
+
 ## 0.1.39 - 2026-06-10
 
 - Feature (growth): **`signup --discovery-source SLUG`** (or the
