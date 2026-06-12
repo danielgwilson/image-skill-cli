@@ -1652,12 +1652,15 @@ async function createGuide(args) {
         })
       : null;
   const selectedAspectRatio = createGuideSuggestedAspectRatio(selected);
-  const pricing = selected?.economics?.credit_pricing ?? null;
+  const pricing = createGuideModelCreditPricing(selected);
   const estimatedCredits = pricing?.credits_required ?? null;
   const estimatedProviderUsdPerImage =
     selected?.economics?.estimated_usd_per_image ??
     pricing?.estimated_provider_cost_usd ??
     pricing?.fallback_provider_cost_usd ??
+    (typeof selected?.estimated_usd_per_image === "number"
+      ? selected.estimated_usd_per_image
+      : null) ??
     null;
   const estimatedDebitUsdPerImage =
     pricing?.estimated_revenue_usd ?? estimatedProviderUsdPerImage;
@@ -1856,7 +1859,7 @@ async function createGuide(args) {
               : "create",
             model_id: selected.id,
             model_status: selected.status,
-            model_execution_status: selected.execution.model_execution_status,
+            model_execution_status: guideModelExecutionStatus(selected),
             modality: selected.modality ?? null,
             suggested_aspect_ratio: selectedAspectRatio,
             reason:
@@ -1924,12 +1927,12 @@ function selectCreateGuideModel(
 ) {
   const isExecutableCreate = (model) =>
     model?.status === "available" &&
-    model?.execution?.model_execution_status === "executable" &&
+    guideModelExecutionStatus(model) === "executable" &&
     Array.isArray(model?.supports) &&
     model.supports.includes("create");
   const isExecutableInputImageEdit = (model) =>
     model?.status === "available" &&
-    model?.execution?.model_execution_status === "executable" &&
+    guideModelExecutionStatus(model) === "executable" &&
     Array.isArray(model?.supports) &&
     (model.supports.includes("edit") || model.supports.includes("variation")) &&
     createGuideSelectedModelRequiresInputImage(model);
@@ -2036,14 +2039,55 @@ function preferredCreateGuideModelIds(intentClass) {
 }
 
 function guideBudgetUsdForModel(model) {
-  const pricing = model?.economics?.credit_pricing ?? null;
+  const pricing = createGuideModelCreditPricing(model);
   return (
     pricing?.estimated_revenue_usd ??
     model?.economics?.estimated_usd_per_image ??
     pricing?.estimated_provider_cost_usd ??
     pricing?.fallback_provider_cost_usd ??
+    (typeof model?.estimated_usd_per_image === "number"
+      ? model.estimated_usd_per_image
+      : null) ??
     null
   );
+}
+
+function guideModelExecutionStatus(model) {
+  if (
+    isRecord(model?.execution) &&
+    typeof model.execution.model_execution_status === "string"
+  ) {
+    return model.execution.model_execution_status;
+  }
+  return typeof model?.model_execution_status === "string"
+    ? model.model_execution_status
+    : null;
+}
+
+function createGuideModelCreditPricing(model) {
+  if (isRecord(model?.economics?.credit_pricing)) {
+    return model.economics.credit_pricing;
+  }
+  if (typeof model?.credits_required !== "number") {
+    return null;
+  }
+  return {
+    credits_required: model.credits_required,
+    estimated_revenue_usd:
+      typeof model.credits_required === "number"
+        ? model.credits_required * CREDIT_UNIT_USD
+        : null,
+    estimated_provider_cost_usd:
+      typeof model?.estimated_usd_per_image === "number"
+        ? model.estimated_usd_per_image
+        : null,
+    fallback_provider_cost_usd: null,
+    credit_unit_usd: CREDIT_UNIT_USD,
+    pricing_confidence:
+      typeof model?.pricing_confidence === "string"
+        ? model.pricing_confidence
+        : null,
+  };
 }
 
 function createGuideImplies3d(input) {
@@ -2077,7 +2121,9 @@ function createGuideSuggestedAspectRatio(model) {
   if (model?.modality !== "video") {
     return null;
   }
-  const values = model?.media?.input?.aspect_ratios?.values;
+  const values = Array.isArray(model?.media?.input?.aspect_ratios?.values)
+    ? model.media.input.aspect_ratios.values
+    : model?.aspect_ratios;
   if (!Array.isArray(values)) {
     return null;
   }
@@ -2086,7 +2132,8 @@ function createGuideSuggestedAspectRatio(model) {
 
 function createGuideSelectedModelRequiresInputImage(model) {
   return (
-    model?.media?.input?.images?.required === true &&
+    (model?.media?.input?.images?.required === true ||
+      model?.accepts_input_images === true) &&
     Array.isArray(model?.supports) &&
     (model.supports.includes("edit") || model.supports.includes("variation"))
   );
@@ -4382,6 +4429,9 @@ function modelAvailabilityStatus(model) {
     typeof model.execution.model_execution_status === "string"
   ) {
     return model.execution.model_execution_status;
+  }
+  if (typeof model.model_execution_status === "string") {
+    return model.model_execution_status;
   }
   if (typeof model.availability_reason === "string") {
     return model.availability_reason;
