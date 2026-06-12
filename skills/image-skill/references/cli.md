@@ -316,7 +316,7 @@ same writable path:
 export HOME="$PWD/.agent-home"
 export CODEX_HOME="$HOME/.codex"
 mkdir -p "$HOME" "$CODEX_HOME"
-npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-skill -g -a codex -y
 ```
 
 Hosted signup saves auth state to the public CLI config by default. If the

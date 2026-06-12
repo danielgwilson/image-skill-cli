@@ -44,13 +44,13 @@ npm_config_update_notifier=false npx -y image-skill@latest create --model fal.lt
 Prefer the GitHub slug so skills.sh can track the marketplace install:
 
 ```bash
-npx skills add danielgwilson/image-skill-cli --skill ai-video-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill ai-video-generation -g -a codex -y
 ```
 
 The canonical Image Skill entry remains available as:
 
 ```bash
-npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-skill -g -a codex -y
 ```
 
 If the Codex/global skill target is read-only or missing, keep the tracked slug
@@ -63,7 +63,7 @@ path:
 export HOME="$PWD/.agent-home"
 export CODEX_HOME="$HOME/.codex"
 mkdir -p "$HOME" "$CODEX_HOME"
-npx skills add danielgwilson/image-skill-cli --skill ai-video-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill ai-video-generation -g -a codex -y
 ```
 
 ## Shared Contract

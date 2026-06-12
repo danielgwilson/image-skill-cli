@@ -141,7 +141,7 @@ Install paths, in order of preference:
 npm_config_update_notifier=false npx -y image-skill@latest create --guide --prompt "..."
 
 # tracked install through the registry slug
-npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-skill -g -a codex -y
 
 # direct from the hosted public contract
 npx skills add https://image-skill.com --skill image-skill -g -a codex -y
@@ -156,7 +156,7 @@ rerunning `skills add`. The skills.sh Codex adapter writes to `$HOME/.agents`;
 export HOME="$PWD/.agent-home"
 export CODEX_HOME="$HOME/.codex"
 mkdir -p "$HOME" "$CODEX_HOME"
-npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-skill -g -a codex -y
 ```
 
 ## Cost and payment

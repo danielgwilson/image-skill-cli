@@ -12,20 +12,20 @@ Install the agent skill. Prefer the registry slug so the install is tracked and
 discoverable on skills.sh:
 
 ```bash
-npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-skill -g -a codex -y
 ```
 
 Intent-named aliases are published from the same repo and point to the same
 zero-setup runtime when an agent searches by task instead of brand:
 
 ```bash
-npx skills add danielgwilson/image-skill-cli --skill ai-image-generation -g -a codex -y
-npx skills add danielgwilson/image-skill-cli --skill image-generation -g -a codex -y
-npx skills add danielgwilson/image-skill-cli --skill image-edit -g -a codex -y
-npx skills add danielgwilson/image-skill-cli --skill ai-video-generation -g -a codex -y
-npx skills add danielgwilson/image-skill-cli --skill ai-audio-generation -g -a codex -y
-npx skills add danielgwilson/image-skill-cli --skill image-to-3d -g -a codex -y
-npx skills add danielgwilson/image-skill-cli --skill creative-media -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill ai-image-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-edit -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill ai-video-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill ai-audio-generation -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-to-3d -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill creative-media -g -a codex -y
 ```
 
 Or install straight from the hosted public contract for the always-latest build:
@@ -44,7 +44,7 @@ path:
 export HOME="$PWD/.agent-home"
 export CODEX_HOME="$HOME/.codex"
 mkdir -p "$HOME" "$CODEX_HOME"
-npx skills add danielgwilson/image-skill-cli --skill image-skill -g -a codex -y
+npx skills add danielgwilson/image-skill-cli --full-depth --skill image-skill -g -a codex -y
 ```
 
 Run the executable CLI from npm without requiring a writable global npm prefix.
