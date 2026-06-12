@@ -11,8 +11,8 @@
     {
       "source_path": "docs/public-contract/skill.md",
       "public_paths": ["SKILL.md", "skill.md", "skills/image-skill/SKILL.md"],
-      "bytes": 24424,
-      "sha256": "49cdcdadf9088e53c676b28e9cf55e955100a35c5b93babf5d23828af03e162d"
+      "bytes": 24415,
+      "sha256": "a60957adf5d9b79be4e095d3242ebc5527b52ee98a5c4ba3ef29e9194bfac267"
     },
     {
       "source_path": "docs/public-contract/cli.md",
