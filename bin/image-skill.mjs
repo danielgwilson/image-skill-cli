@@ -49,6 +49,9 @@ const HOSTED_SIGNUP_TOKEN_RETURNED_WARNING =
 const PUBLIC_NPX_COMMAND_PREFIX =
   "npm_config_update_notifier=false npx -y image-skill@latest";
 const CREDIT_UNIT_USD = 0.01;
+const TARGET_GROSS_MARGIN = 0.4;
+const PAYMENT_BACKED_CREDIT_PAYMENT_FEE_RATE = 0.015;
+const PAYMENT_BACKED_CREDIT_PAYMENT_FEE_MODEL = "stripe_stablecoin_usd_percent";
 const MODALITY_COMMAND_ALIASES = new Map([
   ["image", { command: "create", intent: null }],
   ["video", { command: "create", intent: "video" }],
@@ -1635,6 +1638,10 @@ async function createGuide(args, options = {}) {
   const requestedProviderId = flagString(args, "provider");
   const requestedIntentFlag = flagString(args, "intent");
   const requestedIntent = requestedIntentFlag ?? "explore";
+  const requestedModelParametersJson =
+    modelParameters.value === null
+      ? null
+      : JSON.stringify(modelParameters.value);
   const maxEstimatedUsdPerImage = flagNumber(
     args,
     "max-estimated-usd-per-image",
@@ -1672,11 +1679,51 @@ async function createGuide(args, options = {}) {
         })
       : null;
   const selectedAspectRatio = createGuideSuggestedAspectRatio(selected);
-  const pricing = createGuideModelCreditPricing(selected);
+  const pricingContext = {
+    aspectRatio: selectedAspectRatio ?? "1:1",
+    outputCount: 1,
+  };
+  const defaultedModelParameters =
+    selected === null || createGuideSelectedModelRequiresInputImage(selected)
+      ? {
+          modelParameters: modelParameters.value ?? {},
+          defaultsApplied: [],
+        }
+      : createGuideDefaultModelParameters({
+          model: selected,
+          aspectRatio: pricingContext.aspectRatio,
+          intent: requestedIntent,
+          modelParameters: modelParameters.value ?? {},
+          maxEstimatedUsdPerImage,
+        });
+  const shouldPriceModelParameters =
+    selected !== null &&
+    !createGuideSelectedModelRequiresInputImage(selected) &&
+    createGuideCanPriceModelParameters(selected) &&
+    (defaultedModelParameters.defaultsApplied.length > 0 ||
+      Object.keys(modelParameters.value ?? {}).length > 0);
+  const pricing =
+    selected === null
+      ? null
+      : shouldPriceModelParameters
+        ? createGuidePricingForModel(
+            selected,
+            defaultedModelParameters.modelParameters,
+            pricingContext,
+          )
+        : createGuideModelCreditPricing(selected);
+  const providerCostEstimate =
+    selected === null || !shouldPriceModelParameters
+      ? null
+      : createGuideProviderCostEstimateForModel(
+          selected,
+          defaultedModelParameters.modelParameters,
+          pricingContext,
+        );
   const estimatedCredits = pricing?.credits_required ?? null;
   const estimatedProviderUsdPerImage =
+    providerCostEstimate?.estimated_provider_cost_usd ??
     selected?.economics?.estimated_usd_per_image ??
-    pricing?.estimated_provider_cost_usd ??
     pricing?.fallback_provider_cost_usd ??
     (typeof selected?.estimated_usd_per_image === "number"
       ? selected.estimated_usd_per_image
@@ -1742,6 +1789,7 @@ async function createGuide(args, options = {}) {
     maxEstimatedUsdPerImage,
     budgetGuard,
     aspectRatio: selectedAspectRatio,
+    modelParametersJson: requestedModelParametersJson,
     apiBaseUrl: explicitApiBaseUrl(args),
     paymentSummary,
     commandPrefix: guideCommandPrefix,
@@ -1762,6 +1810,7 @@ async function createGuide(args, options = {}) {
     maxEstimatedUsdPerImage,
     budgetGuard,
     aspectRatio: selectedAspectRatio,
+    modelParametersJson: requestedModelParametersJson,
     apiBaseUrl: explicitApiBaseUrl(args),
     commandPrefix: guideCommandPrefix,
   });
@@ -1809,6 +1858,7 @@ async function createGuide(args, options = {}) {
             providerId: requestedProviderId,
             intent: requestedIntentFlag,
             maxEstimatedUsdPerImage,
+            modelParametersJson: requestedModelParametersJson,
           },
         )
       : null;
@@ -1923,6 +1973,9 @@ async function createGuide(args, options = {}) {
       estimated_provider_usd_per_image: estimatedProviderUsdPerImage,
       credit_unit_usd: pricing?.credit_unit_usd ?? CREDIT_UNIT_USD,
       pricing_confidence: pricing?.pricing_confidence ?? null,
+      pricing_source: pricing?.pricing_source ?? null,
+      model_parameter_defaults_applied:
+        defaultedModelParameters.defaultsApplied,
     },
     blocker,
     guide_warning: guideWarning,
@@ -2102,6 +2155,221 @@ function guideBudgetUsdForModel(model) {
       : null) ??
     null
   );
+}
+
+function createGuideDefaultModelParameters(input) {
+  const modelParameters = { ...(input.modelParameters ?? {}) };
+  const defaultsApplied = [];
+
+  if (
+    input.model?.id === "xai.grok-imagine-image-quality" &&
+    modelParameters.resolution === undefined
+  ) {
+    const twoKEstimate = createGuideProviderCostEstimateForModel(
+      input.model,
+      { resolution: "2k" },
+      { aspectRatio: input.aspectRatio },
+    ).estimated_provider_cost_usd;
+    const twoKAllowedByBudget =
+      input.maxEstimatedUsdPerImage === null ||
+      twoKEstimate === null ||
+      twoKEstimate <= input.maxEstimatedUsdPerImage;
+    const intentClass = createGuideIntentClass(input.intent);
+    const resolution =
+      intentClass !== "budget_draft" && twoKAllowedByBudget ? "2k" : "1k";
+    modelParameters.resolution = resolution;
+    defaultsApplied.push(`resolution=${resolution}`);
+  }
+
+  if (
+    input.model?.id === "fal.flux-dev" &&
+    modelParameters.image_size === undefined
+  ) {
+    const imageSize = falDefaultImageSize(input.aspectRatio);
+    if (imageSize !== null) {
+      modelParameters.image_size = imageSize;
+      defaultsApplied.push(`image_size=${imageSize}`);
+    }
+  }
+
+  if (
+    input.model?.id === "openai.gpt-image-2" &&
+    modelParameters.quality === undefined
+  ) {
+    const mediumEstimate = createGuideProviderCostEstimateForModel(
+      input.model,
+      { ...modelParameters, quality: "medium" },
+      { aspectRatio: input.aspectRatio },
+    ).estimated_provider_cost_usd;
+    const mediumAllowedByBudget =
+      input.maxEstimatedUsdPerImage === null ||
+      mediumEstimate === null ||
+      mediumEstimate <= input.maxEstimatedUsdPerImage;
+    if (mediumAllowedByBudget) {
+      modelParameters.quality = "medium";
+      defaultsApplied.push("quality=medium");
+    }
+  }
+
+  return { modelParameters, defaultsApplied };
+}
+
+function createGuidePricingForModel(model, modelParameters, context = {}) {
+  const estimate = createGuideProviderCostEstimateForModel(
+    model,
+    modelParameters,
+    context,
+  );
+  if (estimate.estimated_provider_cost_usd === null) {
+    return createGuideModelCreditPricing(model);
+  }
+  return createGuideCreditPricingForProviderCost({
+    providerCostUsd: estimate.estimated_provider_cost_usd,
+    pricingConfidence: estimate.pricing_confidence,
+    pricingSource: estimate.pricing_source,
+  });
+}
+
+function createGuideCanPriceModelParameters(model) {
+  return String(model?.id ?? "").startsWith("xai.grok-imagine-image");
+}
+
+function createGuideProviderCostEstimateForModel(
+  model,
+  modelParameters = {},
+  context = {},
+) {
+  if (String(model?.id ?? "").startsWith("xai.grok-imagine-image")) {
+    return createGuideXaiImageCostEstimate(model, modelParameters, context);
+  }
+  return {
+    estimated_provider_cost_usd:
+      typeof model?.economics?.estimated_usd_per_image === "number"
+        ? model.economics.estimated_usd_per_image
+        : (createGuideModelCreditPricing(model)?.estimated_provider_cost_usd ??
+          null),
+    pricing_source: "model_registry",
+    pricing_confidence: "known",
+  };
+}
+
+function createGuideXaiImageCostEstimate(model, modelParameters, context) {
+  const modelId = String(model?.id ?? "");
+  const quality = modelId.includes("-quality");
+  const edit = modelId.endsWith("-edit");
+  const resolution = modelParameters?.resolution === "2k" ? "2k" : "1k";
+  const outputImageCount =
+    Number.isInteger(context?.outputCount) && context.outputCount > 0
+      ? context.outputCount
+      : 1;
+  const referenceAssetCount =
+    Number.isInteger(context?.referenceAssetCount) &&
+    context.referenceAssetCount > 0
+      ? context.referenceAssetCount
+      : 0;
+  const sourceImageCount = edit ? 1 + referenceAssetCount : 0;
+  const inputUsdPerImage = quality ? 0.01 : 0.002;
+  const outputUsdPerImage =
+    quality && resolution === "2k" ? 0.07 : quality ? 0.05 : 0.02;
+  const defaultResolution =
+    modelParameters?.resolution === undefined ||
+    modelParameters?.resolution === null ||
+    modelParameters?.resolution === "1k";
+  const defaultShape =
+    defaultResolution &&
+    outputImageCount === 1 &&
+    sourceImageCount === (edit ? 1 : 0);
+  return {
+    estimated_provider_cost_usd: roundUsdMicro(
+      inputUsdPerImage * sourceImageCount +
+        outputUsdPerImage * outputImageCount,
+    ),
+    pricing_source: defaultShape ? "model_registry" : "model_parameters",
+    pricing_confidence: "known",
+  };
+}
+
+function createGuideCreditPricingForProviderCost(input) {
+  const providerCostUsd = roundUsdMicro(input.providerCostUsd);
+  const creditsRequired = Math.max(
+    1,
+    Math.ceil(
+      roundUsdMicro(
+        providerCostUsd / (1 - TARGET_GROSS_MARGIN) / CREDIT_UNIT_USD,
+      ),
+    ),
+  );
+  const estimatedRevenueUsd = roundUsd(creditsRequired * CREDIT_UNIT_USD);
+  const estimatedPaymentFeeUsd = roundUsdMicro(
+    estimatedRevenueUsd * PAYMENT_BACKED_CREDIT_PAYMENT_FEE_RATE,
+  );
+  const estimatedNetRevenueUsd = roundUsdMicro(
+    estimatedRevenueUsd - estimatedPaymentFeeUsd,
+  );
+  const estimatedGrossMargin =
+    estimatedRevenueUsd > 0
+      ? roundRatio(
+          (estimatedRevenueUsd - providerCostUsd) / estimatedRevenueUsd,
+        )
+      : null;
+  const estimatedFeeAdjustedMargin =
+    estimatedRevenueUsd > 0
+      ? roundRatio(
+          (estimatedNetRevenueUsd - providerCostUsd) / estimatedRevenueUsd,
+        )
+      : null;
+  const selfFundBlockReason =
+    estimatedNetRevenueUsd + 1e-9 < providerCostUsd
+      ? "payment_fee_margin_negative"
+      : null;
+  return {
+    credits_required: creditsRequired,
+    credit_unit_usd: CREDIT_UNIT_USD,
+    estimated_provider_cost_usd: providerCostUsd,
+    fallback_provider_cost_usd: null,
+    estimated_revenue_usd: estimatedRevenueUsd,
+    estimated_gross_margin: estimatedGrossMargin,
+    payment_fee_rate: PAYMENT_BACKED_CREDIT_PAYMENT_FEE_RATE,
+    payment_fee_model: PAYMENT_BACKED_CREDIT_PAYMENT_FEE_MODEL,
+    estimated_payment_fee_usd: estimatedPaymentFeeUsd,
+    estimated_net_revenue_usd: estimatedNetRevenueUsd,
+    estimated_fee_adjusted_margin: estimatedFeeAdjustedMargin,
+    self_fundable: selfFundBlockReason === null,
+    self_fund_block_reason: selfFundBlockReason,
+    target_gross_margin: TARGET_GROSS_MARGIN,
+    pricing_confidence: input.pricingConfidence,
+    pricing_source: input.pricingSource,
+    margin_model: "provider_cost_plus_margin",
+  };
+}
+
+function falDefaultImageSize(aspectRatio) {
+  switch (aspectRatio) {
+    case "1:1":
+      return "square_hd";
+    case "4:3":
+      return "landscape_4_3";
+    case "3:4":
+      return "portrait_4_3";
+    case "16:9":
+      return "landscape_16_9";
+    case "9:16":
+      return "portrait_16_9";
+    default:
+      return null;
+  }
+}
+
+function roundUsd(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function roundRatio(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+function roundUsdMicro(value) {
+  return Math.round(value * 1_000_000) / 1_000_000;
 }
 
 function guideModelExecutionStatus(model) {
@@ -3032,6 +3300,7 @@ function createGuideNextCommand(stage, input) {
       providerId: input.requestedProviderId,
       intent: input.requestedIntentFlag,
       maxEstimatedUsdPerImage: input.maxEstimatedUsdPerImage,
+      modelParametersJson: input.modelParametersJson,
     });
   }
   if (stage === "no_executable_model" || stage === "service_unreachable") {
@@ -3055,6 +3324,7 @@ function createGuideNextCommand(stage, input) {
       prompt: input.prompt,
       inputReference: input.inputReference,
       budgetGuard: input.budgetGuard,
+      modelParametersJson: input.modelParametersJson,
       dryRun: false,
       idempotencyKey: `edit-guide-${Date.now()}-${randomBytes(4).toString("hex")}`,
       apiBaseUrl: input.apiBaseUrl,
@@ -3068,6 +3338,7 @@ function createGuideNextCommand(stage, input) {
     intent: input.requestedIntent,
     budgetGuard: input.budgetGuard,
     aspectRatio: input.aspectRatio,
+    modelParametersJson: input.modelParametersJson,
     dryRun: false,
     // Retry-safe by default (#1228): bake a stable idempotency key into the
     // advertised create command so an agent that copies it and retries after a
@@ -3112,6 +3383,7 @@ function createGuideEscapeHatches(input) {
               prompt: input.prompt,
               inputReference: input.inputReference,
               budgetGuard: input.budgetGuard,
+              modelParametersJson: input.modelParametersJson,
               dryRun: true,
               apiBaseUrl: input.apiBaseUrl,
               commandPrefix: input.commandPrefix,
@@ -3123,6 +3395,7 @@ function createGuideEscapeHatches(input) {
               intent: input.requestedIntent,
               budgetGuard: input.budgetGuard,
               aspectRatio: input.aspectRatio,
+              modelParametersJson: input.modelParametersJson,
               dryRun: true,
               apiBaseUrl: input.apiBaseUrl,
               commandPrefix: input.commandPrefix,
@@ -3168,6 +3441,10 @@ function renderGuideCommand(
           "--max-estimated-usd-per-image",
           shellQuote(formatUsd(options.maxEstimatedUsdPerImage)),
         ]),
+    ...(options.modelParametersJson === null ||
+    options.modelParametersJson === undefined
+      ? []
+      : ["--model-parameters-json", shellQuote(options.modelParametersJson)]),
     ...(apiBaseUrl === null ? [] : ["--api-base-url", shellQuote(apiBaseUrl)]),
     "--json",
   ].join(" ");
@@ -3230,6 +3507,10 @@ function renderInputImageGuideCommand(input) {
     ...(promptless ? [] : ["--prompt", shellQuote(input.prompt)]),
     "--max-estimated-usd-per-image",
     shellQuote(formatUsd(input.budgetGuard)),
+    ...(input.modelParametersJson === null ||
+    input.modelParametersJson === undefined
+      ? []
+      : ["--model-parameters-json", shellQuote(input.modelParametersJson)]),
     ...(input.idempotencyKey === undefined || input.idempotencyKey === null
       ? []
       : ["--idempotency-key", shellQuote(input.idempotencyKey)]),
@@ -3259,6 +3540,10 @@ function renderCreateCommand(input) {
       : ["--aspect-ratio", shellQuote(input.aspectRatio)]),
     "--max-estimated-usd-per-image",
     shellQuote(formatUsd(input.budgetGuard)),
+    ...(input.modelParametersJson === null ||
+    input.modelParametersJson === undefined
+      ? []
+      : ["--model-parameters-json", shellQuote(input.modelParametersJson)]),
     ...(input.idempotencyKey === undefined || input.idempotencyKey === null
       ? []
       : ["--idempotency-key", shellQuote(input.idempotencyKey)]),
