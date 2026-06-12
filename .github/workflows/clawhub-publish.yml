@@ -51,6 +51,8 @@ jobs:
         include:
           - skill_path: skills/image-skill
             tags: latest,image-generation,text-to-image,image-to-image,image-editing,video-generation,audio-generation,image-to-3d,creative-media,zero-setup
+          - skill_path: skills/agent-image-generation
+            tags: latest,agent-image-generation,image-generation,ai-image-generation,text-to-image,prompt-to-image,creative-media,zero-setup,x402
           - skill_path: skills/ai-audio-generation
             tags: latest,audio-generation,music-generation,sound-generation,creative-media,zero-setup
           - skill_path: skills/creative-media
