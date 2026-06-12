@@ -5,12 +5,12 @@
   "source_root": "docs/public-contract",
   "public_repo": "danielgwilson/image-skill-cli",
   "package_name": "image-skill",
-  "package_version": "0.1.41",
+  "package_version": "0.1.42",
   "note": "Generated from private upstream public contracts. Do not edit by hand.",
   "files": [
     {
       "source_path": "docs/public-contract/skill.md",
-      "public_paths": ["skill.md", "skills/image-skill/SKILL.md"],
+      "public_paths": ["SKILL.md", "skill.md", "skills/image-skill/SKILL.md"],
       "bytes": 24424,
       "sha256": "49cdcdadf9088e53c676b28e9cf55e955100a35c5b93babf5d23828af03e162d"
     },

@@ -4,6 +4,13 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.42 - 2026-06-12
+
+- Feature (distribution): the public repo/package now ships a root `SKILL.md`
+  alongside the existing root `skill.md`. Uppercase is for convention-driven
+  skill crawlers such as SkillsMP/ags/awesome-list; lowercase is retained for
+  compatibility with existing hosted URLs, install docs, and older agents.
+
 ## 0.1.41 - 2026-06-12
 
 - Fix (activation): `create --guide` now selects executable models from the
