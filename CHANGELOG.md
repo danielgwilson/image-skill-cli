@@ -4,6 +4,18 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.41 - 2026-06-12
+
+- Fix (activation): `create --guide` now selects executable models from the
+  compact default `/v1/models` response. The guide no longer reports
+  `no_executable_model` while the same response says executable models exist;
+  it preserves compact-row execution status, pricing, aspect-ratio fallback,
+  and input-image hints so the first no-spend dry-run handoff is usable again.
+- Fix (payments): Stripe Checkout handoff URLs now keep redirecting to the
+  stored Stripe Checkout URL for non-expired fulfilled attempts instead of
+  surfacing the misleading plain-text `handoff database read failed` page after
+  webhook fulfillment.
+
 ## 0.1.40 - 2026-06-11
 
 - Fix (growth): the `IMAGE_SKILL_DISCOVERY_SOURCE` attribution slug now
