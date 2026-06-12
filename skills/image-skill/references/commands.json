@@ -195,7 +195,8 @@
         "command": "image-skill doctor help",
         "usage": "image-skill doctor --json",
         "docs_url": "https://image-skill.com/cli.md#image-skill-doctor",
-        "description": "Check hosted API reachability, CLI version, auth state, and health."
+        "description": "Check hosted API reachability, CLI version, auth state, health, and live-spend recovery breadcrumbs.",
+        "optional_flags": ["--sweep-in-flight"]
       }
     },
     {

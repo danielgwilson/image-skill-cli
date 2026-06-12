@@ -52,6 +52,16 @@ Checks thin CLI/client health, hosted service reachability, auth state, local ou
 image-skill doctor --json
 ```
 
+`doctor` also reports `data.in_flight`, the local live-spend recovery
+breadcrumbs under the public CLI config directory. Outstanding entries include
+the original operation, idempotency key, age/TTL state, sweep eligibility, and a
+copy-runnable `recover_command`. Re-run the recovery command first when the
+original create/edit result still matters.
+
+Use `image-skill doctor --sweep-in-flight --json` to remove only
+sweep-eligible stale breadcrumbs after the long grace window. Plain `doctor`
+never deletes recovery breadcrumbs.
+
 ### `image-skill trust`
 
 Returns a no-auth, no-spend evidence packet for tool selection and package
@@ -1229,6 +1239,24 @@ generated `--idempotency-key` into its advertised create `next_command`, and a
 retryable create error returns an `error.recovery.idempotency_key` plus an
 `error.recovery.suggested_command` that re-runs the same create with that key.
 
+Live non-dry-run create/edit emits one JSON diagnostic line to stderr before
+the blocking hosted request:
+
+```json
+{
+  "in_flight": {
+    "command": "image-skill create",
+    "idempotency_key": "create-...",
+    "recover_command": "image-skill create --idempotency-key create-... <same arguments> --json"
+  }
+}
+```
+
+stdout remains the command JSON envelope. If an agent combines streams with
+`2>&1`, split stderr diagnostics from the stdout envelope before parsing. The
+same recovery breadcrumb is stored under `<config-dir>/in-flight/` and appears
+in `image-skill doctor --json` at `data.in_flight`.
+
 ```bash
 image-skill create \
   --prompt "A compact field camera on a stainless workbench" \
@@ -1470,6 +1498,8 @@ reuses the same key does not create a second credit reservation, so a transient
 `502`/`PROVIDER_FAILURE` after a reservation cannot double-charge; a retryable
 edit error returns an `error.recovery.idempotency_key` and an
 `error.recovery.suggested_command` that re-runs the same edit with that key.
+Live non-dry-run edit emits the same stderr `in_flight` diagnostic and local
+doctor-visible recovery breadcrumb as create.
 
 ### `image-skill assets show`
 

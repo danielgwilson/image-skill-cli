@@ -5,7 +5,7 @@
   "source_root": "docs/public-contract",
   "public_repo": "danielgwilson/image-skill-cli",
   "package_name": "image-skill",
-  "package_version": "0.1.42",
+  "package_version": "0.1.43",
   "note": "Generated from private upstream public contracts. Do not edit by hand.",
   "files": [
     {
@@ -17,8 +17,8 @@
     {
       "source_path": "docs/public-contract/cli.md",
       "public_paths": ["cli.md", "skills/image-skill/references/cli.md"],
-      "bytes": 74278,
-      "sha256": "3c393cc0bc3feb04ab19a6014e30f0db07e3f1d318ab7eb1dcea6b7d2cf8dc80"
+      "bytes": 75532,
+      "sha256": "f06e44e4ac90c62b8a35b7613d730239d0cd4986fe17060368d68dadf5c7e6fa"
     },
     {
       "source_path": "docs/public-contract/llms.txt",
@@ -32,8 +32,8 @@
         "commands.json",
         "skills/image-skill/references/commands.json"
       ],
-      "bytes": 16479,
-      "sha256": "1cf0ec5cf245aafe04bf9d97b6558eb4d93c720a7c3b267c6319487f1fb2f927"
+      "bytes": 16561,
+      "sha256": "b19b8acca9ff3d2c85f7998d149f8383741991b04ce68b620fcc78eae8d21de8"
     }
   ]
 }

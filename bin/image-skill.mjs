@@ -1,18 +1,28 @@
 #!/usr/bin/env node
 import { createHash, randomBytes } from "node:crypto";
 import { createWriteStream } from "node:fs";
-import { chmod, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.42";
+const VERSION = "0.1.43";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
 const DEFAULT_NPM_REGISTRY_BASE_URL = "https://registry.npmjs.org";
 const PUBLIC_REPO_URL = "https://github.com/danielgwilson/image-skill-cli";
+const IN_FLIGHT_RESERVATION_TTL_MS = 15 * 60 * 1000;
+const IN_FLIGHT_SWEEP_AFTER_MS = 24 * 60 * 60 * 1000;
 const PROMPTLESS_EDIT_MODEL_IDS = new Set([
   "fal.flux-dev-redux",
   "fal.flux-krea-redux",
@@ -327,7 +337,8 @@ function commandHelpByKey(key) {
       usage: "image-skill doctor --json",
       docs_url: "https://image-skill.com/cli.md#image-skill-doctor",
       description:
-        "Check hosted API reachability, CLI version, auth state, and health.",
+        "Check hosted API reachability, CLI version, auth state, health, and live-spend recovery breadcrumbs.",
+      optional_flags: ["--sweep-in-flight"],
     },
     trust: {
       command: "image-skill trust help",
@@ -606,6 +617,10 @@ async function doctor(argv) {
   const args = parseArgs(argv);
   const apiBaseUrl = apiBase(args);
   const config = await readConfig(configPath());
+  const inFlight = await inFlightSpendDoctorReport({
+    sweep: flagBool(args, "sweep-in-flight"),
+    now: new Date(),
+  });
   const health = await apiRequest({
     command: "image-skill doctor",
     method: "GET",
@@ -628,6 +643,7 @@ async function doctor(argv) {
       saved_token: config.tokenPresent,
       env_token: hasEnvToken(),
     },
+    in_flight: inFlight,
     docs: {
       skill: "https://image-skill.com/skill.md",
       llms: "https://image-skill.com/llms.txt",
@@ -4573,6 +4589,169 @@ function inFlightSpendFileName(idempotencyKey) {
   const safe = String(idempotencyKey).replace(/[^A-Za-z0-9._-]/g, "_");
   const trimmed = safe.replace(/^\.+/, "").slice(0, 120);
   return `${trimmed.length === 0 ? "key" : trimmed}.json`;
+}
+
+async function inFlightSpendDoctorReport(input) {
+  const dir = inFlightSpendDir();
+  const now = input.now ?? new Date();
+  const files = await readdir(dir).catch((error) => {
+    if (error?.code === "ENOENT") {
+      return [];
+    }
+    return null;
+  });
+  if (files === null) {
+    return {
+      schema: "image-skill.in-flight-spend-report.v1",
+      directory: dir,
+      count: null,
+      recoverable_count: null,
+      ttl_elapsed_count: null,
+      sweep_eligible_count: null,
+      invalid_count: null,
+      entries: [],
+      error: "in-flight directory could not be read",
+      reservation_ttl_ms: IN_FLIGHT_RESERVATION_TTL_MS,
+      sweep_after_ms: IN_FLIGHT_SWEEP_AFTER_MS,
+      swept_count: 0,
+      sweep_requested: input.sweep === true,
+    };
+  }
+
+  const entries = [];
+  let invalidCount = 0;
+  let sweptCount = 0;
+  for (const file of files.sort()) {
+    if (!file.endsWith(".json")) {
+      continue;
+    }
+    const path = join(dir, file);
+    const entry = await readInFlightSpendEntry({ path, file, now });
+    if (entry === null) {
+      invalidCount += 1;
+      continue;
+    }
+    if (input.sweep === true && entry.sweep_eligible === true) {
+      await rm(path, { force: true }).catch(() => {});
+      sweptCount += 1;
+      continue;
+    }
+    entries.push(entry);
+  }
+
+  return {
+    schema: "image-skill.in-flight-spend-report.v1",
+    directory: dir,
+    count: entries.length,
+    recoverable_count: entries.filter((entry) => entry.state === "recoverable")
+      .length,
+    ttl_elapsed_count: entries.filter((entry) => entry.state === "ttl_elapsed")
+      .length,
+    sweep_eligible_count: entries.filter((entry) => entry.sweep_eligible)
+      .length,
+    invalid_count: invalidCount,
+    swept_count: sweptCount,
+    reservation_ttl_ms: IN_FLIGHT_RESERVATION_TTL_MS,
+    sweep_after_ms: IN_FLIGHT_SWEEP_AFTER_MS,
+    sweep_requested: input.sweep === true,
+    entries,
+    note:
+      entries.length === 0
+        ? "no in-flight live spend breadcrumbs found"
+        : "rerun an entry's recover_command to settle or inspect a maybe-reserved spend before sweeping it",
+  };
+}
+
+async function readInFlightSpendEntry({ path, file, now }) {
+  let parsed;
+  let fileStat;
+  try {
+    parsed = JSON.parse(await readFile(path, "utf8"));
+    fileStat = await stat(path);
+  } catch {
+    return null;
+  }
+  if (
+    parsed?.schema !== "image-skill.in-flight-spend.v1" ||
+    typeof parsed.idempotency_key !== "string" ||
+    typeof parsed.operation !== "string"
+  ) {
+    return null;
+  }
+
+  const startedAt =
+    typeof parsed.started_at === "string" ? parsed.started_at : null;
+  const startedTime =
+    startedAt === null ? Number.NaN : new Date(startedAt).getTime();
+  const fallbackTime = fileStat.mtime.getTime();
+  const basisTime = Number.isFinite(startedTime) ? startedTime : fallbackTime;
+  const ageMs = Math.max(0, now.getTime() - basisTime);
+  const state =
+    ageMs >= IN_FLIGHT_RESERVATION_TTL_MS ? "ttl_elapsed" : "recoverable";
+  const sweepEligible = ageMs >= IN_FLIGHT_SWEEP_AFTER_MS;
+  const argv = Array.isArray(parsed.argv)
+    ? parsed.argv.filter((value) => typeof value === "string")
+    : [];
+  const recoverCommand = renderRecoverCommand({
+    operation: parsed.operation,
+    argv,
+    idempotencyKey: parsed.idempotency_key,
+    fallback: parsed.recover_command,
+  });
+
+  return {
+    file,
+    path,
+    operation: parsed.operation,
+    command:
+      typeof parsed.command === "string"
+        ? parsed.command
+        : `image-skill ${parsed.operation}`,
+    idempotency_key: parsed.idempotency_key,
+    started_at: startedAt,
+    age_ms: ageMs,
+    state,
+    sweep_eligible: sweepEligible,
+    recover_command: recoverCommand,
+    original_recover_command:
+      typeof parsed.recover_command === "string"
+        ? parsed.recover_command
+        : null,
+    warning:
+      state === "recoverable"
+        ? "the hosted reservation TTL has not elapsed; recover before cleanup"
+        : sweepEligible
+          ? "reservation TTL has long elapsed; recover first if the original result still matters, or run doctor --sweep-in-flight to remove this breadcrumb"
+          : "reservation TTL has elapsed; recover if you need the result, otherwise leave it until it becomes sweep-eligible",
+  };
+}
+
+function renderRecoverCommand(input) {
+  const argv = withRecoveryArgs(input.argv, input.idempotencyKey);
+  if (argv.length === 0 && typeof input.fallback === "string") {
+    return input.fallback;
+  }
+  return renderImageSkillCommand(input.operation, argv);
+}
+
+function withRecoveryArgs(argv, idempotencyKey) {
+  const args = [...argv];
+  const hasIdempotency = args.some(
+    (arg) =>
+      arg === "--idempotency-key" || arg.startsWith("--idempotency-key="),
+  );
+  if (!hasIdempotency) {
+    args.push("--idempotency-key", idempotencyKey);
+  }
+  const hasJson = args.some((arg) => arg === "--json");
+  if (!hasJson) {
+    args.push("--json");
+  }
+  return args;
+}
+
+function renderImageSkillCommand(operation, argv) {
+  return ["image-skill", operation, ...argv.map(shellQuote)].join(" ");
 }
 
 async function recordInFlightSpend(input) {

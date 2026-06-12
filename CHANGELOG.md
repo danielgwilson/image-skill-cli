@@ -4,6 +4,18 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.43 - 2026-06-12
+
+- Feature (recovery): `doctor --json` now reports `data.in_flight` with
+  outstanding live-spend breadcrumbs, idempotency keys, TTL state, sweep
+  eligibility, and copy-runnable recovery commands.
+- Feature (recovery): `doctor --sweep-in-flight --json` explicitly removes
+  only sweep-eligible stale breadcrumbs after the long grace window; plain
+  `doctor` remains inspect-only.
+- Docs (recovery): the CLI contract now documents the stderr `in_flight` JSON
+  diagnostic emitted by live create/edit before the blocking request, including
+  the `2>&1` parsing caveat for combined-stream consumers.
+
 ## 0.1.42 - 2026-06-12
 
 - Feature (distribution): the public repo/package now ships a root `SKILL.md`
