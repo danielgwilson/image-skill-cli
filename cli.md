@@ -177,9 +177,9 @@ agent. It checks health, executable model availability, auth/quota when a token
 already exists, and payment rails, then returns one primary
 `data.next_command` plus machine-readable `data.next_command_copy_runnable`,
 `data.next_command_missing_inputs`, `data.next_command_effect`,
-`data.guide_warning`, `data.auth_ready`, and `data.no_spend_evaluation`. Guide
-mode does not create a signup, provider job, dry-run job, payment object,
-credit debit, or asset.
+`data.guide_warning`, `data.auth_ready`, `data.no_spend_evaluation`, and
+`data.guide_recovery`. Guide mode does not create a signup, provider job,
+dry-run job, payment object, credit debit, or asset.
 
 ```bash
 image-skill create --guide --prompt "a compact field camera on a stainless workbench"
@@ -193,6 +193,15 @@ When `data.next_command_copy_runnable` is `false`, fill
 payment state changes. Do not run
 `doctor`, `models list`, `signup`, `whoami`, `usage quota`, `create --dry-run`,
 or payment commands as a setup checklist before the guide asks for them.
+For no-doc recovery loops, prefer `data.guide_recovery`: it names the current
+precondition (`precondition_code` / `precondition_message`), the safest
+no-spend command and field to run (`no_spend_command_field` /
+`no_spend_command`), the command to run after the precondition changes, and the
+live command field that would spend if rerun (`live_create_command_field` or
+`live_payment_command_field`). When `data.guide_recovery.double_spend_guard.required`
+is `true`, do not rerun that live field after a partial or unknown failure
+until `error.recovery`, `jobs`, `activity`, or payment status proves the next
+step.
 
 - `prompt_required`: fill `data.next_command_missing_inputs` with the real
   prompt, then rerun `data.next_command`.

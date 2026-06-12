@@ -1831,6 +1831,14 @@ async function createGuide(args, options = {}) {
     tokenSource: publicTokenSource,
     commandPrefix: guideCommandPrefix,
   });
+  const guideRecovery = createGuideRecovery(stage, {
+    blocker,
+    nextCommand,
+    noSpendNextCommand,
+    afterNext,
+    escapeHatches,
+    selfFundNextCommand,
+  });
   return createGuideSuccess(command, quota?.envelope.actor ?? null, {
     schema:
       guideOperation === "edit"
@@ -1927,6 +1935,7 @@ async function createGuide(args, options = {}) {
     no_spend_next_command_label: noSpendNextCommandLabel,
     no_spend_next_command_effect: noSpendNextCommandEffect,
     no_spend_evaluation: noSpendEvaluation,
+    guide_recovery: guideRecovery,
     recommended_no_spend_command: noSpendNextCommand,
     recommended_no_spend_command_label: noSpendNextCommandLabel,
     recommended_no_spend_command_effect: noSpendNextCommandEffect,
@@ -2836,6 +2845,64 @@ function createGuideNoSpendEvaluation(stage, input) {
     recommended_command_effect: input.noSpendNextCommandEffect,
     warning:
       "For no-spend verification at ready_to_create, run data.recommended_no_spend_command instead of data.next_command.",
+  };
+}
+
+function createGuideRecovery(stage, input) {
+  let noSpendCommand = null;
+  let noSpendCommandField = null;
+  if (stage === "ready_to_create" && input.noSpendNextCommand !== null) {
+    noSpendCommand = input.noSpendNextCommand;
+    noSpendCommandField = "recommended_no_spend_command";
+  } else if (stage === "quota_required") {
+    noSpendCommand = input.escapeHatches.quota;
+    noSpendCommandField = "escape_hatches.quota";
+  } else if (
+    stage === "no_executable_model" ||
+    stage === "service_unreachable"
+  ) {
+    noSpendCommand = input.nextCommand;
+    noSpendCommandField = "next_command";
+  } else if (stage === "auth_required" || stage === "prompt_required") {
+    noSpendCommand = input.nextCommand;
+    noSpendCommandField = "next_command";
+  }
+  const noSpendMissingInputs =
+    noSpendCommand === null
+      ? []
+      : createGuideNextCommandMissingInputs(noSpendCommand);
+  const liveCreateCommandField =
+    stage === "ready_to_create" ? "next_command" : null;
+  const livePaymentCommandField =
+    stage === "quota_required" && input.selfFundNextCommand !== null
+      ? "self_fund_next_command"
+      : null;
+  const doubleSpendGuardRequired =
+    liveCreateCommandField !== null || livePaymentCommandField !== null;
+  return {
+    schema: "image-skill.guide-recovery.v1",
+    stage,
+    precondition_code: input.blocker?.code ?? null,
+    precondition_message: input.blocker?.message ?? null,
+    no_spend_command: noSpendCommand,
+    no_spend_command_field: noSpendCommandField,
+    no_spend_command_copy_runnable:
+      noSpendCommand === null ? null : noSpendMissingInputs.length === 0,
+    no_spend_command_missing_inputs: noSpendMissingInputs,
+    after_success_command: input.afterNext,
+    after_success_command_field: input.afterNext === null ? null : "after_next",
+    live_create_command_field: liveCreateCommandField,
+    live_payment_command_field: livePaymentCommandField,
+    double_spend_guard: {
+      required: doubleSpendGuardRequired,
+      safe_rerun_command_field: noSpendCommandField,
+      warning:
+        liveCreateCommandField !== null
+          ? "Do not blindly rerun data.next_command after a partial or unknown create/edit failure; use data.guide_recovery.no_spend_command, jobs/activity, or error.recovery before any live retry."
+          : livePaymentCommandField !== null
+            ? "Do not blindly rerun live payment commands with fresh identifiers after a partial or unknown payment failure; use data.guide_recovery.no_spend_command and payment status recovery before any new buy."
+            : "No live payment or live media command is exposed for this stage; follow the no-spend command and rerun the guide after the precondition is satisfied.",
+    },
   };
 }
 
