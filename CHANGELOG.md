@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.44 - 2026-06-12
+
+- Release (freshness): republish the already-synced public CLI mirror content
+  under an unpublished package version so `image-skill@latest` can match the
+  public mirror commit again. No CLI behavior, hosted API behavior, payment
+  caps, provider routing, or public contract payload changed in this release
+  bump.
+
 ## 0.1.43 - 2026-06-12
 
 - Feature (recovery): `doctor --json` now reports `data.in_flight` with
