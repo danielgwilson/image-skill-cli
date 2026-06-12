@@ -426,6 +426,7 @@
         "docs_url": "https://image-skill.com/cli.md#image-skill-edit",
         "required_flags": ["--input"],
         "optional_flags": [
+          "--guide",
           "--dry-run",
           "--prompt",
           "--model",

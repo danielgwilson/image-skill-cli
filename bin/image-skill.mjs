@@ -529,6 +529,7 @@ function commandHelpByKey(key) {
       docs_url: "https://image-skill.com/cli.md#image-skill-edit",
       required_flags: ["--input"],
       optional_flags: [
+        "--guide",
         "--dry-run",
         "--prompt",
         "--model",
@@ -1607,17 +1608,19 @@ async function capabilities(argv) {
   });
 }
 
-async function createGuide(args) {
+async function createGuide(args, options = {}) {
+  const guideOperation = options.guideOperation ?? "create";
+  const command = `image-skill ${guideOperation} --guide`;
   if (flagBool(args, "dry-run")) {
     return invalid(
-      "image-skill create --guide",
-      "create --guide cannot be combined with --dry-run; the guide returns the dry-run escape hatch separately",
+      command,
+      `${guideOperation} --guide cannot be combined with --dry-run; the guide returns the dry-run escape hatch separately`,
     );
   }
   if (hasReferenceFlags(args)) {
     return invalid(
-      "image-skill create --guide",
-      "create --guide does not upload or resolve reference images; inspect the model with models show, then run create --dry-run before live referenced creates",
+      command,
+      `${guideOperation} --guide does not upload or resolve reference images; inspect the model with models show, then run ${guideOperation} --dry-run before live referenced media calls`,
     );
   }
   const modelParameters = jsonObjectFlag(args, "model-parameters-json");
@@ -1662,6 +1665,7 @@ async function createGuide(args) {
   const selected =
     models.envelope.ok && models.envelope.data?.models
       ? selectCreateGuideModel(models.envelope.data.models, requestedModelId, {
+          operation: guideOperation,
           prompt: trimmedPrompt,
           intent: requestedIntent,
           maxEstimatedUsdPerImage,
@@ -1699,6 +1703,9 @@ async function createGuide(args) {
     token.source === "anonymous" ? "none" : token.source;
   const stage = createGuideStage({
     prompt: trimmedPrompt,
+    promptRequired:
+      trimmedPrompt.length === 0 &&
+      (selected === null || !PROMPTLESS_EDIT_MODEL_IDS.has(selected.id)),
     health,
     models,
     selected,
@@ -1730,6 +1737,8 @@ async function createGuide(args) {
     requestedIntent,
     requestedIntentFlag,
     requestedModelId,
+    guideOperation,
+    inputReference: options.inputReference,
     maxEstimatedUsdPerImage,
     budgetGuard,
     aspectRatio: selectedAspectRatio,
@@ -1748,6 +1757,8 @@ async function createGuide(args) {
     requestedIntent,
     requestedIntentFlag,
     requestedModelId,
+    guideOperation,
+    inputReference: options.inputReference,
     maxEstimatedUsdPerImage,
     budgetGuard,
     aspectRatio: selectedAspectRatio,
@@ -1792,6 +1803,8 @@ async function createGuide(args) {
           explicitApiBaseUrl(args),
           guideCommandPrefix,
           {
+            operation: guideOperation,
+            inputReference: options.inputReference,
             modelId: requestedModelId,
             providerId: requestedProviderId,
             intent: requestedIntentFlag,
@@ -1818,8 +1831,11 @@ async function createGuide(args) {
     tokenSource: publicTokenSource,
     commandPrefix: guideCommandPrefix,
   });
-  return createGuideSuccess(quota?.envelope.actor ?? null, {
-    schema: "image-skill.create-guide.v1",
+  return createGuideSuccess(command, quota?.envelope.actor ?? null, {
+    schema:
+      guideOperation === "edit"
+        ? "image-skill.edit-guide.v1"
+        : "image-skill.create-guide.v1",
     ready: stage === "ready_to_create",
     stage,
     checks: {
@@ -1884,6 +1900,7 @@ async function createGuide(args) {
                     selected,
                     trimmedPrompt,
                     requestedIntent,
+                    guideOperation,
                   )
                 : createGuideSelectedModelRequiresInputImage(selected)
                   ? selected.modality === "3d"
@@ -1930,8 +1947,8 @@ async function createGuide(args) {
   });
 }
 
-function createGuideSuccess(actor, data) {
-  const result = success("image-skill create --guide", data);
+function createGuideSuccess(command, actor, data) {
+  const result = success(command, data);
   result.envelope.actor = actor;
   return result;
 }
@@ -1939,7 +1956,12 @@ function createGuideSuccess(actor, data) {
 function selectCreateGuideModel(
   models,
   requestedModelId,
-  { prompt = "", intent = undefined, maxEstimatedUsdPerImage = null } = {},
+  {
+    operation = "create",
+    prompt = "",
+    intent = undefined,
+    maxEstimatedUsdPerImage = null,
+  } = {},
 ) {
   const isExecutableCreate = (model) =>
     model?.status === "available" &&
@@ -1953,14 +1975,19 @@ function selectCreateGuideModel(
     (model.supports.includes("edit") || model.supports.includes("variation")) &&
     createGuideSelectedModelRequiresInputImage(model);
   const isExecutableGuideModel = (model) =>
-    isExecutableCreate(model) || isExecutableInputImageEdit(model);
+    operation === "edit"
+      ? isExecutableInputImageEdit(model)
+      : isExecutableCreate(model) || isExecutableInputImageEdit(model);
   if (requestedModelId !== null) {
     const requested = models.find((model) => model.id === requestedModelId);
     return requested !== undefined && isExecutableGuideModel(requested)
       ? requested
       : null;
   }
-  const candidates = models.filter(isExecutableCreate);
+  const candidates =
+    operation === "edit"
+      ? models.filter(isExecutableInputImageEdit)
+      : models.filter(isExecutableCreate);
   if (createGuideImplies3d({ prompt, intent })) {
     const eligible3d = guideCandidatesWithinBudget({
       candidates: models.filter(
@@ -2155,7 +2182,12 @@ function createGuideSelectedModelRequiresInputImage(model) {
   );
 }
 
-function createGuideSelectionReason(model, prompt, intent) {
+function createGuideSelectionReason(
+  model,
+  prompt,
+  intent,
+  operation = "create",
+) {
   if (
     createGuideSelectedModelRequiresInputImage(model) &&
     createGuideImplies3d({ prompt, intent })
@@ -2183,7 +2215,9 @@ function createGuideSelectionReason(model, prompt, intent) {
       ? "guide selected a draft/budget create model with high-definition defaults"
       : "guide selected the strongest currently available quality-first create model for this intent";
   }
-  return "guide selected the first available executable create model";
+  return operation === "edit"
+    ? "guide selected the first available executable input-image edit model"
+    : "guide selected the first available executable create model";
 }
 
 function createGuidePaymentSummary(data, commandPrefix) {
@@ -2398,7 +2432,7 @@ function renderCopyRunnablePaymentCommand(commandPrefix, command) {
 }
 
 function createGuideStage(input) {
-  if (input.prompt.length === 0) {
+  if (input.promptRequired) {
     return "prompt_required";
   }
   if (!input.health.envelope.ok || !input.models.envelope.ok) {
@@ -2925,6 +2959,8 @@ function escapeRegExp(value) {
 function createGuideNextCommand(stage, input) {
   if (stage === "prompt_required") {
     return renderGuideCommand("PROMPT", input.apiBaseUrl, input.commandPrefix, {
+      operation: input.guideOperation,
+      inputReference: input.inputReference,
       modelId: input.requestedModelId,
       providerId: input.requestedProviderId,
       intent: input.requestedIntentFlag,
@@ -2950,6 +2986,7 @@ function createGuideNextCommand(stage, input) {
     return renderInputImageGuideCommand({
       modelId: input.selected.id,
       prompt: input.prompt,
+      inputReference: input.inputReference,
       budgetGuard: input.budgetGuard,
       dryRun: false,
       idempotencyKey: `edit-guide-${Date.now()}-${randomBytes(4).toString("hex")}`,
@@ -2993,15 +3030,20 @@ function createGuideEscapeHatches(input) {
       "usage quota --json",
     ),
     dry_run:
-      input.selected === null || input.prompt.length === 0
+      input.selected === null ||
+      (input.prompt.length === 0 &&
+        !PROMPTLESS_EDIT_MODEL_IDS.has(input.selected.id))
         ? renderGuidePrefixedCommand(
             input.commandPrefix,
-            "create --dry-run --prompt PROMPT --json",
+            input.guideOperation === "edit"
+              ? "edit --dry-run --input image_... --prompt PROMPT --json"
+              : "create --dry-run --prompt PROMPT --json",
           )
         : createGuideSelectedModelRequiresInputImage(input.selected)
           ? renderInputImageGuideCommand({
               modelId: input.selected.id,
               prompt: input.prompt,
+              inputReference: input.inputReference,
               budgetGuard: input.budgetGuard,
               dryRun: true,
               apiBaseUrl: input.apiBaseUrl,
@@ -3027,10 +3069,16 @@ function renderGuideCommand(
   commandPrefix = "image-skill",
   options = {},
 ) {
+  const operation = options.operation ?? "create";
   return [
     commandPrefix,
-    "create --guide --prompt",
+    `${operation} --guide --prompt`,
     shellQuote(prompt),
+    ...(operation === "edit" &&
+    typeof options.inputReference === "string" &&
+    options.inputReference.trim().length > 0
+      ? ["--input", shellQuote(options.inputReference.trim())]
+      : []),
     ...(options.modelId === null ||
     options.modelId === undefined ||
     options.modelId === ""
@@ -3107,7 +3155,9 @@ function renderInputImageGuideCommand(input) {
     "edit",
     ...(input.dryRun ? ["--dry-run"] : []),
     "--input",
-    "image_...",
+    input.inputReference?.trim()
+      ? shellQuote(input.inputReference.trim())
+      : "image_...",
     "--model",
     shellQuote(input.modelId),
     ...(promptless ? [] : ["--prompt", shellQuote(input.prompt)]),
@@ -3377,6 +3427,12 @@ async function edit(argv) {
   const args = parseArgs(argv);
   const input = flagString(args, "input") ?? args.positionals[0];
   const modelId = flagString(args, "model");
+  if (flagBool(args, "guide")) {
+    return createGuide(args, {
+      guideOperation: "edit",
+      inputReference: input,
+    });
+  }
   if (input === undefined) {
     return invalid(
       "image-skill edit",
