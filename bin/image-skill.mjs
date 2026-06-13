@@ -2628,7 +2628,7 @@ function createGuidePaymentCommands(
     "image-skill credits methods --json",
     "image-skill credits packs list --json",
     preferredMethod?.recovery?.quote_command ??
-      "image-skill credits quote --pack starter-500 --payment-method stripe_x402.exact.usdc --idempotency-key KEY --json",
+      "image-skill credits quote --pack starter-500 --payment-method stripe_x402.exact.usdc --json",
     preferredMethod?.recovery?.purchase_command ??
       "image-skill credits buy --provider stripe_x402 --quote-id QUOTE_ID --idempotency-key KEY --json",
     preferredMethod?.recovery?.status_command ??
