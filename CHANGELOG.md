@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.48 - 2026-06-13
+
+- Release (activation/self-fund): publish the post-0.1.47 public mirror payload
+  under an unpublished package version so `image-skill@latest` can include the
+  success `data.next_actions.self_fund.quote_command` handoff as a
+  copy-runnable quote command. No payment caps, provider routing, wallet action,
+  provider spend, or media spend changed in this release bump.
+
 ## 0.1.47 - 2026-06-13
 
 - Release (activation): publish the post-0.1.46 public mirror payload under an
