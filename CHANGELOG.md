@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.47 - 2026-06-13
+
+- Release (activation): publish the post-0.1.46 public mirror payload under an
+  unpublished package version so `image-skill@latest` can include guide
+  `data.checks.quota.top_up` recommendations for browserless x402 top-up
+  visibility. No hosted API behavior, payment caps, provider routing, wallet
+  action, or media spend changed in this release bump.
+
 ## 0.1.46 - 2026-06-13
 
 - Release (activation): publish the post-0.1.45 public mirror payload under an
