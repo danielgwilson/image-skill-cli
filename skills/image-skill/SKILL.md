@@ -246,7 +246,15 @@ image-skill activity list --limit 20
 image-skill activity show EVENT_OR_JOB_OR_ASSET_OR_FEEDBACK
 ```
 
-Use `jobs show` or `jobs wait` for operational job state, final assets, and retry judgment. Use `activity` for audit trail context (recent jobs, assets, usage events, feedback acceptance, trace IDs, status changes) you can cite in feedback. **Do not use `activity` as a wait or recovery command.** Activity is the ledger, not the work queue.
+After a successful hosted create/edit, prefer `data.next_actions` when present:
+`inspect_job` and `inspect_asset` are no-spend recovery commands,
+`iterate_edit` reuses the asset, and `self_fund` promotes the top-up quote when
+`quota.top_up.recommended` is true. Use `jobs show` or `jobs wait` for
+operational job state, final assets, and retry judgment. Use `activity` for
+audit trail context (recent jobs, assets, usage events, feedback acceptance,
+trace IDs, status changes) you can cite in feedback.
+**Do not use `activity` as a wait or recovery command.** Activity is the ledger,
+not the work queue.
 
 ## Iteration discipline
 

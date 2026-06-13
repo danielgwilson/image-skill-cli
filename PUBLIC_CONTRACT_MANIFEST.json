@@ -11,8 +11,8 @@
     {
       "source_path": "docs/public-contract/skill.md",
       "public_paths": ["SKILL.md", "skill.md", "skills/image-skill/SKILL.md"],
-      "bytes": 24678,
-      "sha256": "793a9480069875a4635e94bb4692519ac6a8def1c1e58d79b50b1a81d6a73115"
+      "bytes": 24940,
+      "sha256": "b394e1b5e3117c49ac8a4469b945fb14359e3f7ea65f9f565f540f66a3900fab"
     },
     {
       "source_path": "docs/public-contract/cli.md",
@@ -23,8 +23,8 @@
     {
       "source_path": "docs/public-contract/llms.txt",
       "public_paths": ["llms.txt", "skills/image-skill/references/llms.txt"],
-      "bytes": 36744,
-      "sha256": "64dad750f8bf8c342d875b937abe5dc95b90301b266f903282694af50c197ca2"
+      "bytes": 37009,
+      "sha256": "b52863ab140144a9f1c92b2f79f3c976ac36f25a4b5143eccdf0ad86e7025081"
     },
     {
       "source_path": "docs/public-contract/commands.json",
