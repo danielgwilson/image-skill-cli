@@ -254,8 +254,10 @@ image-skill activity show EVENT_OR_JOB_OR_ASSET_OR_FEEDBACK
 
 After a successful hosted create/edit, prefer `data.next_actions` when present:
 `inspect_job` and `inspect_asset` are no-spend recovery commands,
-`iterate_edit` reuses the asset, and `self_fund` promotes the top-up quote when
-`quota.top_up.recommended` is true. Use `jobs show` or `jobs wait` for
+`iterate_edit` reuses the asset, and `self_fund` promotes a copy-runnable
+top-up quote command when `quota.top_up.recommended` is true. That
+`quote_command` omits `--idempotency-key`; the public CLI generates and returns
+one for retry safety. Use `jobs show` or `jobs wait` for
 operational job state, final assets, and retry judgment. Use `activity` for
 audit trail context (recent jobs, assets, usage events, feedback acceptance,
 trace IDs, status changes) you can cite in feedback.

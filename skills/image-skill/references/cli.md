@@ -1499,6 +1499,10 @@ include a new generated asset URL, job id, safety state, quota consumption, and
 input asset metadata where
 applicable. Responses do not include raw prompts, source bytes, base64
 payloads, local paths, full external URLs, bucket names, or object keys.
+When `quota.top_up.recommended` is true, `next_actions.self_fund.quote_command`
+is a copy-runnable top-up quote command; it omits `--idempotency-key` so the
+public CLI generates and returns one for retry safety before the agent follows
+the quote response into `credits buy` and `credits status`.
 
 Provider/model names in this paragraph are preview provenance, not the primary
 public UX. The public selection surface should be Image Skill capabilities and
