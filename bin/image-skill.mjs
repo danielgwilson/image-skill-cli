@@ -1931,6 +1931,7 @@ async function createGuide(args, options = {}) {
         required_credits: estimatedCredits,
         daily_jobs_remaining:
           quota?.envelope.data?.daily_jobs?.remaining ?? null,
+        top_up: quota?.envelope.data?.top_up ?? null,
         reason:
           quota === null
             ? "auth_required"

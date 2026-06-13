@@ -233,6 +233,9 @@ step.
   can complete the preferred live-money rail without a browser;
   `human_payment_handoff` means the agent can create the payment attempt but a
   human/browser step must complete before credits are granted.
+- any stage: inspect `data.checks.quota.top_up`; when `recommended` is `true`,
+  it includes the recommendation reason, preferred browserless x402 method, and
+  copy-runnable quote/buy/status command templates from `usage quota`.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.next_command_effect.label` is `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
