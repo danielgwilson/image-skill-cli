@@ -235,7 +235,11 @@ step.
   human/browser step must complete before credits are granted.
 - any stage: inspect `data.checks.quota.top_up`; when `recommended` is `true`,
   it includes the recommendation reason, preferred browserless x402 method, and
-  copy-runnable quote/buy/status command templates from `usage quota`.
+  `quote_command` plus copy-runnable quote/buy/status command templates from
+  `usage quota`. On quota/payment recovery errors, the same browserless
+  handoff is exposed at `error.recovery.top_up.quote_command`; prefer it when
+  delegated live-money quoting is allowed, and use
+  `error.recovery.suggested_command` for no-spend payment-method inspection.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.self_fund_preparation` is the pre-wall top-up affordance; when
   `available` and `recommended` are true, `quote_command` creates an
@@ -1788,6 +1792,11 @@ JSON errors may include `error.recovery` with machine-readable fields such as
 Agents should prefer those fields over parsing prose error messages. For
 example, `BUDGET_REQUIRES_CONFIRMATION` returns
 `required_flag: "--accept-unknown-cost"`.
+Quota/payment recovery also includes `error.recovery.top_up`: its
+`quote_command` is copy-runnable and creates an authenticated live-money
+quote/payment object without paying, settling a wallet transfer, debiting
+credits, calling a provider, or writing media. Only the later buy/status and
+wallet/checkout completion steps can spend money.
 
 `whoami`, `usage quota`, `quota`, `credits quote`, `credits buy`,
 `credits status`, `create`, `activity list`,

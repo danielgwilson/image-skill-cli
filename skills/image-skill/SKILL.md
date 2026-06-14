@@ -175,7 +175,11 @@ Credits are not granted until verified settlement or webhook fulfillment succeed
 
 At any guide stage, read `data.checks.quota.top_up`: when `recommended` is
 true it includes the recommendation reason, preferred browserless x402 method,
-and copy-runnable quote/buy/status command templates. When `create --guide`
+`quote_command`, and copy-runnable quote/buy/status command templates. When
+quota/payment errors return `error.recovery.top_up`, prefer its
+`quote_command` when delegated live-money quoting is allowed; use
+`error.recovery.suggested_command` for no-spend payment-method inspection. When
+`create --guide`
 reaches `quota_required`, read
 `data.checks.payments.preferred_method_summary.top_up_path` before quoting:
 `browserless_agent_self_fund` is the autonomous wallet path, while

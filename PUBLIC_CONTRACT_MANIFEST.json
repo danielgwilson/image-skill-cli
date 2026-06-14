@@ -11,20 +11,20 @@
     {
       "source_path": "docs/public-contract/skill.md",
       "public_paths": ["SKILL.md", "skill.md", "skills/image-skill/SKILL.md"],
-      "bytes": 26353,
-      "sha256": "3fb68ca41f8c24247e92f1ff4a6e4269f03e632d3d4b960274a613ca2a67201b"
+      "bytes": 26580,
+      "sha256": "fa0d2b22cc74cfd2495495c1652ead11fc4caefb1c69ea42475446f76ef47998"
     },
     {
       "source_path": "docs/public-contract/cli.md",
       "public_paths": ["cli.md", "skills/image-skill/references/cli.md"],
-      "bytes": 77116,
-      "sha256": "3d7785da970a93ead23f59e96c417102773450c9cb5c22d8f9060b51e5de7dd1"
+      "bytes": 77740,
+      "sha256": "162cf9d54cd6cf5f59142271e1dadb60a5bc7ad470c3ec69abdf7e020546c7d3"
     },
     {
       "source_path": "docs/public-contract/llms.txt",
       "public_paths": ["llms.txt", "skills/image-skill/references/llms.txt"],
-      "bytes": 37953,
-      "sha256": "7a0c97689069a3dc16da8fd763c42ff1b1d398f843f9f4cd65078a7d2569f290"
+      "bytes": 38262,
+      "sha256": "ea18449211add63826fead98d06f44243b00e5ee99adae90433acb06820ffd83"
     },
     {
       "source_path": "docs/public-contract/commands.json",
