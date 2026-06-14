@@ -1881,6 +1881,12 @@ async function createGuide(args, options = {}) {
     tokenSource: publicTokenSource,
     commandPrefix: guideCommandPrefix,
   });
+  const selfFundPreparation = createGuideSelfFundPreparation(stage, {
+    paymentSummary,
+    quotaTopUp: quota?.envelope.data?.top_up ?? null,
+    afterNext,
+    tokenSource: publicTokenSource,
+  });
   const guideRecovery = createGuideRecovery(stage, {
     blocker,
     nextCommand,
@@ -1996,6 +2002,7 @@ async function createGuide(args, options = {}) {
     self_fund_next_command: selfFundNextCommand,
     self_fund_next_command_label: selfFundNextCommandLabel,
     self_fund_handoff: selfFundHandoff,
+    self_fund_preparation: selfFundPreparation,
     after_next: afterNext,
     auth_handoff: authHandoff,
     escape_hatches: escapeHatches,
@@ -2955,6 +2962,70 @@ function createGuideSelfFundHandoff(stage, input) {
   };
 }
 
+function createGuideSelfFundPreparation(stage, input) {
+  if (stage !== "ready_to_create") {
+    return null;
+  }
+  const preferredMethod = input.paymentSummary.preferred_method;
+  const preferredSummary = input.paymentSummary.preferred_method_summary;
+  const quoteCommand = guidePaymentCommandByKind(
+    input.paymentSummary.suggested_commands,
+    "quote",
+  );
+  const available =
+    preferredMethod !== null &&
+    preferredSummary !== null &&
+    quoteCommand !== null;
+  const availableQuoteCommand = available ? quoteCommand : null;
+  const topUpPath = preferredSummary?.top_up_path ?? null;
+  const browserlessSelfFund = topUpPath === "browserless_agent_self_fund";
+  return {
+    available,
+    recommended: input.quotaTopUp?.recommended === true,
+    recommendation_reason: input.quotaTopUp?.recommendation_reason ?? null,
+    preferred_method: preferredMethod,
+    top_up_path: topUpPath,
+    inspect_methods_command: guidePaymentInspectionCommand(
+      input.paymentSummary.suggested_commands,
+      "methods",
+    ),
+    inspect_packs_command: guidePaymentInspectionCommand(
+      input.paymentSummary.suggested_commands,
+      "packs",
+    ),
+    quote_command: availableQuoteCommand,
+    quote_command_copy_runnable:
+      availableQuoteCommand !== null &&
+      createGuideNextCommandMissingInputs(availableQuoteCommand).length === 0,
+    quote_command_effect: {
+      label: "live_money_quote_no_charge",
+      no_spend: true,
+      live_money:
+        preferredMethod !== null &&
+        input.paymentSummary.live_money_methods.includes(preferredMethod),
+      provider_call: false,
+      hosted_create: false,
+      payment_object: true,
+      credit_debit: false,
+      media_write: false,
+      requires_wallet_for_buy: browserlessSelfFund,
+      max_amount_cents: preferredSummary?.max_amount_cents ?? null,
+      warning:
+        "data.self_fund_preparation.quote_command creates an authenticated live-money quote but does not pay, debit credits, call a provider, or write media. Only a later credits buy/payment step can spend money.",
+    },
+    after_next: input.afterNext,
+    auth: {
+      quote_command_requires_auth: true,
+      token_source: input.tokenSource,
+      secret_value_included: false,
+      accepted_methods: ["IMAGE_SKILL_TOKEN", "--token-stdin", "config"],
+    },
+    warning: browserlessSelfFund
+      ? "You can inspect or quote the browserless self-fund rail before credits run out; do not run buy or transfer funds unless delegated spend is allowed."
+      : "You can inspect the top-up path before credits run out; do not run buy or complete payment unless delegated spend is allowed.",
+  };
+}
+
 function createGuideWalletSettlementHandoff({
   preferredMethod,
   browserless,
@@ -3491,6 +3562,12 @@ function guidePaymentCommandByKind(commands, kind, commandPrefix = null) {
     return command;
   }
   return renderGuidePrefixedCommand(commandPrefix, command);
+}
+
+function guidePaymentInspectionCommand(commands, kind) {
+  const pattern =
+    kind === "methods" ? /\bcredits\s+methods\b/ : /\bcredits\s+packs\s+list\b/;
+  return commands.find((command) => pattern.test(command)) ?? null;
 }
 
 function renderInputImageGuideCommand(input) {
