@@ -237,7 +237,13 @@ step.
   it includes the recommendation reason, preferred browserless x402 method, and
   copy-runnable quote/buy/status command templates from `usage quota`.
 - `ready_to_create`: `data.next_command` is a live media create. Its
-  `data.next_command_effect.label` is `live_media_create_credit_debit`, with
+  `data.self_fund_preparation` is the pre-wall top-up affordance; when
+  `available` and `recommended` are true, `quote_command` creates an
+  authenticated live-money quote/payment object without paying, settling a
+  wallet transfer, debiting credits, calling a provider, or writing media.
+  Only follow later buy/status/wallet-settlement commands when delegated spend
+  is allowed. `data.next_command_effect.label` is
+  `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
   `data.guide_warning.next_command_safety` is
   `live_media_create_credit_debit`, `data.guide_warning.no_spend_safe` is
@@ -964,8 +970,9 @@ image-skill create --guide --prompt "A compact field camera on a stainless workb
 `stage`, `next_command`, `next_command_copy_runnable`,
 `next_command_missing_inputs`, `guide_warning`, `auth_ready`,
 `no_spend_evaluation`, `recommended_no_spend_command`,
-`self_fund_next_command`, `self_fund_handoff`, `escape_hatches`, selected
-executable model and cost, auth/quota/payment blockers, and mutation flags. All
+`self_fund_next_command`, `self_fund_handoff`, `self_fund_preparation`,
+`escape_hatches`, selected executable model and cost, auth/quota/payment
+blockers, and mutation flags. All
 mutation flags must be false in guide mode: no provider call, hosted create,
 signup, payment object, credit debit, or media write.
 For next-command safety, read `next_command_copy_runnable`,
