@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.51";
+const VERSION = "0.1.52";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1101,15 +1101,17 @@ async function quota(argv, command = "image-skill quota") {
   if (!token.ok) {
     return withCommand(token.result, command);
   }
-  return withCommand(
-    await apiRequest({
+  return withQuotaNextActions(
+    withCommand(
+      await apiRequest({
+        command,
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: "/v1/quota",
+        token: token.token,
+      }),
       command,
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: "/v1/quota",
-      token: token.token,
-    }),
-    command,
+    ),
   );
 }
 
@@ -6076,6 +6078,86 @@ function withCommand(result, command) {
     envelope: {
       ...result.envelope,
       command,
+    },
+  };
+}
+
+function withQuotaNextActions(result) {
+  const data = result.envelope?.data;
+  if (
+    result.envelope?.ok !== true ||
+    data === null ||
+    typeof data !== "object"
+  ) {
+    return result;
+  }
+  const nextActions = quotaTopUpNextActions(data.top_up);
+  if (nextActions === null) {
+    return result;
+  }
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      data: {
+        ...data,
+        next_actions: nextActions,
+      },
+    },
+  };
+}
+
+function quotaTopUpNextActions(topUp) {
+  const commands = topUp?.commands;
+  if (
+    topUp?.available !== true ||
+    commands === null ||
+    typeof commands !== "object" ||
+    typeof commands.inspect_methods !== "string" ||
+    typeof commands.inspect_packs !== "string" ||
+    typeof commands.quote !== "string" ||
+    typeof commands.buy !== "string" ||
+    typeof commands.status !== "string" ||
+    typeof commands.fallback_quote !== "string" ||
+    typeof commands.fallback_buy !== "string" ||
+    topUp.workflow === null ||
+    typeof topUp.workflow !== "object"
+  ) {
+    return null;
+  }
+
+  return {
+    self_fund: {
+      purpose: "open_browserless_top_up_path",
+      available: true,
+      recommended: topUp.recommended === true,
+      recommendation_reason: topUp.recommendation_reason ?? "available",
+      path: topUp.path,
+      first_safe_command: commands.inspect_methods,
+      first_safe_command_effect: {
+        label: "inspect_payment_methods_no_spend",
+        no_spend: true,
+        live_money: false,
+        provider_call: false,
+        hosted_create: false,
+        payment_object: false,
+        credit_debit: false,
+        media_write: false,
+      },
+      inspect_methods_command: commands.inspect_methods,
+      inspect_packs_command: commands.inspect_packs,
+      quote_command: commands.quote,
+      quote_command_copy_runnable: true,
+      quote_idempotency_key_source: "public_cli_generated_if_missing",
+      buy_command: commands.buy,
+      status_command: commands.status,
+      fallback_quote_command: commands.fallback_quote,
+      fallback_buy_command: commands.fallback_buy,
+      live_money: true,
+      payment_method: topUp.preferred_payment_method,
+      workflow: topUp.workflow,
+      warning:
+        "Start with first_safe_command; it is read-only and no-spend. Quote only creates a payment object. Buy/status and wallet settlement require delegated spend authority.",
     },
   };
 }
