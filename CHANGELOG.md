@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.54 - 2026-06-16
+
+- Release (activation/self-fund): add explicit `urgency`,
+  `urgency_score`, and `urgency_reasons` to quota top-up data and
+  `data.next_actions.self_fund`, so activated agents can distinguish
+  browserless top-up availability from near-wall or blocked top-up urgency
+  without reverse-engineering recommendation reasons. No payment caps, auth
+  semantics, provider routing, wallet action, provider spend, media spend,
+  hosted deploy, or production write changed in this release bump.
+
 ## 0.1.53 - 2026-06-16
 
 - Release (activation): align `create --guide` `auth_required` blocker copy

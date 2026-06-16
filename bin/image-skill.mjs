@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.53";
+const VERSION = "0.1.54";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -6132,6 +6132,7 @@ function quotaTopUpNextActions(topUp) {
       available: true,
       recommended: topUp.recommended === true,
       recommendation_reason: topUp.recommendation_reason ?? "available",
+      ...quotaTopUpUrgencyFields(topUp),
       path: topUp.path,
       first_safe_command: commands.inspect_methods,
       first_safe_command_effect: {
@@ -6160,6 +6161,44 @@ function quotaTopUpNextActions(topUp) {
         "Start with first_safe_command; it is read-only and no-spend. Quote only creates a payment object. Buy/status and wallet settlement require delegated spend authority.",
     },
   };
+}
+
+function quotaTopUpUrgencyFields(topUp) {
+  const reason = topUp?.recommendation_reason ?? "available";
+  const fallback = quotaTopUpUrgencyFromReason(reason);
+  const urgency =
+    typeof topUp?.urgency === "string" && topUp.urgency.length > 0
+      ? topUp.urgency
+      : fallback.urgency;
+  const urgencyScore =
+    typeof topUp?.urgency_score === "number"
+      ? topUp.urgency_score
+      : fallback.score;
+  const urgencyReasons = Array.isArray(topUp?.urgency_reasons)
+    ? topUp.urgency_reasons
+        .filter((entry) => typeof entry === "string" && entry.length > 0)
+        .map((entry) => entry)
+    : reason === "available"
+      ? []
+      : [reason];
+  return {
+    urgency,
+    urgency_score: urgencyScore,
+    urgency_reasons: urgencyReasons,
+  };
+}
+
+function quotaTopUpUrgencyFromReason(reason) {
+  if (reason === "credits_depleted" || reason === "daily_job_cap_reached") {
+    return { urgency: "blocked", score: 100 };
+  }
+  if (reason === "low_remaining_credits") {
+    return { urgency: "near_wall", score: 80 };
+  }
+  if (reason === "self_fund_setup_missing") {
+    return { urgency: "setup_recommended", score: 60 };
+  }
+  return { urgency: "available", score: 0 };
 }
 
 function failure(command, exitCode, code, message, retryable, recovery) {
