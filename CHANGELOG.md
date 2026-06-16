@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.56 - 2026-06-16
+
+- Release (activation/self-fund): mirror top-up urgency and the no-spend
+  payment rail inspection command into successful hosted create/edit and
+  `jobs show` `data.next_actions.self_fund`, so agents with free allowance can
+  discover the safe first self-fund step before hitting the quota wall. No
+  payment caps, auth semantics, provider routing, wallet action, provider
+  spend, media spend, hosted deploy, or production write changed in this
+  release bump.
+
 ## 0.1.55 - 2026-06-16
 
 - Release (activation/self-fund): mirror top-up urgency and the first no-spend

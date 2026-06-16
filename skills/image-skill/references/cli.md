@@ -1517,9 +1517,13 @@ input asset metadata where
 applicable. Responses do not include raw prompts, source bytes, base64
 payloads, local paths, full external URLs, bucket names, or object keys.
 When `quota.top_up.recommended` is true, `next_actions.self_fund.quote_command`
-is a copy-runnable top-up quote command; it omits `--idempotency-key` so the
-public CLI generates and returns one for retry safety before the agent follows
-the quote response into `credits buy` and `credits status`.
+is a copy-runnable top-up quote command. `next_actions.self_fund` also mirrors
+top-up `urgency`, `urgency_score`, and `urgency_reasons`, and exposes
+`first_safe_command`, `first_safe_command_effect`, `inspect_methods_command`,
+and `inspect_packs_command` for no-spend payment rail inspection before
+quote/buy. The quote command omits `--idempotency-key` so the public CLI
+generates and returns one for retry safety before the agent follows the quote
+response into `credits buy` and `credits status`.
 
 Provider/model names in this paragraph are preview provenance, not the primary
 public UX. The public selection surface should be Image Skill capabilities and
