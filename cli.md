@@ -217,7 +217,11 @@ step.
 - `quota_required`: fill `data.next_command_missing_inputs` when present, then
   run `data.self_fund_next_command` to start the top-up.
   It aliases `data.next_command` and is the first payment command, usually an
-  x402 or Stripe quote. If the guide authenticated from env or stdin, prefer
+  x402 or Stripe quote. First inspect
+  `data.self_fund_handoff.urgency`, `urgency_score`, and `urgency_reasons`; run
+  `data.self_fund_handoff.first_safe_command` for no-spend payment-method
+  inspection when you need rail state before opening a quote. If the guide
+  authenticated from env or stdin, prefer
   `data.self_fund_handoff.auth.next_command.with_env` or
   `data.self_fund_handoff.auth.next_command.with_stdin` so auth follows the
   payment command. Then follow `data.self_fund_handoff.payment_commands.buy`
@@ -627,7 +631,9 @@ wallet private keys, seed phrases, x402 payment headers, deposit client
 secrets, card data, Stripe secrets, or provider receipts to Image Skill.
 When `create --guide` enters `quota_required` for this rail, it returns
 `data.self_fund_handoff.wallet_settlement` with the buy/status response fields
-to inspect: `data.stripe_x402.payable_instructions` after `credits buy`, or
+to inspect, plus `data.self_fund_handoff.first_safe_command` for no-spend rail
+inspection before quote/buy: `data.stripe_x402.payable_instructions` after
+`credits buy`, or
 `data.payment_attempt.stripe_x402.payable_instructions` after `credits status`.
 
 ```bash

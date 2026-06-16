@@ -41,6 +41,8 @@ npm_config_update_notifier=false npx -y image-skill@latest create --guide --prom
 
 The guide is a free, zero-spend planning call. Given current auth, quota, and payment state, it returns `data.next_command`, `data.next_command_copy_runnable`, `data.next_command_missing_inputs`, `data.stage`, `data.guide_warning`, `data.next_command_effect`, `data.auth_ready`, `data.no_spend_evaluation`, `data.guide_recovery`, `data.recommended_no_spend_command` (alias of `data.no_spend_next_command`), `data.no_spend_next_command_effect`, `data.self_fund_next_command`, `data.self_fund_handoff`, `data.self_fund_preparation`, `data.auth_handoff`, and `data.mutation`. It also preserves `data.checks.quota.top_up`, the same quota top-up recommendation returned by `usage quota`, so wallet-capable agents can see whether a browserless x402 top-up is recommended before the hard wall. Read `data.guide_warning` before running `data.next_command`: `next_command_safety` names whether the command is no-spend setup, read-only inspection, live-money payment action, or live media create. Run that next command only when `data.next_command_copy_runnable` is `true` and the warning says it is safe for your spend policy; when it is `false`, fill `data.next_command_missing_inputs` first. Prefer `data.guide_recovery` for no-doc recovery loops: it names the safest no-spend command and field, the live create or payment field that would spend, and the double-spend guard to check before any live retry. Repeat until `data.stage` is `ready_to_create`. At `ready_to_create`, `data.auth_ready.ready` and `data.auth_ready.next_command_auth_ready` are `true`: the returned create can reuse saved config, env token, or stdin token context without exposing a raw token. Read `data.self_fund_preparation` in this stage before spending the remaining free allowance: when `available` and `recommended` are true, `quote_command` creates an authenticated live-money quote/payment object but does not pay, settle a wallet transfer, debit credits, call a provider, or write media. Only a later buy/payment step can spend money. When `data.guide_warning.next_command_safety` is `live_media_create_credit_debit` and `data.no_spend_evaluation.stop_here` is `true`, `data.next_command` is the live create: run it only if media spend is allowed, otherwise stop before it and run `data.recommended_no_spend_command` for no-spend proof. The no-spend command is an authenticated hosted dry-run: it may create a recoverable `job.planned` receipt, but it has no provider call, credit debit, downloadable asset, or media write.
 
+When `data.stage` is `quota_required`, `data.self_fund_handoff` mirrors top-up `urgency`, `urgency_score`, and `urgency_reasons`, and exposes `first_safe_command` with a no-spend inspection effect. Run that no-spend command first when you need to inspect rails or stay below delegated spend authority before opening the live-money quote path.
+
 Minimum success envelope on a create or edit:
 
 ```json
@@ -184,6 +186,9 @@ reaches `quota_required`, read
 `data.checks.payments.preferred_method_summary.top_up_path` before quoting:
 `browserless_agent_self_fund` is the autonomous wallet path, while
 `human_payment_handoff` means a human/browser completion step is still required.
+The quota-required `data.self_fund_handoff` also mirrors the top-up urgency and
+exposes `first_safe_command`, usually `image-skill credits methods --json`, for
+no-spend payment-method inspection before quote/buy steps.
 When `create --guide` reaches `ready_to_create`, inspect
 `data.self_fund_preparation` before consuming the remaining free allowance. If
 it is available and recommended, `quote_command` is the pre-wall browserless

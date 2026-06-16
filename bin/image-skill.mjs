@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.54";
+const VERSION = "0.1.55";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1882,6 +1882,7 @@ async function createGuide(args, options = {}) {
     afterNext,
     tokenSource: publicTokenSource,
     commandPrefix: guideCommandPrefix,
+    quotaTopUp: quota?.envelope.data?.top_up ?? null,
   });
   const selfFundPreparation = createGuideSelfFundPreparation(stage, {
     paymentSummary,
@@ -2918,10 +2919,21 @@ function createGuideSelfFundHandoff(stage, input) {
     input.paymentSummary.suggested_commands,
     "status",
   );
+  const inspectMethodsCommand = guidePaymentInspectionCommand(
+    input.paymentSummary.suggested_commands,
+    "methods",
+  );
+  const inspectPacksCommand = guidePaymentInspectionCommand(
+    input.paymentSummary.suggested_commands,
+    "packs",
+  );
 
   return {
     required: true,
     preferred_method: preferredMethod,
+    urgency: input.quotaTopUp?.urgency ?? null,
+    urgency_score: input.quotaTopUp?.urgency_score ?? null,
+    urgency_reasons: input.quotaTopUp?.urgency_reasons ?? [],
     live_money:
       preferredMethod !== null &&
       input.paymentSummary.live_money_methods.includes(preferredMethod),
@@ -2929,6 +2941,19 @@ function createGuideSelfFundHandoff(stage, input) {
     agent_initiated: agentInitiated,
     agent_settleable: agentSettleable,
     human_handoff_required: humanHandoffRequired,
+    first_safe_command: inspectMethodsCommand,
+    first_safe_command_effect: {
+      label: "inspect_payment_methods_no_spend",
+      no_spend: true,
+      live_money: false,
+      provider_call: false,
+      hosted_create: false,
+      payment_object: false,
+      credit_debit: false,
+      media_write: false,
+    },
+    inspect_methods_command: inspectMethodsCommand,
+    inspect_packs_command: inspectPacksCommand,
     payment_commands: {
       quote: guidePaymentCommandByKind(
         input.paymentSummary.suggested_commands,
@@ -2959,8 +2984,8 @@ function createGuideSelfFundHandoff(stage, input) {
       },
     },
     warning: agentSettleable
-      ? "data.self_fund_next_command starts a browserless live-money quote. Preserve auth with data.self_fund_handoff.auth.next_command, then follow payment_commands.buy, pay exactly what wallet_settlement points to, run payment_commands.status, and rerun after_next."
-      : "data.self_fund_next_command starts a live-money payment handoff. Preserve auth with data.self_fund_handoff.auth.next_command, complete the payment, then rerun after_next.",
+      ? "Start with data.self_fund_handoff.first_safe_command for no-spend inspection, then data.self_fund_next_command for the browserless live-money quote when delegated spend is allowed. Preserve auth with data.self_fund_handoff.auth.next_command, follow payment_commands.buy, pay exactly what wallet_settlement points to, run payment_commands.status, and rerun after_next."
+      : "Start with data.self_fund_handoff.first_safe_command for no-spend inspection, then data.self_fund_next_command for the live-money payment handoff when delegated spend is allowed. Preserve auth with data.self_fund_handoff.auth.next_command, complete the payment, then rerun after_next.",
   };
 }
 
