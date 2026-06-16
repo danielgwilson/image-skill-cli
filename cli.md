@@ -1662,6 +1662,11 @@ related job IDs, asset IDs, usage IDs, feedback IDs, trace IDs, status changes,
 and product-memory writes. Use `jobs show` or `jobs wait` when you need
 operational recovery, polling, retry judgment, or final job assets.
 
+When the ledger proves generated work and current quota says top-up setup is
+recommended, `data.next_actions.self_fund` mirrors the same urgency and
+no-spend payment-method inspection handoff returned by successful create/edit
+and `jobs show`.
+
 Minimum success data:
 
 ```json
@@ -1718,7 +1723,9 @@ image-skill activity show sig_... --json
 `activity show` accepts activity event IDs plus job, asset, usage, feedback, and
 trace references. When the reference is a subject rather than one exact event,
 the response includes matching ledger events so an agent can cite the right
-event without reading telemetry logs.
+event without reading telemetry logs. When current quota recommends top-up
+setup after generated work, `data.next_actions.self_fund.first_safe_command`
+is the no-spend rail inspection command to run before any quote/buy step.
 
 Hosted API equivalent:
 

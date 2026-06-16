@@ -279,7 +279,10 @@ public CLI generates and returns one for retry safety. Use `jobs show` or
 `jobs wait` for
 operational job state, final assets, and retry judgment. Use `activity` for
 audit trail context (recent jobs, assets, usage events, feedback acceptance,
-trace IDs, status changes) you can cite in feedback.
+trace IDs, status changes) you can cite in feedback. `activity list/show` may
+also return `data.next_actions.self_fund` with the same urgency and no-spend
+inspection handoff when the ledger proves generated work and quota says top-up
+setup is recommended.
 **Do not use `activity` as a wait or recovery command.** Activity is the ledger,
 not the work queue.
 
