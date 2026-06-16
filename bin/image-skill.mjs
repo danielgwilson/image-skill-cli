@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.52";
+const VERSION = "0.1.53";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -2776,7 +2776,7 @@ function createGuideBlocker(stage, input) {
     return {
       code: "auth_required",
       message:
-        "Sign up once with a durable agent contact before creating hosted media.",
+        "Sign up once before creating hosted media; --agent-contact is optional and can be attached later.",
     };
   }
   if (stage === "quota_required") {

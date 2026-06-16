@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.53 - 2026-06-16
+
+- Release (activation): align `create --guide` `auth_required` blocker copy
+  with anonymous signup semantics. Fresh agents are told to sign up once, with
+  `--agent-contact` optional and attachable later, instead of implying that a
+  durable contact inbox is required before hosted media creation. No auth
+  semantics, token storage, payment caps, provider routing, provider spend,
+  media spend, hosted deploy, or production write changed in this release bump.
+
 ## 0.1.52 - 2026-06-16
 
 - Release (activation/self-fund): publish the quota
