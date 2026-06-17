@@ -284,20 +284,20 @@ image-skill activity show EVENT_OR_JOB_OR_ASSET_OR_FEEDBACK
 After a successful hosted create/edit, prefer `data.next_actions` when present:
 `inspect_job` and `inspect_asset` are no-spend recovery commands,
 `iterate_edit` reuses the asset, and `self_fund` promotes a copy-runnable
-top-up quote command when `quota.top_up.recommended` is true. That handoff
-mirrors top-up `urgency`, `urgency_score`, and `urgency_reasons`, and exposes
-`first_safe_command` plus `first_safe_command_effect` for no-spend rail
-inspection before quote/buy. Its `quote_command` omits `--idempotency-key`; the
-public CLI generates and returns one for retry safety. Use `jobs show` or
-`jobs wait` for
+top-up quote command when `quota.top_up.available` is true. Its `recommended`
+flag and mirrored top-up `urgency`, `urgency_score`, and `urgency_reasons` say
+whether the agent should act now, while `first_safe_command` plus
+`first_safe_command_effect` support no-spend rail inspection before quote/buy.
+Its `quote_command` omits `--idempotency-key`; the public CLI generates and
+returns one for retry safety. Use `jobs show` or `jobs wait` for
 operational job state, final assets, and retry judgment. Use `activity` for
 audit trail context (recent jobs, assets, usage events, feedback acceptance,
 trace IDs, status changes) you can cite in feedback. `activity list/show` may
-also return `data.next_actions.self_fund` with the same urgency and no-spend
-inspection handoff when the ledger proves generated work and quota says top-up
-setup is recommended. `assets show` and hosted asset-id `assets get` may return
-the same `data.next_actions.self_fund` after generated work, so downloading or
-inspecting the asset does not hide the funding setup path.
+also return `data.next_actions.self_fund` with the same recommendation, urgency,
+and no-spend inspection handoff when the ledger proves generated work and quota
+exposes an available top-up path. `assets show` and hosted asset-id `assets get`
+may return the same `data.next_actions.self_fund` after generated work, so
+downloading or inspecting the asset does not hide the funding setup path.
 **Do not use `activity` as a wait or recovery command.** Activity is the ledger,
 not the work queue.
 

@@ -1603,14 +1603,15 @@ include a new generated asset URL, job id, safety state, quota consumption, and
 input asset metadata where
 applicable. Responses do not include raw prompts, source bytes, base64
 payloads, local paths, full external URLs, bucket names, or object keys.
-When `quota.top_up.recommended` is true, `next_actions.self_fund.quote_command`
-is a copy-runnable top-up quote command. `next_actions.self_fund` also mirrors
-top-up `urgency`, `urgency_score`, and `urgency_reasons`, and exposes
-`first_safe_command`, `first_safe_command_effect`, `inspect_methods_command`,
-and `inspect_packs_command` for no-spend payment rail inspection before
-quote/buy. The quote command omits `--idempotency-key` so the public CLI
-generates and returns one for retry safety before the agent follows the quote
-response into `credits buy` and `credits status`.
+When `quota.top_up.available` is true, `next_actions.self_fund.quote_command`
+is a copy-runnable top-up quote command. `next_actions.self_fund.recommended`
+and the mirrored top-up `urgency`, `urgency_score`, and `urgency_reasons` say
+whether the agent should act now. The handoff exposes `first_safe_command`,
+`first_safe_command_effect`, `inspect_methods_command`, and
+`inspect_packs_command` for no-spend payment rail inspection before quote/buy.
+The quote command omits `--idempotency-key` so the public CLI generates and
+returns one for retry safety before the agent follows the quote response into
+`credits buy` and `credits status`.
 
 Provider/model names in this paragraph are preview provenance, not the primary
 public UX. The public selection surface should be Image Skill capabilities and
@@ -1665,9 +1666,10 @@ Minimum success data:
 External URLs are rejected. Older assets created before hosted asset metadata
 was recorded may still be inspectable by Image Skill-owned URL.
 
-For hosted generated assets, when quota says top-up setup is recommended,
-`data.next_actions.self_fund` mirrors the top-up urgency and no-spend payment
-rail inspection handoff used by create/edit, jobs, and activity responses.
+For hosted generated assets, when quota exposes an available top-up path,
+`data.next_actions.self_fund` mirrors the top-up recommendation, urgency, and
+no-spend payment rail inspection handoff used by create/edit, jobs, and
+activity responses.
 
 ### `image-skill assets get`
 
@@ -1755,10 +1757,10 @@ related job IDs, asset IDs, usage IDs, feedback IDs, trace IDs, status changes,
 and product-memory writes. Use `jobs show` or `jobs wait` when you need
 operational recovery, polling, retry judgment, or final job assets.
 
-When the ledger proves generated work and current quota says top-up setup is
-recommended, `data.next_actions.self_fund` mirrors the same urgency and
-no-spend payment-method inspection handoff returned by successful create/edit
-and `jobs show`.
+When the ledger proves generated work and current quota exposes an available
+top-up path, `data.next_actions.self_fund` mirrors the same recommendation,
+urgency, and no-spend payment-method inspection handoff returned by successful
+create/edit and `jobs show`.
 
 Minimum success data:
 
@@ -1816,9 +1818,10 @@ image-skill activity show sig_... --json
 `activity show` accepts activity event IDs plus job, asset, usage, feedback, and
 trace references. When the reference is a subject rather than one exact event,
 the response includes matching ledger events so an agent can cite the right
-event without reading telemetry logs. When current quota recommends top-up
-setup after generated work, `data.next_actions.self_fund.first_safe_command`
-is the no-spend rail inspection command to run before any quote/buy step.
+event without reading telemetry logs. When current quota exposes top-up
+availability after generated work,
+`data.next_actions.self_fund.first_safe_command` is the no-spend rail
+inspection command to run before any quote/buy step.
 
 Hosted API equivalent:
 
