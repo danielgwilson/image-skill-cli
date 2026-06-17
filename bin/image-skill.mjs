@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.60";
+const VERSION = "0.1.61";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1296,7 +1296,10 @@ async function credits(argv) {
         idempotency_key: idempotency.value,
       },
     });
-    return withStripeCheckoutCopyFallback(result);
+    return withCopyRunnablePaymentNextActionCommands(
+      withStripeCheckoutCopyFallback(result),
+      createGuideCommandPrefix(),
+    );
   }
   if (subcommand === "status") {
     const args = parseArgs(rest);
@@ -1316,7 +1319,10 @@ async function credits(argv) {
       path: `/v1/credit-purchases/status?${query.toString()}`,
       token: token.token,
     });
-    return withStripeCheckoutCopyFallback(result);
+    return withCopyRunnablePaymentNextActionCommands(
+      withStripeCheckoutCopyFallback(result),
+      createGuideCommandPrefix(),
+    );
   }
   return invalid(
     "image-skill credits",
@@ -2779,6 +2785,115 @@ function withCopyRunnableCreditQuoteCommands(result, commandPrefix) {
       data: creditQuoteWithCopyRunnableCommands(data, commandPrefix),
     },
   };
+}
+
+function withCopyRunnablePaymentNextActionCommands(result, commandPrefix) {
+  const data = result.envelope.data;
+  if (
+    !result.envelope.ok ||
+    data === null ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
+    return result;
+  }
+  const updated = paymentNextActionsWithCopyRunnableCommands(
+    data,
+    commandPrefix,
+  );
+  if (updated === data) {
+    return result;
+  }
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      data: updated,
+    },
+  };
+}
+
+function paymentNextActionsWithCopyRunnableCommands(data, commandPrefix) {
+  if (
+    data.next_actions === null ||
+    typeof data.next_actions !== "object" ||
+    Array.isArray(data.next_actions)
+  ) {
+    return data;
+  }
+  let changed = false;
+  const nextActions = { ...data.next_actions };
+
+  if (
+    nextActions.recommended_buy !== null &&
+    typeof nextActions.recommended_buy === "object" &&
+    !Array.isArray(nextActions.recommended_buy)
+  ) {
+    const recommendedBuy = { ...nextActions.recommended_buy };
+    changed =
+      renderPaymentActionCommandField(
+        recommendedBuy,
+        "command",
+        commandPrefix,
+      ) || changed;
+    changed =
+      renderPaymentActionCommandField(
+        recommendedBuy,
+        "buy_command",
+        commandPrefix,
+      ) || changed;
+    changed =
+      renderPaymentActionCommandField(
+        recommendedBuy,
+        "status_command",
+        commandPrefix,
+      ) || changed;
+    changed =
+      renderPaymentActionCommandField(
+        recommendedBuy,
+        "status_command_after_payment",
+        commandPrefix,
+      ) || changed;
+    nextActions.recommended_buy = recommendedBuy;
+  }
+
+  if (
+    nextActions.recommended_settlement !== null &&
+    typeof nextActions.recommended_settlement === "object" &&
+    !Array.isArray(nextActions.recommended_settlement)
+  ) {
+    const recommendedSettlement = { ...nextActions.recommended_settlement };
+    changed =
+      renderPaymentActionCommandField(
+        recommendedSettlement,
+        "status_command",
+        commandPrefix,
+      ) || changed;
+    changed =
+      renderPaymentActionCommandField(
+        recommendedSettlement,
+        "quota_command",
+        commandPrefix,
+      ) || changed;
+    nextActions.recommended_settlement = recommendedSettlement;
+  }
+
+  return changed ? { ...data, next_actions: nextActions } : data;
+}
+
+function renderPaymentActionCommandField(record, field, commandPrefix) {
+  if (typeof record[field] !== "string") {
+    return false;
+  }
+  const rendered = renderCopyRunnablePaymentCommand(
+    commandPrefix,
+    record[field],
+  );
+  if (rendered === record[field]) {
+    return false;
+  }
+  record[field] = rendered;
+  return true;
 }
 
 function creditQuoteWithCopyRunnableCommands(quote, commandPrefix) {

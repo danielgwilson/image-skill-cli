@@ -665,6 +665,12 @@ Use `data.next_actions.recommended_buy.status_command` to inspect the quote or
 payment state by `quote_id`; after buy returns a `payment_attempt_id`, prefer
 `status_command_after_payment`.
 
+When `credits status --quote-id quote_... --json` sees an open
+`stripe_x402.exact.usdc` or `stripe_checkout` quote, it repeats the exact
+`data.next_actions.recommended_buy` command with the real `quote_id` and
+`purchase:quote_...` idempotency key so agents do not need to reconstruct the
+buy step from placeholders.
+
 Hosted API equivalent:
 
 ```bash
@@ -741,6 +747,22 @@ Minimum x402 action-required data:
       "payment_intent_id": "[redacted-stripe-payment-intent]",
       "deposit_address": "[redacted-stripe-crypto-deposit-address]",
       "client_secret": "[redacted-stripe-client-secret]"
+    }
+  },
+  "next_actions": {
+    "recommended_settlement": {
+      "purpose": "settle_stripe_x402_credit_top_up",
+      "quote_id": "quote_...",
+      "payment_attempt_id": "payatt_...",
+      "method_id": "stripe_x402.exact.usdc",
+      "payable_instructions_path": "data.stripe_x402.payable_instructions",
+      "status_command": "image-skill credits status --payment-attempt-id payatt_... --json",
+      "quota_command": "image-skill usage quota --json",
+      "command_effect": {
+        "wallet_settlement": true,
+        "credit_debit": false,
+        "media_write": false
+      }
     }
   },
   "next": {
@@ -841,6 +863,12 @@ image-skill credits status \
 At most one reference flag is allowed: `--quote-id`,
 `--payment-attempt-id`, `--checkout-session-id`, or `--receipt-id`. Passing no
 reference returns the balance/quota state.
+
+For Stripe x402 attempts that are still `action_required`, status responses
+include `data.next_actions.recommended_settlement` with the same exact Base/USDC
+payable instructions, a copy-runnable status command for the real
+`payment_attempt_id`, and explicit effect flags showing this is wallet
+settlement, not credit debit, media write, or provider generation work.
 
 Minimum action-required data:
 

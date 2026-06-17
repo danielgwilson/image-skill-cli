@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.61 - 2026-06-17
+
+- Release (activation/self-fund): add payment-attempt continuation actions.
+  `credits status --quote-id ...` now repeats the exact
+  `data.next_actions.recommended_buy` command for open x402/Checkout quotes,
+  and Stripe x402 buy/status responses expose
+  `data.next_actions.recommended_settlement` with exact payable-instruction
+  paths, status/quota commands, and wallet-settlement safety flags.
+
 ## 0.1.60 - 2026-06-17
 
 - Release (activation/self-fund): add `credits quote --json`
