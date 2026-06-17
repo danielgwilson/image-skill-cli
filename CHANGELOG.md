@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.63 - 2026-06-17
+
+- Release (activation/self-fund): make quota/payment error recovery top-up
+  commands copy-runnable from ephemeral `npx image-skill@latest` runs. When
+  hosted create/edit or payment commands return `error.recovery.top_up`, the
+  public CLI now prefixes `suggested_command`, `suggested_commands`,
+  `top_up.first_command`, `top_up.quote_command`, nested `top_up.commands.*`,
+  and workflow step commands with the same zero-install handoff used by
+  `usage quota --json` and `create --guide`.
+
 ## 0.1.62 - 2026-06-17
 
 - Release (activation/self-fund): make `usage quota --json` top-up handoffs
