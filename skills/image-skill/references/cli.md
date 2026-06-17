@@ -623,14 +623,47 @@ Minimum success data:
   "idempotency_key": "quote-run-001",
   "pack_id": null,
   "pack": null,
-  "live_money": true
+  "live_money": true,
+  "next_actions": {
+    "recommended_buy": {
+      "purpose": "complete_credit_top_up",
+      "recommendation_reason": "human_checkout_handoff",
+      "quote_id": "quote_...",
+      "method_id": "stripe_checkout",
+      "provider": "stripe",
+      "command": "image-skill credits buy --provider stripe --quote-id quote_... --idempotency-key purchase:quote_... --json",
+      "buy_command_copy_runnable": true,
+      "purchase_idempotency_key": "purchase:quote_...",
+      "status_command": "image-skill credits status --quote-id quote_... --json",
+      "status_command_copy_runnable": true,
+      "status_command_after_payment": "image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json",
+      "status_command_after_payment_copy_runnable": false,
+      "requires_auth": true,
+      "live_money": true,
+      "requires_browser": true,
+      "agent_settleable": false,
+      "human_handoff_required": true,
+      "command_effect": {
+        "label": "live_money_payment_attempt_requires_completion",
+        "no_spend": false,
+        "payment_attempt": true,
+        "credit_debit": false,
+        "media_write": false,
+        "wallet_settlement": false
+      }
+    }
+  }
 }
 ```
 
 For x402 quotes, `accepted_payment_method` is
 `"stripe_x402.exact.usdc"`. The quote does not grant credits or include pay-to
-instructions; `credits buy --provider stripe_x402` creates the action-required
-deposit challenge.
+instructions; `data.next_actions.recommended_buy.command` carries the returned
+`quote_id` and a stable non-secret purchase idempotency key for the
+action-required deposit attempt. Run it only when delegated spend is allowed.
+Use `data.next_actions.recommended_buy.status_command` to inspect the quote or
+payment state by `quote_id`; after buy returns a `payment_attempt_id`, prefer
+`status_command_after_payment`.
 
 Hosted API equivalent:
 

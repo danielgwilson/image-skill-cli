@@ -178,6 +178,13 @@ that action's `command` as the next authenticated quote step. It is the ranked
 handoff to the best currently usable rail. The quote command creates a
 live-money payment object but does not move money, grant credits, debit
 credits, call a provider, or write media.
+After the quote succeeds, prefer
+`data.next_actions.recommended_buy.command`: it includes the returned
+`quote_id` and a stable non-secret purchase idempotency key. For x402 this
+creates the browserless deposit attempt whose response contains pay-to
+instructions; for Checkout this creates the human handoff URL. Use the quote
+response's `status_command` to inspect by `quote_id`, and after buy returns a
+`payment_attempt_id`, prefer `status_command_after_payment`.
 
 Credits are not granted until verified settlement or webhook fulfillment succeeds in either rail. Operator-provided promotion codes are entered on Stripe-hosted Checkout, not in the CLI. For exact bounded budgets, keep the same rail choice: use `credits quote --credits CREDITS --payment-method stripe_x402.exact.usdc` when the method is agent-settleable, and use `--payment-method stripe_checkout` only for a human Checkout fallback.
 

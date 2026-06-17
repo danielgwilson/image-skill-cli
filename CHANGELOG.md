@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.60 - 2026-06-17
+
+- Release (activation/self-fund): add `credits quote --json`
+  `data.next_actions.recommended_buy`, carrying the returned `quote_id`, a
+  stable purchase idempotency key, copy-runnable buy/status commands, and
+  explicit live-money payment-attempt safety fields. Quote remains no-credit
+  and no-media; buy still requires delegated spend and verified
+  settlement/webhook fulfillment before credits are granted.
+
 ## 0.1.59 - 2026-06-17
 
 - Release (activation/self-fund): add

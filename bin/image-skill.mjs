@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.59";
+const VERSION = "0.1.60";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1241,7 +1241,10 @@ async function credits(argv) {
         `generated idempotency key ${idempotency.value}; pass --idempotency-key for stable retries`,
       );
     }
-    return result;
+    return withCopyRunnableCreditQuoteCommands(
+      result,
+      createGuideCommandPrefix(),
+    );
   }
   if (subcommand === "buy") {
     const args = parseArgs(rest);
@@ -2756,6 +2759,73 @@ function paymentMethodCatalogWithCopyRunnableCommands(catalog, commandPrefix) {
                 },
         }))
       : catalog.methods,
+  };
+}
+
+function withCopyRunnableCreditQuoteCommands(result, commandPrefix) {
+  const data = result.envelope.data;
+  if (
+    data === null ||
+    typeof data !== "object" ||
+    data.next_actions === null ||
+    typeof data.next_actions !== "object"
+  ) {
+    return result;
+  }
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      data: creditQuoteWithCopyRunnableCommands(data, commandPrefix),
+    },
+  };
+}
+
+function creditQuoteWithCopyRunnableCommands(quote, commandPrefix) {
+  const recommendedBuy =
+    quote.next_actions?.recommended_buy !== null &&
+    typeof quote.next_actions?.recommended_buy === "object"
+      ? quote.next_actions.recommended_buy
+      : null;
+  if (recommendedBuy === null) {
+    return quote;
+  }
+  return {
+    ...quote,
+    next_actions: {
+      ...quote.next_actions,
+      recommended_buy: {
+        ...recommendedBuy,
+        command:
+          typeof recommendedBuy.command === "string"
+            ? renderCopyRunnablePaymentCommand(
+                commandPrefix,
+                recommendedBuy.command,
+              )
+            : recommendedBuy.command,
+        buy_command:
+          typeof recommendedBuy.buy_command === "string"
+            ? renderCopyRunnablePaymentCommand(
+                commandPrefix,
+                recommendedBuy.buy_command,
+              )
+            : recommendedBuy.buy_command,
+        status_command:
+          typeof recommendedBuy.status_command === "string"
+            ? renderCopyRunnablePaymentCommand(
+                commandPrefix,
+                recommendedBuy.status_command,
+              )
+            : recommendedBuy.status_command,
+        status_command_after_payment:
+          typeof recommendedBuy.status_command_after_payment === "string"
+            ? renderCopyRunnablePaymentCommand(
+                commandPrefix,
+                recommendedBuy.status_command_after_payment,
+              )
+            : recommendedBuy.status_command_after_payment,
+      },
+    },
   };
 }
 
