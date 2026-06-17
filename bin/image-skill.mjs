@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.61";
+const VERSION = "0.1.62";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -1746,16 +1746,22 @@ async function createGuide(args, options = {}) {
     maxEstimatedUsdPerImage ??
     estimatedDebitUsdPerImage ??
     (estimatedCredits === null ? 0.07 : estimatedCredits / 100);
+  const quotaCommandPrefix = createGuideCommandPrefix({
+    configPath: configuredImageSkillConfigPath(),
+  });
   const quota =
     token.token === null
       ? null
-      : await apiRequest({
-          command: "image-skill create --guide",
-          method: "GET",
-          apiBaseUrl,
-          path: "/v1/quota",
-          token: token.token,
-        });
+      : withQuotaNextActions(
+          await apiRequest({
+            command: "image-skill create --guide",
+            method: "GET",
+            apiBaseUrl,
+            path: "/v1/quota",
+            token: token.token,
+          }),
+          quotaCommandPrefix,
+        );
   const authenticated = quota?.envelope.data?.authenticated === true;
   const publicTokenSource =
     token.source === "anonymous" ? "none" : token.source;
@@ -6341,7 +6347,10 @@ function withCommand(result, command) {
   };
 }
 
-function withQuotaNextActions(result) {
+function withQuotaNextActions(
+  result,
+  commandPrefix = createGuideCommandPrefix(),
+) {
   const data = result.envelope?.data;
   if (
     result.envelope?.ok !== true ||
@@ -6350,19 +6359,81 @@ function withQuotaNextActions(result) {
   ) {
     return result;
   }
-  const nextActions = quotaTopUpNextActions(data.top_up);
+  const quotaData = quotaDataWithCopyRunnableTopUpCommands(data, commandPrefix);
+  const nextActions = quotaTopUpNextActions(quotaData.top_up);
   if (nextActions === null) {
-    return result;
+    return quotaData === data
+      ? result
+      : {
+          ...result,
+          envelope: {
+            ...result.envelope,
+            data: quotaData,
+          },
+        };
   }
   return {
     ...result,
     envelope: {
       ...result.envelope,
       data: {
-        ...data,
+        ...quotaData,
         next_actions: nextActions,
       },
     },
+  };
+}
+
+function quotaDataWithCopyRunnableTopUpCommands(data, commandPrefix) {
+  if (data.top_up === undefined || data.top_up === null) {
+    return data;
+  }
+  const topUp = quotaTopUpWithCopyRunnableCommands(data.top_up, commandPrefix);
+  return topUp === data.top_up ? data : { ...data, top_up: topUp };
+}
+
+function quotaTopUpWithCopyRunnableCommands(topUp, commandPrefix) {
+  const commands = topUp.commands;
+  const workflow = topUp.workflow;
+  if (topUp === null || typeof topUp !== "object") {
+    return topUp;
+  }
+  const render = (command) =>
+    renderCopyRunnablePaymentCommand(commandPrefix, command);
+  const renderIfString = (value) =>
+    typeof value === "string" ? render(value) : value;
+  return {
+    ...topUp,
+    first_command: renderIfString(topUp.first_command),
+    quote_command: renderIfString(topUp.quote_command),
+    commands:
+      commands !== null && typeof commands === "object"
+        ? {
+            ...commands,
+            inspect_methods: renderIfString(commands.inspect_methods),
+            inspect_packs: renderIfString(commands.inspect_packs),
+            quote: renderIfString(commands.quote),
+            buy: renderIfString(commands.buy),
+            status: renderIfString(commands.status),
+            fallback_quote: renderIfString(commands.fallback_quote),
+            fallback_buy: renderIfString(commands.fallback_buy),
+          }
+        : commands,
+    workflow:
+      workflow !== null &&
+      typeof workflow === "object" &&
+      Array.isArray(workflow.steps)
+        ? {
+            ...workflow,
+            steps: workflow.steps.map((step) =>
+              step !== null &&
+              typeof step === "object" &&
+              typeof step.command === "string"
+                ? { ...step, command: render(step.command) }
+                : step,
+            ),
+          }
+        : workflow,
   };
 }
 

@@ -4,6 +4,14 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.62 - 2026-06-17
+
+- Release (activation/self-fund): make `usage quota --json` top-up handoffs
+  copy-runnable from ephemeral `npx image-skill@latest` runs. Quota
+  `top_up`, generated `next_actions.self_fund`, and create-guide embedded
+  quota top-up commands now carry the public handoff prefix instead of bare
+  `image-skill ...` commands.
+
 ## 0.1.61 - 2026-06-17
 
 - Release (activation/self-fund): add payment-attempt continuation actions.
