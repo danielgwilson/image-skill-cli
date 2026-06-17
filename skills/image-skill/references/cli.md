@@ -421,6 +421,29 @@ Minimum success data shape:
   "quote_endpoint": "/v1/credit-quotes",
   "packs_endpoint": "/v1/credit-packs",
   "status_endpoint": "/v1/credit-purchases/status",
+  "next_actions": {
+    "recommended_quote": {
+      "purpose": "quote_credit_top_up",
+      "recommendation_reason": "browserless_agent_self_fund",
+      "method_id": "stripe_x402.exact.usdc",
+      "pack_id": "starter-500",
+      "command": "image-skill credits quote --pack starter-500 --payment-method stripe_x402.exact.usdc --json",
+      "quote_command_copy_runnable": true,
+      "buy_command": "image-skill credits buy --provider stripe_x402 --quote-id QUOTE_ID --idempotency-key KEY --json",
+      "status_command": "image-skill credits status --payment-attempt-id PAYMENT_ATTEMPT_ID --json",
+      "requires_auth": true,
+      "live_money": true,
+      "requires_browser": false,
+      "agent_settleable": true,
+      "command_effect": {
+        "label": "live_money_quote_no_charge",
+        "no_spend": true,
+        "payment_object": true,
+        "credit_debit": false,
+        "media_write": false
+      }
+    }
+  },
   "methods": [
     {
       "method_id": "stripe_checkout",
@@ -460,7 +483,10 @@ Public payment discovery is intentionally action-first. Limited-rollout rails
 may be returned with `available:false`, `quoteable:false`, `purchasable:false`,
 and a non-null `unavailable_reason` so headless agents can understand the path
 without trying it. Use a method only when it is returned with `available:true`,
-`quoteable:true`, and `purchasable:true`.
+`quoteable:true`, and `purchasable:true`. When
+`next_actions.recommended_quote` is present, prefer its `command` as the next
+authenticated quote step; it creates a live-money payment object but does not
+move money, grant credits, debit credits, call a provider, or write media.
 
 Hosted API equivalent:
 

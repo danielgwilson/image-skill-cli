@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.59 - 2026-06-17
+
+- Release (activation/self-fund): add
+  `credits methods --json` `data.next_actions.recommended_quote`, a ranked
+  copy-runnable quote handoff that prefers browserless agent-settleable x402
+  when available and falls back to Stripe Checkout when that is the only usable
+  live rail. The quote step is explicitly no-spend: it creates a live-money
+  payment object but does not move money, grant credits, debit credits, call a
+  provider, or write media.
+
 ## 0.1.58 - 2026-06-17
 
 - Release (activation/self-fund): mirror top-up urgency and the no-spend

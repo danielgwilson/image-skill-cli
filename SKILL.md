@@ -173,6 +173,12 @@ One Image Skill credit is `$0.01`. Operation debits are model-priced, not flat. 
 | Same rail with `agent_settleable:false` but `purchasable:true`                                                                              | The rail is quoteable but settlement still needs a wallet substrate you do not have. Skip to Stripe Checkout.                                                                                                                                                  |
 | Only `stripe_checkout` available                                                                                                            | Quote with `--payment-method stripe_checkout`, then `credits buy --provider stripe` returns `checkout_handoff_url`. Hand that URL to a human sponsor. Do not strip the Stripe `#...` fragment if you fall back to the full `checkout_url`.                     |
 
+If `credits methods --json` returns `data.next_actions.recommended_quote`, use
+that action's `command` as the next authenticated quote step. It is the ranked
+handoff to the best currently usable rail. The quote command creates a
+live-money payment object but does not move money, grant credits, debit
+credits, call a provider, or write media.
+
 Credits are not granted until verified settlement or webhook fulfillment succeeds in either rail. Operator-provided promotion codes are entered on Stripe-hosted Checkout, not in the CLI. For exact bounded budgets, keep the same rail choice: use `credits quote --credits CREDITS --payment-method stripe_x402.exact.usdc` when the method is agent-settleable, and use `--payment-method stripe_checkout` only for a human Checkout fallback.
 
 At any guide stage, read `data.checks.quota.top_up`: when `recommended` is

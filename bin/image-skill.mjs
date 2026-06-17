@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.58";
+const VERSION = "0.1.59";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -2675,8 +2675,55 @@ function withCopyRunnablePaymentMethodCommands(result, commandPrefix) {
 }
 
 function paymentMethodCatalogWithCopyRunnableCommands(catalog, commandPrefix) {
+  const nextActions =
+    catalog.next_actions !== null && typeof catalog.next_actions === "object"
+      ? catalog.next_actions
+      : null;
+  const recommendedQuote =
+    nextActions?.recommended_quote !== null &&
+    typeof nextActions?.recommended_quote === "object"
+      ? nextActions.recommended_quote
+      : null;
   return {
     ...catalog,
+    ...(recommendedQuote === null
+      ? {}
+      : {
+          next_actions: {
+            ...nextActions,
+            recommended_quote: {
+              ...recommendedQuote,
+              command:
+                typeof recommendedQuote.command === "string"
+                  ? renderCopyRunnablePaymentCommand(
+                      commandPrefix,
+                      recommendedQuote.command,
+                    )
+                  : recommendedQuote.command,
+              quote_command:
+                typeof recommendedQuote.quote_command === "string"
+                  ? renderCopyRunnablePaymentCommand(
+                      commandPrefix,
+                      recommendedQuote.quote_command,
+                    )
+                  : recommendedQuote.quote_command,
+              buy_command:
+                typeof recommendedQuote.buy_command === "string"
+                  ? renderCopyRunnablePaymentCommand(
+                      commandPrefix,
+                      recommendedQuote.buy_command,
+                    )
+                  : recommendedQuote.buy_command,
+              status_command:
+                typeof recommendedQuote.status_command === "string"
+                  ? renderCopyRunnablePaymentCommand(
+                      commandPrefix,
+                      recommendedQuote.status_command,
+                    )
+                  : recommendedQuote.status_command,
+            },
+          },
+        }),
     methods: Array.isArray(catalog.methods)
       ? catalog.methods.map((method) => ({
           ...method,
