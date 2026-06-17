@@ -15,7 +15,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import os from "node:os";
 
-const VERSION = "0.1.64";
+const VERSION = "0.1.65";
 const PACKAGE_NAME = "image-skill";
 const DEFAULT_API_BASE_URL = "https://api.image-skill.com";
 const DEFAULT_DOCS_BASE_URL = "https://image-skill.com";
@@ -2829,14 +2829,38 @@ function withCopyRunnablePaymentNextActionCommands(result, commandPrefix) {
 }
 
 function paymentNextActionsWithCopyRunnableCommands(data, commandPrefix) {
+  let changed = false;
+  let updated = data;
+
+  if (
+    data.quota !== null &&
+    typeof data.quota === "object" &&
+    !Array.isArray(data.quota) &&
+    data.quota.top_up !== null &&
+    typeof data.quota.top_up === "object" &&
+    !Array.isArray(data.quota.top_up)
+  ) {
+    updated = {
+      ...updated,
+      quota: {
+        ...data.quota,
+        top_up: quotaTopUpWithCopyRunnableCommands(
+          data.quota.top_up,
+          commandPrefix,
+        ),
+      },
+    };
+    changed = true;
+  }
+
   if (
     data.next_actions === null ||
     typeof data.next_actions !== "object" ||
     Array.isArray(data.next_actions)
   ) {
-    return data;
+    return changed ? updated : data;
   }
-  let changed = false;
+
   const nextActions = { ...data.next_actions };
 
   if (
@@ -2893,7 +2917,18 @@ function paymentNextActionsWithCopyRunnableCommands(data, commandPrefix) {
     nextActions.recommended_settlement = recommendedSettlement;
   }
 
-  return changed ? { ...data, next_actions: nextActions } : data;
+  if (
+    nextActions.self_fund !== null &&
+    typeof nextActions.self_fund === "object" &&
+    !Array.isArray(nextActions.self_fund)
+  ) {
+    const selfFund = { ...nextActions.self_fund };
+    changed =
+      renderSelfFundActionCommandFields(selfFund, commandPrefix) || changed;
+    nextActions.self_fund = selfFund;
+  }
+
+  return changed ? { ...updated, next_actions: nextActions } : data;
 }
 
 function renderPaymentActionCommandField(record, field, commandPrefix) {
@@ -2909,6 +2944,57 @@ function renderPaymentActionCommandField(record, field, commandPrefix) {
   }
   record[field] = rendered;
   return true;
+}
+
+function renderSelfFundActionCommandFields(record, commandPrefix) {
+  let changed = false;
+  for (const field of [
+    "first_safe_command",
+    "inspect_methods_command",
+    "inspect_packs_command",
+    "quote_command",
+    "buy_command",
+    "status_command",
+    "fallback_quote_command",
+    "fallback_buy_command",
+  ]) {
+    changed =
+      renderPaymentActionCommandField(record, field, commandPrefix) || changed;
+  }
+
+  if (
+    record.workflow !== null &&
+    typeof record.workflow === "object" &&
+    !Array.isArray(record.workflow) &&
+    Array.isArray(record.workflow.steps)
+  ) {
+    let workflowChanged = false;
+    const steps = record.workflow.steps.map((step) => {
+      if (
+        step === null ||
+        typeof step !== "object" ||
+        Array.isArray(step) ||
+        typeof step.command !== "string"
+      ) {
+        return step;
+      }
+      const command = renderCopyRunnablePaymentCommand(
+        commandPrefix,
+        step.command,
+      );
+      if (command === step.command) {
+        return step;
+      }
+      workflowChanged = true;
+      return { ...step, command };
+    });
+    if (workflowChanged) {
+      record.workflow = { ...record.workflow, steps };
+      changed = true;
+    }
+  }
+
+  return changed;
 }
 
 function creditQuoteWithCopyRunnableCommands(quote, commandPrefix) {
@@ -4057,50 +4143,56 @@ async function create(argv) {
         argv,
       })
     : null;
-  const result = withCopyRunnableQuotaRecoveryCommands(
-    await apiRequest({
-      command: "image-skill create",
-      method: "POST",
-      apiBaseUrl: apiBase(args),
-      path: "/v1/create",
-      ...(token.token === null ? {} : { token: token.token }),
-      body: {
-        prompt: prompt.value,
-        ...(flagString(args, "provider") === null
-          ? {}
-          : { provider: flagString(args, "provider") }),
-        ...(flagString(args, "model") === null
-          ? {}
-          : { model: flagString(args, "model") }),
-        ...(flagString(args, "intent") === null
-          ? {}
-          : { intent: flagString(args, "intent") }),
-        aspect_ratio: flagString(args, "aspect-ratio") ?? "1:1",
-        ...(references.references.length === 0
-          ? {}
-          : { references: references.references }),
-        ...(outputCount.value === null
-          ? {}
-          : { output_count: outputCount.value }),
-        ...(flagNumber(args, "max-estimated-usd-per-image") === null
-          ? {}
-          : {
-              max_estimated_usd_per_image: flagNumber(
-                args,
-                "max-estimated-usd-per-image",
-              ),
-            }),
-        ...(modelParameters.value === null
-          ? {}
-          : { model_parameters: modelParameters.value }),
-        // Retry-safe dedupe (#1228/#1789): a live create always carries a key so a
-        // retry (or an interrupted-then-recovered run) dedupes to one charge.
-        ...(idempotencyKey === null ? {} : { idempotency_key: idempotencyKey }),
-        dry_run: flagBool(args, "dry-run"),
-        accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
-      },
-    }),
-    createGuideCommandPrefix(),
+  const commandPrefix = createGuideCommandPrefix();
+  const result = withCopyRunnablePaymentNextActionCommands(
+    withCopyRunnableQuotaRecoveryCommands(
+      await apiRequest({
+        command: "image-skill create",
+        method: "POST",
+        apiBaseUrl: apiBase(args),
+        path: "/v1/create",
+        ...(token.token === null ? {} : { token: token.token }),
+        body: {
+          prompt: prompt.value,
+          ...(flagString(args, "provider") === null
+            ? {}
+            : { provider: flagString(args, "provider") }),
+          ...(flagString(args, "model") === null
+            ? {}
+            : { model: flagString(args, "model") }),
+          ...(flagString(args, "intent") === null
+            ? {}
+            : { intent: flagString(args, "intent") }),
+          aspect_ratio: flagString(args, "aspect-ratio") ?? "1:1",
+          ...(references.references.length === 0
+            ? {}
+            : { references: references.references }),
+          ...(outputCount.value === null
+            ? {}
+            : { output_count: outputCount.value }),
+          ...(flagNumber(args, "max-estimated-usd-per-image") === null
+            ? {}
+            : {
+                max_estimated_usd_per_image: flagNumber(
+                  args,
+                  "max-estimated-usd-per-image",
+                ),
+              }),
+          ...(modelParameters.value === null
+            ? {}
+            : { model_parameters: modelParameters.value }),
+          // Retry-safe dedupe (#1228/#1789): a live create always carries a key so a
+          // retry (or an interrupted-then-recovered run) dedupes to one charge.
+          ...(idempotencyKey === null
+            ? {}
+            : { idempotency_key: idempotencyKey }),
+          dry_run: flagBool(args, "dry-run"),
+          accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
+        },
+      }),
+      commandPrefix,
+    ),
+    commandPrefix,
   );
   await clearInFlightSpendForResult(inFlight, result);
   return result;
@@ -4194,47 +4286,55 @@ async function edit(argv) {
         argv,
       })
     : null;
-  const result = withCopyRunnableQuotaRecoveryCommands(
-    await apiRequest({
-      command: "image-skill edit",
-      method: "POST",
-      apiBaseUrl: apiBase(args),
-      path: "/v1/edit",
-      token: token.token,
-      body: {
-        input_asset_id: assetId.assetId,
-        ...(maskAssetId === null ? {} : { mask_asset_id: maskAssetId.assetId }),
-        ...(references.references.length === 0
-          ? {}
-          : { references: references.references }),
-        ...(prompt.value.length === 0 ? {} : { prompt: prompt.value }),
-        ...(flagString(args, "provider") === null
-          ? {}
-          : { provider: flagString(args, "provider") }),
-        ...(modelId === null ? {} : { model: modelId }),
-        ...(flagString(args, "intent") === null
-          ? {}
-          : { intent: flagString(args, "intent") }),
-        aspect_ratio: flagString(args, "aspect-ratio") ?? "auto",
-        ...(flagNumber(args, "max-estimated-usd-per-image") === null
-          ? {}
-          : {
-              max_estimated_usd_per_image: flagNumber(
-                args,
-                "max-estimated-usd-per-image",
-              ),
-            }),
-        ...(modelParameters.value === null
-          ? {}
-          : { model_parameters: modelParameters.value }),
-        ...(flagBool(args, "dry-run") ? { dry_run: true } : {}),
-        // Retry-safe dedupe (#1228/#1789): a live edit always carries a key so a
-        // retry (or an interrupted-then-recovered run) dedupes to one charge.
-        ...(idempotencyKey === null ? {} : { idempotency_key: idempotencyKey }),
-        accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
-      },
-    }),
-    createGuideCommandPrefix(),
+  const commandPrefix = createGuideCommandPrefix();
+  const result = withCopyRunnablePaymentNextActionCommands(
+    withCopyRunnableQuotaRecoveryCommands(
+      await apiRequest({
+        command: "image-skill edit",
+        method: "POST",
+        apiBaseUrl: apiBase(args),
+        path: "/v1/edit",
+        token: token.token,
+        body: {
+          input_asset_id: assetId.assetId,
+          ...(maskAssetId === null
+            ? {}
+            : { mask_asset_id: maskAssetId.assetId }),
+          ...(references.references.length === 0
+            ? {}
+            : { references: references.references }),
+          ...(prompt.value.length === 0 ? {} : { prompt: prompt.value }),
+          ...(flagString(args, "provider") === null
+            ? {}
+            : { provider: flagString(args, "provider") }),
+          ...(modelId === null ? {} : { model: modelId }),
+          ...(flagString(args, "intent") === null
+            ? {}
+            : { intent: flagString(args, "intent") }),
+          aspect_ratio: flagString(args, "aspect-ratio") ?? "auto",
+          ...(flagNumber(args, "max-estimated-usd-per-image") === null
+            ? {}
+            : {
+                max_estimated_usd_per_image: flagNumber(
+                  args,
+                  "max-estimated-usd-per-image",
+                ),
+              }),
+          ...(modelParameters.value === null
+            ? {}
+            : { model_parameters: modelParameters.value }),
+          ...(flagBool(args, "dry-run") ? { dry_run: true } : {}),
+          // Retry-safe dedupe (#1228/#1789): a live edit always carries a key so a
+          // retry (or an interrupted-then-recovered run) dedupes to one charge.
+          ...(idempotencyKey === null
+            ? {}
+            : { idempotency_key: idempotencyKey }),
+          accept_unknown_cost: flagBool(args, "accept-unknown-cost"),
+        },
+      }),
+      commandPrefix,
+    ),
+    commandPrefix,
   );
   await clearInFlightSpendForResult(inFlight, result);
   return result;
@@ -4259,22 +4359,28 @@ async function assets(argv) {
     return token.result;
   }
   if (subcommand === "show") {
-    return apiRequest({
-      command: "image-skill assets show",
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: `/v1/assets/${encodeURIComponent(assetId)}`,
-      token: token.token,
-    });
+    return withCopyRunnablePaymentNextActionCommands(
+      await apiRequest({
+        command: "image-skill assets show",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: `/v1/assets/${encodeURIComponent(assetId)}`,
+        token: token.token,
+      }),
+      createGuideCommandPrefix(),
+    );
   }
   if (subcommand === "get") {
-    const shown = await apiRequest({
-      command: "image-skill assets get",
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: `/v1/assets/${encodeURIComponent(assetId)}`,
-      token: token.token,
-    });
+    const shown = withCopyRunnablePaymentNextActionCommands(
+      await apiRequest({
+        command: "image-skill assets get",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: `/v1/assets/${encodeURIComponent(assetId)}`,
+        token: token.token,
+      }),
+      createGuideCommandPrefix(),
+    );
     if (!shown.envelope.ok) {
       return shown;
     }
@@ -4315,26 +4421,32 @@ async function jobs(argv) {
     return token.result;
   }
   if (subcommand === "show") {
-    return apiRequest({
-      command: "image-skill jobs show",
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: `/v1/jobs/${encodeURIComponent(jobId)}`,
-      token: token.token,
-    });
+    return withCopyRunnablePaymentNextActionCommands(
+      await apiRequest({
+        command: "image-skill jobs show",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: `/v1/jobs/${encodeURIComponent(jobId)}`,
+        token: token.token,
+      }),
+      createGuideCommandPrefix(),
+    );
   }
   if (subcommand === "wait") {
     const timeoutMs = flagNumber(args, "timeout-ms") ?? 30_000;
     const pollIntervalMs = flagNumber(args, "poll-interval-ms") ?? 1_000;
     const started = Date.now();
     while (Date.now() - started <= timeoutMs) {
-      const current = await apiRequest({
-        command: "image-skill jobs wait",
-        method: "GET",
-        apiBaseUrl: apiBase(args),
-        path: `/v1/jobs/${encodeURIComponent(jobId)}`,
-        token: token.token,
-      });
+      const current = withCopyRunnablePaymentNextActionCommands(
+        await apiRequest({
+          command: "image-skill jobs wait",
+          method: "GET",
+          apiBaseUrl: apiBase(args),
+          path: `/v1/jobs/${encodeURIComponent(jobId)}`,
+          token: token.token,
+        }),
+        createGuideCommandPrefix(),
+      );
       if (!current.envelope.ok) {
         return current;
       }
@@ -4380,13 +4492,16 @@ async function activity(argv) {
         "activity show requires REFERENCE",
       );
     }
-    return apiRequest({
-      command: "image-skill activity show",
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: `/v1/activity/${encodeURIComponent(reference)}`,
-      token: token.token,
-    });
+    return withCopyRunnablePaymentNextActionCommands(
+      await apiRequest({
+        command: "image-skill activity show",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: `/v1/activity/${encodeURIComponent(reference)}`,
+        token: token.token,
+      }),
+      createGuideCommandPrefix(),
+    );
   }
   if (subcommand === "list") {
     const query = new URLSearchParams();
@@ -4398,13 +4513,16 @@ async function activity(argv) {
     if (subject !== null) {
       query.set("subject", subject);
     }
-    return apiRequest({
-      command: "image-skill activity list",
-      method: "GET",
-      apiBaseUrl: apiBase(args),
-      path: `/v1/activity${query.size > 0 ? `?${query.toString()}` : ""}`,
-      token: token.token,
-    });
+    return withCopyRunnablePaymentNextActionCommands(
+      await apiRequest({
+        command: "image-skill activity list",
+        method: "GET",
+        apiBaseUrl: apiBase(args),
+        path: `/v1/activity${query.size > 0 ? `?${query.toString()}` : ""}`,
+        token: token.token,
+      }),
+      createGuideCommandPrefix(),
+    );
   }
   return invalid("image-skill activity", "activity requires list or show");
 }

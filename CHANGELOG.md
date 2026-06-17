@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.65 - 2026-06-17
+
+- Release (activation/self-fund): make hosted create/edit success
+  `data.quota.top_up` and `data.next_actions.self_fund` commands copy-runnable
+  from the public CLI, so near-wall agents can move from a successful media
+  response into the same zero-setup `npx image-skill@latest` top-up path as
+  quota reads and quota errors. No payment caps, wallet action, provider spend,
+  hosted deploy, or production write changed in this release bump.
+
 ## 0.1.64 - 2026-06-17
 
 - Release (activation/self-fund): publish the hosted success-surface
