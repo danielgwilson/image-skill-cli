@@ -282,7 +282,9 @@ audit trail context (recent jobs, assets, usage events, feedback acceptance,
 trace IDs, status changes) you can cite in feedback. `activity list/show` may
 also return `data.next_actions.self_fund` with the same urgency and no-spend
 inspection handoff when the ledger proves generated work and quota says top-up
-setup is recommended.
+setup is recommended. `assets show` and hosted asset-id `assets get` may return
+the same `data.next_actions.self_fund` after generated work, so downloading or
+inspecting the asset does not hide the funding setup path.
 **Do not use `activity` as a wait or recovery command.** Activity is the ledger,
 not the work queue.
 

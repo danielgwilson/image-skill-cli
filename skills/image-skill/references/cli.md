@@ -1578,6 +1578,10 @@ Minimum success data:
 External URLs are rejected. Older assets created before hosted asset metadata
 was recorded may still be inspectable by Image Skill-owned URL.
 
+For hosted generated assets, when quota says top-up setup is recommended,
+`data.next_actions.self_fund` mirrors the top-up urgency and no-spend payment
+rail inspection handoff used by create/edit, jobs, and activity responses.
+
 ### `image-skill assets get`
 
 Downloads an Image Skill-owned asset URL or hosted asset id to a local file.
@@ -1591,7 +1595,9 @@ image-skill assets get \
 
 The command refuses to overwrite existing files unless `--overwrite` is
 explicit. It verifies byte length when the asset server provides a
-`content-length` header.
+`content-length` header. For hosted asset-id downloads, `assets get` preserves
+`data.next_actions.self_fund` from the asset metadata response after a
+successful download.
 
 ### `image-skill jobs show`
 
