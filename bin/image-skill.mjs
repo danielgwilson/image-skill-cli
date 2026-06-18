@@ -1866,11 +1866,6 @@ async function createGuide(args, options = {}) {
     paymentSummary,
     nextCommandCopyRunnable,
   });
-  const selfFundNextCommand = stage === "quota_required" ? nextCommand : null;
-  const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
-    stage,
-    paymentSummary,
-  );
   const quotaTopUp = createGuideQuotaTopUp(
     quota?.envelope.data?.top_up ?? null,
   );
@@ -1917,6 +1912,15 @@ async function createGuide(args, options = {}) {
     afterNext,
     tokenSource: publicTokenSource,
   });
+  const selfFundNextCommand =
+    stage === "quota_required"
+      ? nextCommand
+      : createGuidePreWallSelfFundNextCommand(selfFundPreparation);
+  const selfFundNextCommandLabel = createGuideSelfFundNextCommandLabel(
+    stage,
+    paymentSummary,
+    selfFundPreparation,
+  );
   const guideRecovery = createGuideRecovery(stage, {
     blocker,
     nextCommand,
@@ -3213,7 +3217,32 @@ function createGuideAuthReady(stage, input) {
   };
 }
 
-function createGuideSelfFundNextCommandLabel(stage, paymentSummary) {
+function createGuideSelfFundNextCommandLabel(
+  stage,
+  paymentSummary,
+  selfFundPreparation,
+) {
+  if (stage === "ready_to_create") {
+    if (createGuidePreWallSelfFundNextCommand(selfFundPreparation) === null) {
+      return null;
+    }
+    if (
+      selfFundPreparation?.top_up_path === "browserless_agent_self_fund" &&
+      selfFundPreparation.preferred_method !== null &&
+      paymentSummary.browserless_methods.includes(
+        selfFundPreparation.preferred_method,
+      ) &&
+      paymentSummary.agent_settleable_methods.includes(
+        selfFundPreparation.preferred_method,
+      )
+    ) {
+      return "pre_wall_browserless_agent_payable_quote";
+    }
+    if (selfFundPreparation?.top_up_path === "human_payment_handoff") {
+      return "pre_wall_human_handoff_payment_quote";
+    }
+    return "pre_wall_payment_or_quota_action";
+  }
   if (stage !== "quota_required") {
     return null;
   }
@@ -3232,6 +3261,18 @@ function createGuideSelfFundNextCommandLabel(stage, paymentSummary) {
     return "human_handoff_payment_quote";
   }
   return "payment_or_quota_action";
+}
+
+function createGuidePreWallSelfFundNextCommand(selfFundPreparation) {
+  if (
+    selfFundPreparation === null ||
+    !selfFundPreparation.available ||
+    !selfFundPreparation.recommended ||
+    !selfFundPreparation.quote_command_copy_runnable
+  ) {
+    return null;
+  }
+  return selfFundPreparation.quote_command;
 }
 
 function createGuideSelfFundHandoff(stage, input) {

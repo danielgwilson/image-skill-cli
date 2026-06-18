@@ -250,8 +250,12 @@ step.
   `urgency_reasons`; when `recommended` is true, `quote_command` creates an
   authenticated live-money quote/payment object without paying, settling a
   wallet transfer, debiting credits, calling a provider, or writing media.
-  Only follow later buy/status/wallet-settlement commands when delegated spend
-  is allowed. `data.next_command_effect.label` is
+  When that recommended quote is copy-runnable, `data.self_fund_next_command`
+  aliases it and `data.self_fund_next_command_label` uses a `pre_wall_...`
+  label such as `pre_wall_browserless_agent_payable_quote`, so agents can open
+  the top-up quote path before consuming their remaining free allowance. Only
+  follow later buy/status/wallet-settlement commands when delegated spend is
+  allowed. `data.next_command_effect.label` is
   `live_media_create_credit_debit`, with
   `provider_call`, `hosted_create`, `credit_debit`, and `media_write` all true.
   `data.guide_warning.next_command_safety` is

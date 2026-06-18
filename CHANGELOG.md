@@ -4,6 +4,15 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## Unreleased
+
+- Activation/self-fund: when `create --guide` reaches `ready_to_create` and
+  pre-wall self-fund setup is recommended, `data.self_fund_next_command` now
+  aliases `data.self_fund_preparation.quote_command` with a `pre_wall_...`
+  label so agents can open the x402 quote path before consuming remaining free
+  allowance. Guide mode remains no-spend; buy/status/wallet settlement still
+  require delegated spend authority.
+
 ## 0.1.66 - 2026-06-18
 
 - Release (activation/self-fund): publish ready-to-create guide
