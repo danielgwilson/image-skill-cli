@@ -6,6 +6,8 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.67 - 2026-06-18
+
 - Activation/self-fund: when `create --guide` reaches `ready_to_create` and
   pre-wall self-fund setup is recommended, `data.self_fund_next_command` now
   aliases `data.self_fund_preparation.quote_command` with a `pre_wall_...`
