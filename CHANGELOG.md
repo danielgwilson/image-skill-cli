@@ -4,6 +4,16 @@ This changelog tracks the public `image-skill` CLI package and public skill
 mirror. The npm package metadata remains the authority for tarball integrity and
 provenance; this file is the human- and agent-readable release map.
 
+## 0.1.66 - 2026-06-18
+
+- Release (activation/self-fund): publish ready-to-create guide
+  `data.self_fund_preparation` urgency fields, so agents that still have free
+  allowance can see `setup_recommended`, `urgency_score`, and
+  `urgency_reasons` before they spend down into the quota wall. The public CLI
+  also derives the same urgency from older hosted quota responses that only
+  carry `recommendation_reason`. No payment caps, wallet action, provider
+  spend, hosted deploy, or production write changed in this release bump.
+
 ## 0.1.65 - 2026-06-17
 
 - Release (activation/self-fund): make hosted create/edit success
