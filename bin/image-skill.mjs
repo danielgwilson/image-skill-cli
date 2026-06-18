@@ -1871,6 +1871,9 @@ async function createGuide(args, options = {}) {
     stage,
     paymentSummary,
   );
+  const quotaTopUp = createGuideQuotaTopUp(
+    quota?.envelope.data?.top_up ?? null,
+  );
   const afterNext =
     stage === "auth_required" || stage === "quota_required"
       ? renderGuideCommand(
@@ -1906,11 +1909,11 @@ async function createGuide(args, options = {}) {
     afterNext,
     tokenSource: publicTokenSource,
     commandPrefix: guideCommandPrefix,
-    quotaTopUp: quota?.envelope.data?.top_up ?? null,
+    quotaTopUp,
   });
   const selfFundPreparation = createGuideSelfFundPreparation(stage, {
     paymentSummary,
-    quotaTopUp: quota?.envelope.data?.top_up ?? null,
+    quotaTopUp,
     afterNext,
     tokenSource: publicTokenSource,
   });
@@ -1964,7 +1967,7 @@ async function createGuide(args, options = {}) {
         required_credits: estimatedCredits,
         daily_jobs_remaining:
           quota?.envelope.data?.daily_jobs?.remaining ?? null,
-        top_up: quota?.envelope.data?.top_up ?? null,
+        top_up: quotaTopUp,
         reason:
           quota === null
             ? "auth_required"
@@ -3264,9 +3267,7 @@ function createGuideSelfFundHandoff(stage, input) {
   return {
     required: true,
     preferred_method: preferredMethod,
-    urgency: input.quotaTopUp?.urgency ?? null,
-    urgency_score: input.quotaTopUp?.urgency_score ?? null,
-    urgency_reasons: input.quotaTopUp?.urgency_reasons ?? [],
+    ...createGuideQuotaTopUpUrgencyFields(input.quotaTopUp),
     live_money:
       preferredMethod !== null &&
       input.paymentSummary.live_money_methods.includes(preferredMethod),
@@ -3343,6 +3344,7 @@ function createGuideSelfFundPreparation(stage, input) {
     available,
     recommended: input.quotaTopUp?.recommended === true,
     recommendation_reason: input.quotaTopUp?.recommendation_reason ?? null,
+    ...createGuideQuotaTopUpUrgencyFields(input.quotaTopUp),
     preferred_method: preferredMethod,
     top_up_path: topUpPath,
     inspect_methods_command: guidePaymentInspectionCommand(
@@ -3384,6 +3386,23 @@ function createGuideSelfFundPreparation(stage, input) {
       ? "You can inspect or quote the browserless self-fund rail before credits run out; do not run buy or transfer funds unless delegated spend is allowed."
       : "You can inspect the top-up path before credits run out; do not run buy or complete payment unless delegated spend is allowed.",
   };
+}
+
+function createGuideQuotaTopUp(topUp) {
+  if (topUp === null) {
+    return null;
+  }
+  return {
+    ...topUp,
+    ...quotaTopUpUrgencyFields(topUp),
+  };
+}
+
+function createGuideQuotaTopUpUrgencyFields(quotaTopUp) {
+  if (quotaTopUp === null) {
+    return { urgency: null, urgency_score: null, urgency_reasons: [] };
+  }
+  return quotaTopUpUrgencyFields(quotaTopUp);
 }
 
 function createGuideWalletSettlementHandoff({

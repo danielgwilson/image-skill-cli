@@ -246,7 +246,8 @@ step.
   `error.recovery.suggested_command` for no-spend payment-method inspection.
 - `ready_to_create`: `data.next_command` is a live media create. Its
   `data.self_fund_preparation` is the pre-wall top-up affordance; when
-  `available` and `recommended` are true, `quote_command` creates an
+  `available` is true, it mirrors top-up `urgency`, `urgency_score`, and
+  `urgency_reasons`; when `recommended` is true, `quote_command` creates an
   authenticated live-money quote/payment object without paying, settling a
   wallet transfer, debiting credits, calling a provider, or writing media.
   Only follow later buy/status/wallet-settlement commands when delegated spend
