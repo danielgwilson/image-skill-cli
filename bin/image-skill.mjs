@@ -1192,10 +1192,6 @@ async function credits(argv) {
     if (credentialFlag !== null) {
       return credentialFlag;
     }
-    const token = await resolveToken(args);
-    if (!token.ok) {
-      return token.result;
-    }
     const creditsValue = flagNumber(args, "credits");
     const pack = flagString(args, "pack");
     if (creditsValue === null && pack === null) {
@@ -1221,6 +1217,16 @@ async function credits(argv) {
         "image-skill credits quote",
         `public credits quote supports --payment-method ${PUBLIC_QUOTE_PAYMENT_METHODS.join(" or ")}`,
       );
+    }
+    const token = await resolveToken(args);
+    if (!token.ok) {
+      return withCreditQuoteAuthRecovery(token.result, {
+        args,
+        creditsValue,
+        pack,
+        paymentMethod,
+        idempotency,
+      });
     }
     const body = {
       ...(creditsValue === null ? {} : { credits: creditsValue }),
@@ -3057,6 +3063,63 @@ function renderCopyRunnablePaymentCommand(commandPrefix, command) {
     return command;
   }
   return renderGuidePrefixedCommand(commandPrefix, command);
+}
+
+function withCreditQuoteAuthRecovery(result, input) {
+  const command = renderCopyRunnablePaymentCommand(
+    createGuideCommandPrefix(),
+    renderCreditQuoteRetryCommand(input),
+  );
+  return {
+    ...result,
+    envelope: {
+      ...result.envelope,
+      error: {
+        ...result.envelope.error,
+        recovery: {
+          ...(result.envelope.error?.recovery ?? {}),
+          after_auth: {
+            command,
+            command_copy_runnable: true,
+            with_env: `IMAGE_SKILL_TOKEN="$IMAGE_SKILL_TOKEN" ${command}`,
+            with_stdin: renderTokenStdinCommand(command),
+            accepted_methods: ["config", "IMAGE_SKILL_TOKEN", "--token-stdin"],
+            requires_auth: true,
+            command_effect: {
+              label: "live_money_quote_no_charge",
+              live_money: true,
+              payment_object: true,
+              payment_attempt: false,
+              wallet_settlement: false,
+              provider_call: false,
+              credit_debit: false,
+              media_write: false,
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function renderCreditQuoteRetryCommand(input) {
+  return [
+    "image-skill credits quote",
+    ...(input.pack === null
+      ? ["--credits", String(input.creditsValue)]
+      : ["--pack", input.pack]),
+    "--payment-method",
+    input.paymentMethod,
+    "--idempotency-key",
+    input.idempotency.value,
+    ...quoteRetryApiBaseArgs(input.args),
+    "--json",
+  ].join(" ");
+}
+
+function quoteRetryApiBaseArgs(args) {
+  const apiBaseUrl = explicitApiBaseUrl(args);
+  return apiBaseUrl === null ? [] : ["--api-base-url", shellQuote(apiBaseUrl)];
 }
 
 function createGuideStage(input) {
