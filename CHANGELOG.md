@@ -6,6 +6,15 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.68 - 2026-06-18
+
+- Release (activation/self-fund): publish the quote-auth retry handoff from
+  #2002 so a valid unauthenticated `credits quote` failure preserves the exact
+  `error.recovery.after_auth` retry command, plus env-token and stdin-token
+  handoffs, after signup. The quote remains no-charge: no buy, wallet
+  settlement, provider call, credit debit, media write, hosted deploy, or
+  production write changed in this release bump.
+
 ## 0.1.67 - 2026-06-18
 
 - Activation/self-fund: when `create --guide` reaches `ready_to_create` and
