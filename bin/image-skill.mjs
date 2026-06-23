@@ -48,6 +48,9 @@ const HOSTED_SIGNUP_TOKEN_RETURNED_WARNING =
   "hosted restricted token is returned once; store it in the agent runtime secret store and never paste it into prompts, logs, issues, or product feedback";
 const PUBLIC_NPX_COMMAND_PREFIX =
   "npm_config_update_notifier=false npx -y image-skill@latest";
+const AGENT_SKILL_URL = "https://image-skill.com/skill.md";
+const AGENT_LLMS_URL = "https://image-skill.com/llms.txt";
+const AGENT_CLI_DOCS_URL = "https://image-skill.com/cli.md";
 const CREDIT_UNIT_USD = 0.01;
 const TARGET_GROSS_MARGIN = 0.4;
 const PAYMENT_BACKED_CREDIT_PAYMENT_FEE_RATE = 0.015;
@@ -144,6 +147,30 @@ const GUIDE_NEXT_COMMAND_PLACEHOLDERS = [
     example: null,
   },
 ];
+
+function agentSkillHint(commandPrefix = "image-skill") {
+  return {
+    url: AGENT_SKILL_URL,
+    llms_url: AGENT_LLMS_URL,
+    cli_docs_url: AGENT_CLI_DOCS_URL,
+    read_command: "curl -fsSL https://image-skill.com/skill.md",
+    recommended_start_command: renderGuidePrefixedCommand(
+      commandPrefix,
+      "create --guide --prompt PROMPT --json",
+    ),
+    model_discovery_command: renderGuidePrefixedCommand(
+      commandPrefix,
+      "models list --available --operation image.generate --json",
+    ),
+    model_inspection_command: renderGuidePrefixedCommand(
+      commandPrefix,
+      "models show MODEL_ID --json",
+    ),
+    no_spend: true,
+    purpose:
+      "Read the agent skill before paid media work; it explains model discovery, guide flow, model parameters, quota, and self-fund recovery.",
+  };
+}
 
 const argv = normalizePublicArgv(process.argv.slice(2));
 const result = await main(argv);
@@ -297,6 +324,7 @@ function commandHelpByKey(key) {
       usage:
         "image-skill <doctor|trust|signup|claim|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
       docs_url: "https://image-skill.com/cli.md",
+      agent_skill: agentSkillHint(),
       commands: [
         "doctor",
         "trust",
@@ -649,10 +677,11 @@ async function doctor(argv) {
     },
     in_flight: inFlight,
     docs: {
-      skill: "https://image-skill.com/skill.md",
-      llms: "https://image-skill.com/llms.txt",
-      cli: "https://image-skill.com/cli.md",
+      skill: AGENT_SKILL_URL,
+      llms: AGENT_LLMS_URL,
+      cli: AGENT_CLI_DOCS_URL,
     },
+    agent_skill: agentSkillHint(),
   });
 }
 
@@ -1940,6 +1969,7 @@ async function createGuide(args, options = {}) {
       guideOperation === "edit"
         ? "image-skill.edit-guide.v1"
         : "image-skill.create-guide.v1",
+    agent_skill: agentSkillHint(guideCommandPrefix),
     ready: stage === "ready_to_create",
     stage,
     checks: {

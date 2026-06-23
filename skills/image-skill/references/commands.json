@@ -150,6 +150,17 @@
         "command": "help",
         "usage": "image-skill <doctor|trust|signup|claim|whoami|usage|quota|credits|capabilities|models|create|upload|edit|assets|jobs|activity|feedback> --json",
         "docs_url": "https://image-skill.com/cli.md",
+        "agent_skill": {
+          "url": "https://image-skill.com/skill.md",
+          "llms_url": "https://image-skill.com/llms.txt",
+          "cli_docs_url": "https://image-skill.com/cli.md",
+          "read_command": "curl -fsSL https://image-skill.com/skill.md",
+          "recommended_start_command": "image-skill create --guide --prompt PROMPT --json",
+          "model_discovery_command": "image-skill models list --available --operation image.generate --json",
+          "model_inspection_command": "image-skill models show MODEL_ID --json",
+          "no_spend": true,
+          "purpose": "Read the agent skill before paid media work; it explains model discovery, guide flow, model parameters, quota, and self-fund recovery."
+        },
         "commands": [
           "doctor",
           "trust",
