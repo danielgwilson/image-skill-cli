@@ -938,8 +938,10 @@ image-skill models list --details --json
 image-skill models list --available --operation image.generate --json
 image-skill models list --available --operation image.edit --json
 image-skill models list --available --modality video --operation video.generate --json
+image-skill models list --query nano-banana --json
 image-skill models list --catalog-only --provider fal --json
 image-skill models show MODEL_ID --json
+image-skill models show nano-banana --json
 image-skill models show default --json
 ```
 
@@ -948,6 +950,7 @@ Hosted API equivalents:
 ```bash
 curl -sS https://api.image-skill.com/v1/models
 curl -sS 'https://api.image-skill.com/v1/models?available=true&modality=video&operation=video.generate'
+curl -sS 'https://api.image-skill.com/v1/models?query=nano-banana'
 curl -sS https://api.image-skill.com/v1/models/xai.grok-imagine-image
 ```
 
@@ -962,12 +965,16 @@ controls, or provider-native options.
 `default: true` row when the default executable create model is included.
 `models show default --json` resolves to that model so first-run agents can
 inspect the recommended create surface without knowing a provider-specific
+model id. `models show` also resolves common migration aliases such as
+`nano-banana` to `fal.nano-banana-2`, while `models list --query QUERY --json`
+returns fuzzy provider/model-family matches before an agent commits to one
 model id. The list response also returns `summary` with total, returned,
 available, executable, catalog-only, provider split,
 `execution_availability`, first actionable model ids, recommended filter
-commands, and catalog-inclusion flags. Default list output is a compact,
-sortable model menu and excludes catalog-only rows so fresh agents see
-executable candidates first. Each row keeps the model id, flat
+commands, alias hints, provider/category discovery groups, and
+catalog-inclusion flags. Default list output is a compact, sortable model menu
+and excludes catalog-only rows so fresh agents see executable candidates first.
+Each row keeps the model id, flat
 `estimated_usd_per_image`, `credits_required`, lightweight `task_tags`, status,
 provider, max output count/resolution, storage, and `show_command`, while
 omitting full parameter schemas. Use `models show MODEL_ID --json` for one
@@ -978,8 +985,10 @@ default compact list. Use `--available` for currently usable executable rows,
 `--modality image|video|audio|3d` for media type, `--operation
 image.generate`, `--operation image.edit`, `--operation video.generate`,
 `--operation audio.generate`, or `--operation 3d.generate` for the task,
-`--provider fal|xai|openai` to narrow by provider, and `--catalog-only` when you
-intentionally want source-backed rows that are inspectable but not runnable yet.
+`--provider fal|xai|openai` to narrow by provider, `--query QUERY` to search
+ids, display names, provider namespaces, operations, tags, intents, upstream
+Fal endpoint ids, and known aliases, and `--catalog-only` when you intentionally
+want source-backed rows that are inspectable but not runnable yet.
 Provider-level availability is not the same thing as model executability; for
 runnable choices require both `status:"available"` and
 `execution.model_execution_status:"executable"`. If a reachable provider has no

@@ -388,6 +388,7 @@
           "--operation",
           "--modality",
           "--provider",
+          "--query",
           "--summary",
           "--details"
         ]

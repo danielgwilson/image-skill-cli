@@ -506,6 +506,7 @@ function commandHelpByKey(key) {
         "--operation",
         "--modality",
         "--provider",
+        "--query",
         "--summary",
         "--details",
       ],
@@ -1480,6 +1481,7 @@ function modelListQuery(args) {
   addQueryValue(params, "operation", flagString(args, "operation"));
   addQueryValue(params, "modality", flagString(args, "modality"));
   addQueryValue(params, "provider", flagString(args, "provider"));
+  addQueryValue(params, "query", flagString(args, "query"));
   const query = params.toString();
   return {
     ok: true,
@@ -2119,7 +2121,7 @@ function selectCreateGuideModel(
       ? isExecutableInputImageEdit(model)
       : isExecutableCreate(model) || isExecutableInputImageEdit(model);
   if (requestedModelId !== null) {
-    const requested = models.find((model) => model.id === requestedModelId);
+    const requested = resolveModelLookup(requestedModelId, models);
     return requested !== undefined && isExecutableGuideModel(requested)
       ? requested
       : null;
@@ -2165,6 +2167,137 @@ function selectCreateGuideModel(
     }
   }
   return eligible[0] ?? null;
+}
+
+const MODEL_ALIAS_RULES = [
+  {
+    alias: "nano-banana",
+    modelId: "fal.nano-banana-2",
+    synonyms: [
+      "nano banana",
+      "fal/nano-banana",
+      "fal-ai/nano-banana",
+      "fal-ai/nano-banana-2",
+    ],
+  },
+  {
+    alias: "nano-banana-edit",
+    modelId: "fal.nano-banana-2-edit",
+    synonyms: [
+      "nano banana edit",
+      "nano-banana-2/edit",
+      "fal/nano-banana/edit",
+      "fal-ai/nano-banana/edit",
+      "fal-ai/nano-banana-2/edit",
+    ],
+  },
+  {
+    alias: "nano-banana-pro",
+    modelId: "fal.nano-banana-pro",
+    synonyms: ["nano banana pro", "fal-ai/nano-banana-pro"],
+  },
+  {
+    alias: "nano-banana-pro-edit",
+    modelId: "fal.nano-banana-pro-edit",
+    synonyms: [
+      "nano banana pro edit",
+      "nano-banana-pro/edit",
+      "fal-ai/nano-banana-pro/edit",
+    ],
+  },
+  {
+    alias: "imagen4",
+    modelId: "fal.imagen4-preview",
+    synonyms: ["imagen 4", "fal-ai/imagen4/preview"],
+  },
+  {
+    alias: "imagen4-fast",
+    modelId: "fal.imagen4-preview-fast",
+    synonyms: ["imagen 4 fast", "fal-ai/imagen4/preview/fast"],
+  },
+  {
+    alias: "imagen4-ultra",
+    modelId: "fal.imagen4-preview-ultra",
+    synonyms: ["imagen 4 ultra", "fal-ai/imagen4/preview/ultra"],
+  },
+];
+
+function resolveModelLookup(requestedModelId, models) {
+  const requested = String(requestedModelId ?? "").trim();
+  if (requested.length === 0) {
+    return undefined;
+  }
+  if (requested === "default") {
+    return models.find((model) => model?.default === true);
+  }
+  const exact = models.find((model) => model?.id === requested);
+  if (exact !== undefined) {
+    return exact;
+  }
+  const normalized = normalizeModelLookupToken(requested);
+  const alias = MODEL_ALIAS_RULES.find((rule) =>
+    [rule.alias, ...rule.synonyms].some(
+      (candidate) => normalizeModelLookupToken(candidate) === normalized,
+    ),
+  );
+  if (alias !== undefined) {
+    const model = models.find((candidate) => candidate?.id === alias.modelId);
+    if (model !== undefined) {
+      return model;
+    }
+  }
+  const normalizedMatches = models.filter(
+    (model) => normalizeModelLookupToken(model?.id ?? "") === normalized,
+  );
+  if (normalizedMatches.length === 1) {
+    return normalizedMatches[0];
+  }
+  const fuzzyMatches = models.filter((model) =>
+    modelMatchesLookupQuery(model, requested),
+  );
+  return fuzzyMatches.length === 1 ? fuzzyMatches[0] : undefined;
+}
+
+function modelMatchesLookupQuery(model, query) {
+  const normalizedQuery = normalizeModelLookupToken(query);
+  if (normalizedQuery.length === 0) {
+    return true;
+  }
+  const aliases = MODEL_ALIAS_RULES.filter(
+    (rule) => rule.modelId === model?.id,
+  ).flatMap((rule) => [rule.alias, ...rule.synonyms]);
+  const searchable = [
+    model?.id,
+    model?.display_name,
+    model?.provider_id,
+    model?.modality,
+    ...(Array.isArray(model?.supports) ? model.supports : []),
+    ...(Array.isArray(model?.operations) ? model.operations : []),
+    ...(Array.isArray(model?.task_tags) ? model.task_tags : []),
+    ...aliases,
+  ]
+    .filter((value) => typeof value === "string")
+    .map(normalizeModelLookupToken)
+    .join(" ");
+  if (searchable.includes(normalizedQuery)) {
+    return true;
+  }
+  const queryTokens = query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/u)
+    .filter((token) => token.length > 0);
+  return (
+    queryTokens.length > 0 &&
+    queryTokens.every((token) =>
+      searchable.includes(normalizeModelLookupToken(token)),
+    )
+  );
+}
+
+function normalizeModelLookupToken(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "");
 }
 
 function guideCandidatesWithinBudget({
