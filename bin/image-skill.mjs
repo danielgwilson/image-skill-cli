@@ -2817,12 +2817,7 @@ function withCopyRunnableCreditQuoteCommands(result, commandPrefix) {
 
 function withCopyRunnablePaymentNextActionCommands(result, commandPrefix) {
   const data = result.envelope.data;
-  if (
-    !result.envelope.ok ||
-    data === null ||
-    typeof data !== "object" ||
-    Array.isArray(data)
-  ) {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
     return result;
   }
   const updated = paymentNextActionsWithCopyRunnableCommands(
@@ -2864,6 +2859,20 @@ function paymentNextActionsWithCopyRunnableCommands(data, commandPrefix) {
       },
     };
     changed = true;
+  }
+
+  if (typeof data.self_fund_next_command === "string") {
+    const rendered = renderCopyRunnablePaymentCommand(
+      commandPrefix,
+      data.self_fund_next_command,
+    );
+    if (rendered !== data.self_fund_next_command) {
+      updated = {
+        ...updated,
+        self_fund_next_command: rendered,
+      };
+      changed = true;
+    }
   }
 
   if (
