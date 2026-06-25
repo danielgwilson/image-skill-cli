@@ -292,8 +292,12 @@ top-up quote command when `quota.top_up.available` is true. Its `recommended`
 flag and mirrored top-up `urgency`, `urgency_score`, and `urgency_reasons` say
 whether the agent should act now, while `first_safe_command` plus
 `first_safe_command_effect` support no-spend rail inspection before quote/buy.
-Its `quote_command` omits `--idempotency-key`; the public CLI generates and
-returns one for retry safety. Use `jobs show` or `jobs wait` for
+When `self_fund.recommended` is true and the quote is copy-runnable,
+`data.self_fund_next_command` aliases `data.next_actions.self_fund.quote_command`
+and `data.self_fund_next_command_effect` proves the quote creates no provider
+call, hosted create, credit debit, media write, or wallet settlement. Its
+`quote_command` omits `--idempotency-key`; the public CLI generates and returns
+one for retry safety. Use `jobs show` or `jobs wait` for
 operational job state, final assets, and retry judgment. Use `activity` for
 audit trail context (recent jobs, assets, usage events, feedback acceptance,
 trace IDs, status changes) you can cite in feedback. `activity list/show` may

@@ -1683,7 +1683,11 @@ was recorded may still be inspectable by Image Skill-owned URL.
 For hosted generated assets, when quota exposes an available top-up path,
 `data.next_actions.self_fund` mirrors the top-up recommendation, urgency, and
 no-spend payment rail inspection handoff used by create/edit, jobs, and
-activity responses.
+activity responses. On successful create/edit, when that self-fund action is
+recommended and copy-runnable, `data.self_fund_next_command` aliases
+`data.next_actions.self_fund.quote_command`; its effect object proves the quote
+does not buy, settle a wallet transfer, debit credits, call a provider, create a
+hosted job, or write media.
 
 ### `image-skill assets get`
 
