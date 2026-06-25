@@ -6,6 +6,15 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.70 - 2026-06-25
+
+- Release (activation/self-fund): publish the post-success self-fund handoff
+  from #2042 so hosted create/edit successes can expose a top-level
+  `data.self_fund_next_command` when quota says a top-up is recommended and
+  the quote command is copy-runnable. This release prep does not change
+  payment caps, wallet settlement, provider spend, hosted deploys, production
+  writes, or media generation behavior.
+
 ## 0.1.69 - 2026-06-25
 
 - Release (activation/discovery/self-fund): publish the post-`0.1.68` public
