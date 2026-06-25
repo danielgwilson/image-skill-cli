@@ -6,6 +6,16 @@ provenance; this file is the human- and agent-readable release map.
 
 ## Unreleased
 
+## 0.1.69 - 2026-06-25
+
+- Release (activation/discovery/self-fund): publish the post-`0.1.68` public
+  CLI payload so external `image-skill@latest` agents receive copy-runnable
+  self-fund commands on hosted quota walls, the public agent-skill discovery
+  surface in CLI help/manifest output, and model discovery query/alias support
+  for faster provider/model selection. This release prep does not change
+  payment caps, wallet settlement, provider spend, hosted deploys, production
+  writes, or media generation behavior.
+
 ## 0.1.68 - 2026-06-18
 
 - Release (activation/self-fund): publish the quote-auth retry handoff from
