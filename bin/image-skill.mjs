@@ -4009,9 +4009,9 @@ function createGuideEffectPlaceholders(missingInputs) {
 }
 
 function commandContainsTemplateToken(command, token) {
-  return new RegExp(
-    `(^|[^A-Za-z0-9_])${escapeRegExp(token)}(?=$|[^A-Za-z0-9_])`,
-  ).test(command);
+  return new RegExp(`(^|[^\\w])${escapeRegExp(token)}(?=$|[^\\w])`).test(
+    command,
+  );
 }
 
 function escapeRegExp(value) {
@@ -4813,7 +4813,8 @@ async function activity(argv) {
         command: "image-skill activity list",
         method: "GET",
         apiBaseUrl: apiBase(args),
-        path: `/v1/activity${query.size > 0 ? `?${query.toString()}` : ""}`,
+        path:
+          query.size > 0 ? `/v1/activity?${query.toString()}` : "/v1/activity",
         token: token.token,
       }),
       createGuideCommandPrefix(),
